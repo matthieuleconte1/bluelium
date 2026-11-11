@@ -2,31 +2,33 @@
 # Bluelium — auto-build (machine de build).
 #
 # Construit une version complète (PGO) quand Helium publie une nouvelle version
-# OU quand les patchs Glyphe envoyés par tools/sync-builder.sh changent.
-# Travaille dans /root/helium-auto : l'arbre de développement /root/helium-linux
-# (builds incrémentaux) n'est jamais touché.
+# OU quand les patchs Bluelium changent sur GitHub (specs/, patches/,
+# downloads.ini, lanceur). Travaille dans /root/helium-auto : l'arbre de
+# développement /root/helium-linux (builds incrémentaux) n'est jamais touché.
 #
-# Entrées (envoyées par sync-builder.sh) :
-#   /root/glyphe/autobuild/patches/glyphe/*.patch
-#   /root/glyphe/autobuild/patches/series.glyphe   (ordre des patchs Glyphe)
-#   /root/glyphe/autobuild/downloads.glyphe.ini    (sources en plus, ex. Shimmer)
-#   /root/glyphe/autobuild/helium-wrapper           (lanceur empaqueté)
+# Entrées :
+#   imputnet/helium-linux        dernière version publiée (tag)
+#   $BLUELIUM_GIT (branche main) specs/SERIES, specs/, patches/glyphe/,
+#                                downloads.ini, autobuild/helium-wrapper
 # Sorties :
 #   /root/glyphe/releases/bluelium-<version>.tar.zst (+ .sha256)
 #   release GitHub v<version> sur $BLUELIUM_REPO si /root/glyphe/github.env
 #   définit GH_TOKEN (jeton limité au dépôt, droit « Contents: write »)
+#   /root/glyphe/releases/patches-<version>/  patchs régénérés sur cette version
 #   /root/glyphe/releases/latest.json   (dernière version réussie)
 #   /root/glyphe/releases/status.json   (idle | building | failed, détail)
 #
 # FORCE=1 reconstruit même si rien n'a changé. PGO=false pour aller plus vite.
+# PATCH_ONLY=1 s'arrête après la série Bluelium (vérifie qu'elle s'applique).
 set -euo pipefail
 
 G=/root/glyphe
-IN=$G/autobuild
 W=/root/helium-auto
+B=/root/bluelium
 REL=$G/releases
 LOG=$G/autobuild.log
 STATE=$G/autobuild.state
+BLUELIUM_GIT=${BLUELIUM_GIT:-https://github.com/matthieuleconte1/bluelium.git}
 mkdir -p "$REL"
 exec 9>/run/glyphe-autobuild.lock
 flock -n 9 || { echo "Un auto-build tourne déjà."; exit 0; }
@@ -45,8 +47,6 @@ PY
 fail() { status failed "$1"; echo "ÉCHEC : $1"; exit 1; }
 trap 'status failed "erreur inattendue (ligne $LINENO), voir autobuild.log"' ERR
 
-[ -f "$IN/patches/series.glyphe" ] || fail "patchs Glyphe absents : lancer tools/sync-builder.sh"
-
 # 1. Dernière version publiée de helium-linux.
 if [ ! -d "$W/.git" ]; then
   git clone https://github.com/imputnet/helium-linux.git "$W"
@@ -56,9 +56,14 @@ git fetch --quiet --tags --force origin
 TAG=$(git tag -l '[0-9]*' | sort -V | tail -1)
 [ -n "$TAG" ] || fail "aucune version trouvée sur imputnet/helium-linux"
 
-# 2. Empreinte des patchs Glyphe : un changement déclenche un build.
-PATCH_ID=$(cd "$IN" && cat patches/series.glyphe downloads.glyphe.ini helium-wrapper \
-           $(sed 's|^|patches/|' patches/series.glyphe) | sha256sum | cut -c1-10)
+# 2. Patchs Bluelium : dernier commit de main qui les touche.
+if [ ! -d "$B/.git" ]; then
+  git clone --quiet "$BLUELIUM_GIT" "$B"
+fi
+git -C "$B" fetch --quiet origin main
+git -C "$B" checkout --quiet --force origin/main
+PATCH_ID=$(git -C "$B" log -1 --format=%h -- specs patches downloads.ini \
+           autobuild/helium-wrapper tools/apply_spec.py tools/apply-series.py)
 VERSION="$TAG-g$PATCH_ID"
 if [ "${FORCE:-0}" != 1 ] && [ "$(cat "$STATE" 2>/dev/null)" = "$VERSION" ]; then
   echo "À jour : $VERSION"; exit 0
@@ -66,31 +71,49 @@ fi
 status building "$VERSION"
 echo "Build de $VERSION"
 
-# 3. Arbre propre à la version publiée, patchs Glyphe en fin de série.
+# 3. Arbre propre à la version publiée de Helium (sa série seule) et sources
+#    en plus de Bluelium (tout ce qui suit [chromium-linux] dans downloads.ini).
 git checkout --quiet --force "$TAG"
 git clean -fdq -- patches downloads.ini
 git submodule update --quiet --init --recursive --force
-rm -rf patches/glyphe
-cp -r "$IN/patches/glyphe" patches/glyphe
-cat "$IN/patches/series.glyphe" >> patches/series
-printf '\n' >> downloads.ini
-cat "$IN/downloads.glyphe.ini" >> downloads.ini
+python3 - "$B/downloads.ini" >> downloads.ini <<'PY'
+import configparser, sys
+src = configparser.RawConfigParser(); src.read(sys.argv[1])
+out = configparser.RawConfigParser()
+for section in src.sections():
+    if section != 'chromium-linux':
+        out[section] = src[section]
+print()
+out.write(sys.stdout)
+PY
 
-# 4. Sources neuves (le cache de téléchargement est gardé), patchs, build.
+# 4. Sources neuves (le cache de téléchargement est gardé), étapes de Helium,
+#    puis la série Bluelium sur l'arbre final, comme dans l'arbre de dev.
 export CCACHE_DIR=/root/.ccache CCACHE_MAXSIZE=60G CCACHE_BASEDIR=$W/build/src
 rm -rf build/src
 . "$W/scripts/shared.sh"
 setup_environment
 fetch_sources false "${PGO:-true}"
-if ! apply_patches > "$G/autobuild-patches.log" 2>&1; then
-  tail -20 "$G/autobuild-patches.log"
-  fail "un patch ne s'applique plus sur Helium $TAG (voir autobuild-patches.log)"
-fi
+apply_patches > "$G/autobuild-patches.log" 2>&1 \
+  || fail "les patchs de Helium $TAG ne s'appliquent pas (voir autobuild-patches.log)"
 apply_domsub
 helium_substitution
 helium_apply_translations
 helium_version
 helium_resources
+rm -rf "$REL/patches-$VERSION"
+if ! python3 "$B/tools/apply-series.py" "$W/build/src" "$B" "$REL/patches-$VERSION" \
+     > "$G/autobuild-series.log" 2>&1; then
+  tail -20 "$G/autobuild-series.log"
+  fail "un patch Bluelium ne s'applique plus sur Helium $TAG : $(grep -m1 'ÉCHEC' "$G/autobuild-series.log" | cut -c1-120)"
+fi
+cat "$G/autobuild-series.log"
+if [ "${PATCH_ONLY:-0}" = 1 ]; then
+  trap - ERR
+  status idle "$VERSION : série appliquée (PATCH_ONLY), pas de build"
+  echo "=== $(date -Is) série appliquée, arrêt (PATCH_ONLY)"
+  exit 0
+fi
 write_gn_args
 gn_gen
 build -j "${JOBS:-32}" || fail "la compilation a échoué pour $VERSION"
@@ -107,7 +130,7 @@ for f in helium chrome_100_percent.pak chrome_200_percent.pak helium_crashpad_ha
 done
 cp "$OUT"/locales/*.pak "$PKG/locales/"
 strip "$PKG/helium"
-install -m 755 "$IN/helium-wrapper" "$PKG/helium-wrapper"
+install -m 755 "$B/autobuild/helium-wrapper" "$PKG/helium-wrapper"
 echo "$VERSION" > "$PKG/VERSION"
 tar -C "$REL" -cf - "bluelium-$VERSION" | zstd -q -T0 -10 -o "$PKG.tar.zst" -f
 rm -rf "$PKG"

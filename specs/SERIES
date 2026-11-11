@@ -1,0 +1,27 @@
+# Ordre d'application des patchs Bluelium et la source de chacun.
+# Format : <patch dans patches/glyphe/>  <spec dans specs/ | - (patch figé)>
+# Appliqué par tools/apply-series.py APRÈS toutes les étapes de Helium
+# (patchs, substitution des domaines et des noms, traductions, ressources) :
+# les specs sont écrites sur cet état de l'arbre.
+shimmer-tab-component.patch    -
+red-night-converter.patch      red_night_spec.py
+red-night-ui-palette.patch     red_night_ui_spec.py
+assistant-side-panel.patch     assistant_spec.py
+tab-strip-fade.patch           tab_fade_spec.py
+shortcut-labels.patch          shortcut_labels_spec.py
+red-night-dom-converter.patch  red_night_dom_spec.py
+shimmer-native-ntp.patch       shimmer_native_spec.py
+prism-ui.patch                 prism_ui_spec.py
+assistant-tabs.patch           assistant_tabs_spec.py
+layout-spacing.patch           layout_spacing_spec.py
+native-messaging.patch         native_messaging_spec.py
+toolbar-glyphe.patch           toolbar_glyphe_spec.py
+reference-finishing.patch      reference_finishing_spec.py
+webstore-install.patch         webstore_install_spec.py
+blocker-toolbar.patch          blocker_toolbar_spec.py
+assistant-button-style.patch   assistant_button_style_spec.py
+page-color-fade.patch          page_color_fade_spec.py
+window-corners.patch           window_corners_spec.py
+newtab-button.patch            newtab_button_spec.py
+split-tab.patch                split_tab_spec.py
+toolbar-final-layout.patch     toolbar_final_layout_spec.py
