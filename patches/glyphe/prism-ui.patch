@@ -1,0 +1,1472 @@
+--- /dev/null
++++ b/ui/color/glyphe_prism.h
+@@ -0,0 +1,62 @@
++// Helium Glyphe — thèmes de l’interface (charte Prism).
++#ifndef UI_COLOR_GLYPHE_PRISM_H_
++#define UI_COLOR_GLYPHE_PRISM_H_
++
++#include "base/component_export.h"
++#include "third_party/skia/include/core/SkColor.h"
++
++namespace ui {
++
++class ColorProvider;
++struct ColorProviderKey;
++
++// Couleurs de base d’une palette ; tout le reste en est dérivé.
++struct GlyphePrismPalette {
++  SkColor frame;      // cadre et barre d’outils
++  SkColor card;       // menus, bulles, fond des pages internes
++  SkColor tab;        // onglet actif
++  SkColor field;      // champ d’adresse posé sur le cadre
++  SkColor text;       // texte principal
++  SkColor muted;      // onglets inactifs, texte secondaire
++  SkColor subtle;     // éléments discrets ou désactivés
++  SkColor divider;    // séparateurs d’onglets et d’outils
++  SkColor accent;     // accent
++  SkColor on_accent;  // texte sur l’accent
++  bool dark;
++};
++
++// Un thème de la grille du panneau Personnaliser ; `seed` est la couleur
++// enregistrée quand on choisit sa pastille.
++struct GlypheTheme {
++  const char* name;
++  SkColor seed;
++  GlyphePrismPalette light;
++  GlyphePrismPalette dark;
++};
++
++inline constexpr int kGlypheThemeCount = 11;
++// Graine du thème Prism, thème par défaut.
++inline constexpr SkColor kGlyphePrismSeed = SkColorSetRGB(0x34, 0x50, 0xd1);
++
++COMPONENT_EXPORT(COLOR) const GlypheTheme& GetGlypheTheme(int index);
++// Thème dont la graine est `seed`, ou nullptr.
++COMPONENT_EXPORT(COLOR) const GlypheTheme* FindGlypheTheme(SkColor seed);
++
++// Mode OLED (noir pur), choisi dans le panneau Personnaliser.
++COMPONENT_EXPORT(COLOR) void SetGlypheOled(bool enabled);
++COMPONENT_EXPORT(COLOR) bool IsGlypheOled();
++
++// Palette tirée d’une couleur de page (barre du haut qui suit la page).
++COMPONENT_EXPORT(COLOR) GlyphePrismPalette GlyphePageColorPalette(SkColor page);
++
++// Palette à appliquer pour cette clé : OLED si le mode est actif, sinon le
++// thème Glyphe choisi (Prism sans choix), nullptr pour une couleur libre.
++COMPONENT_EXPORT(COLOR)
++const GlyphePrismPalette* GetGlyphePrismPalette(const ColorProviderKey& key);
++
++// Réécrit les jetons système quand une palette s’applique.
++void AddGlyphePrismMixer(ColorProvider* provider, const ColorProviderKey& key);
++
++}  // namespace ui
++
++#endif  // UI_COLOR_GLYPHE_PRISM_H_
+--- /dev/null
++++ b/ui/color/glyphe_prism.cc
+@@ -0,0 +1,450 @@
++// Helium Glyphe — thèmes de l’interface (charte Prism).
++#include "ui/color/glyphe_prism.h"
++
++#include <atomic>
++
++#include "ui/color/color_id.h"
++#include "ui/color/color_mixer.h"
++#include "ui/color/color_provider.h"
++#include "ui/color/color_provider_key.h"
++#include "ui/color/color_recipe.h"
++#include "ui/color/glyphe_red_night.h"
++#include "ui/color/system_theme.h"
++#include "ui/gfx/color_utils.h"
++
++namespace ui {
++
++namespace {
++
++std::atomic<bool> g_oled{false};
++
++constexpr GlypheTheme kThemes[kGlypheThemeCount] = {
++    {"Prism", SkColorSetRGB(0x34, 0x50, 0xd1),
++     {
++         .frame = SkColorSetRGB(0xe3, 0xe8, 0xff),
++         .card = SkColorSetRGB(0xfb, 0xfc, 0xff),
++         .tab = SkColorSetRGB(0xfb, 0xfc, 0xff),
++         .field = SkColorSetRGB(0xd7, 0xdd, 0xfc),
++         .text = SkColorSetRGB(0x0d, 0x1c, 0x64),
++         .muted = SkColorSetRGB(0x47, 0x5a, 0x7f),
++         .subtle = SkColorSetRGB(0x64, 0x6f, 0x9a),
++         .divider = SkColorSetRGB(0xbc, 0xc3, 0xe3),
++         .accent = SkColorSetRGB(0x34, 0x50, 0xd1),
++         .on_accent = SkColorSetRGB(0xff, 0xff, 0xff),
++         .dark = false},
++     {
++         .frame = SkColorSetRGB(0x15, 0x19, 0x32),
++         .card = SkColorSetRGB(0x0e, 0x11, 0x23),
++         .tab = SkColorSetRGB(0x0e, 0x11, 0x23),
++         .field = SkColorSetRGB(0x22, 0x26, 0x41),
++         .text = SkColorSetRGB(0xe3, 0xe6, 0xf2),
++         .muted = SkColorSetRGB(0x8f, 0x9b, 0xcb),
++         .subtle = SkColorSetRGB(0x79, 0x85, 0xb2),
++         .divider = SkColorSetRGB(0x3b, 0x40, 0x5f),
++         .accent = SkColorSetRGB(0xb3, 0xbe, 0xec),
++         .on_accent = SkColorSetRGB(0x0d, 0x1c, 0x64),
++         .dark = true}},
++    {"Ardoise", SkColorSetRGB(0x27, 0x27, 0x2a),
++     {
++         .frame = SkColorSetRGB(0xe8, 0xe8, 0xec),
++         .card = SkColorSetRGB(0xfc, 0xfc, 0xfd),
++         .tab = SkColorSetRGB(0xfc, 0xfc, 0xfd),
++         .field = SkColorSetRGB(0xdc, 0xdc, 0xe2),
++         .text = SkColorSetRGB(0x18, 0x18, 0x1b),
++         .muted = SkColorSetRGB(0x52, 0x52, 0x5b),
++         .subtle = SkColorSetRGB(0x71, 0x71, 0x7a),
++         .divider = SkColorSetRGB(0xc4, 0xc4, 0xcc),
++         .accent = SkColorSetRGB(0x27, 0x27, 0x2a),
++         .on_accent = SkColorSetRGB(0xff, 0xff, 0xff),
++         .dark = false},
++     {
++         .frame = SkColorSetRGB(0x1c, 0x1c, 0x20),
++         .card = SkColorSetRGB(0x11, 0x11, 0x14),
++         .tab = SkColorSetRGB(0x11, 0x11, 0x14),
++         .field = SkColorSetRGB(0x2a, 0x2a, 0x30),
++         .text = SkColorSetRGB(0xec, 0xec, 0xef),
++         .muted = SkColorSetRGB(0xa1, 0xa1, 0xaa),
++         .subtle = SkColorSetRGB(0x7c, 0x7c, 0x86),
++         .divider = SkColorSetRGB(0x3a, 0x3a, 0x42),
++         .accent = SkColorSetRGB(0xe4, 0xe4, 0xe7),
++         .on_accent = SkColorSetRGB(0x18, 0x18, 0x1b),
++         .dark = true}},
++    {"Ambre", SkColorSetRGB(0xc4, 0x53, 0x0a),
++     {
++         .frame = SkColorSetRGB(0xef, 0xee, 0xec),
++         .card = SkColorSetRGB(0xfb, 0xfa, 0xf8),
++         .tab = SkColorSetRGB(0xfb, 0xfa, 0xf8),
++         .field = SkColorSetRGB(0xe4, 0xe2, 0xdf),
++         .text = SkColorSetRGB(0x11, 0x11, 0x11),
++         .muted = SkColorSetRGB(0x3d, 0x3b, 0x39),
++         .subtle = SkColorSetRGB(0x6b, 0x69, 0x66),
++         .divider = SkColorSetRGB(0xcf, 0xcc, 0xc8),
++         .accent = SkColorSetRGB(0xc4, 0x53, 0x0a),
++         .on_accent = SkColorSetRGB(0xff, 0xff, 0xff),
++         .dark = false},
++     {
++         .frame = SkColorSetRGB(0x1a, 0x18, 0x16),
++         .card = SkColorSetRGB(0x0d, 0x0c, 0x0b),
++         .tab = SkColorSetRGB(0x0d, 0x0c, 0x0b),
++         .field = SkColorSetRGB(0x29, 0x26, 0x23),
++         .text = SkColorSetRGB(0xf1, 0xf1, 0xf1),
++         .muted = SkColorSetRGB(0xc9, 0xc7, 0xc4),
++         .subtle = SkColorSetRGB(0x90, 0x90, 0x90),
++         .divider = SkColorSetRGB(0x3a, 0x36, 0x33),
++         .accent = SkColorSetRGB(0xed, 0x6a, 0x0c),
++         .on_accent = SkColorSetRGB(0x11, 0x11, 0x11),
++         .dark = true}},
++    {"Sauge", SkColorSetRGB(0x2f, 0x6b, 0x4f),
++     {
++         .frame = SkColorSetRGB(0xe2, 0xeb, 0xe5),
++         .card = SkColorSetRGB(0xfb, 0xfd, 0xfb),
++         .tab = SkColorSetRGB(0xfb, 0xfd, 0xfb),
++         .field = SkColorSetRGB(0xd5, 0xe2, 0xd9),
++         .text = SkColorSetRGB(0x0f, 0x2a, 0x1d),
++         .muted = SkColorSetRGB(0x41, 0x5a, 0x4c),
++         .subtle = SkColorSetRGB(0x63, 0x7a, 0x6d),
++         .divider = SkColorSetRGB(0xbc, 0xcf, 0xc3),
++         .accent = SkColorSetRGB(0x2f, 0x6b, 0x4f),
++         .on_accent = SkColorSetRGB(0xff, 0xff, 0xff),
++         .dark = false},
++     {
++         .frame = SkColorSetRGB(0x14, 0x20, 0x19),
++         .card = SkColorSetRGB(0x0c, 0x15, 0x10),
++         .tab = SkColorSetRGB(0x0c, 0x15, 0x10),
++         .field = SkColorSetRGB(0x1f, 0x2e, 0x25),
++         .text = SkColorSetRGB(0xe1, 0xec, 0xe5),
++         .muted = SkColorSetRGB(0x94, 0xad, 0x9f),
++         .subtle = SkColorSetRGB(0x75, 0x8c, 0x7f),
++         .divider = SkColorSetRGB(0x33, 0x46, 0x3b),
++         .accent = SkColorSetRGB(0xa8, 0xd5, 0xbc),
++         .on_accent = SkColorSetRGB(0x0f, 0x2a, 0x1d),
++         .dark = true}},
++    {"Lilas", SkColorSetRGB(0x6b, 0x4f, 0xd1),
++     {
++         .frame = SkColorSetRGB(0xeb, 0xe5, 0xff),
++         .card = SkColorSetRGB(0xfd, 0xfc, 0xff),
++         .tab = SkColorSetRGB(0xfd, 0xfc, 0xff),
++         .field = SkColorSetRGB(0xde, 0xd6, 0xfb),
++         .text = SkColorSetRGB(0x23, 0x12, 0x5e),
++         .muted = SkColorSetRGB(0x57, 0x4a, 0x80),
++         .subtle = SkColorSetRGB(0x73, 0x6a, 0x99),
++         .divider = SkColorSetRGB(0xcb, 0xc2, 0xe8),
++         .accent = SkColorSetRGB(0x6b, 0x4f, 0xd1),
++         .on_accent = SkColorSetRGB(0xff, 0xff, 0xff),
++         .dark = false},
++     {
++         .frame = SkColorSetRGB(0x1c, 0x16, 0x33),
++         .card = SkColorSetRGB(0x12, 0x0e, 0x24),
++         .tab = SkColorSetRGB(0x12, 0x0e, 0x24),
++         .field = SkColorSetRGB(0x2a, 0x23, 0x46),
++         .text = SkColorSetRGB(0xeb, 0xe6, 0xf7),
++         .muted = SkColorSetRGB(0xa6, 0x98, 0xcf),
++         .subtle = SkColorSetRGB(0x8a, 0x7f, 0xb3),
++         .divider = SkColorSetRGB(0x41, 0x38, 0x5f),
++         .accent = SkColorSetRGB(0xc9, 0xbc, 0xf5),
++         .on_accent = SkColorSetRGB(0x23, 0x12, 0x5e),
++         .dark = true}},
++    {"Rose", SkColorSetRGB(0xc2, 0x30, 0x4d),
++     {
++         .frame = SkColorSetRGB(0xfd, 0xe4, 0xe8),
++         .card = SkColorSetRGB(0xff, 0xfb, 0xfc),
++         .tab = SkColorSetRGB(0xff, 0xfb, 0xfc),
++         .field = SkColorSetRGB(0xf7, 0xd5, 0xdb),
++         .text = SkColorSetRGB(0x5a, 0x0f, 0x1f),
++         .muted = SkColorSetRGB(0x7f, 0x46, 0x51),
++         .subtle = SkColorSetRGB(0x9a, 0x6b, 0x74),
++         .divider = SkColorSetRGB(0xec, 0xc1, 0xc9),
++         .accent = SkColorSetRGB(0xc2, 0x30, 0x4d),
++         .on_accent = SkColorSetRGB(0xff, 0xff, 0xff),
++         .dark = false},
++     {
++         .frame = SkColorSetRGB(0x2a, 0x14, 0x19),
++         .card = SkColorSetRGB(0x1c, 0x0c, 0x10),
++         .tab = SkColorSetRGB(0x1c, 0x0c, 0x10),
++         .field = SkColorSetRGB(0x3a, 0x1f, 0x25),
++         .text = SkColorSetRGB(0xf7, 0xe3, 0xe7),
++         .muted = SkColorSetRGB(0xcf, 0x98, 0xa3),
++         .subtle = SkColorSetRGB(0xb0, 0x7c, 0x87),
++         .divider = SkColorSetRGB(0x55, 0x33, 0x3b),
++         .accent = SkColorSetRGB(0xf5, 0xb3, 0xc0),
++         .on_accent = SkColorSetRGB(0x5a, 0x0f, 0x1f),
++         .dark = true}},
++    {"Azur", SkColorSetRGB(0x1a, 0x73, 0xe8),
++     {
++         .frame = SkColorSetRGB(0xe3, 0xef, 0xff),
++         .card = SkColorSetRGB(0xfb, 0xfd, 0xff),
++         .tab = SkColorSetRGB(0xfb, 0xfd, 0xff),
++         .field = SkColorSetRGB(0xd7, 0xe7, 0xfc),
++         .text = SkColorSetRGB(0x0d, 0x33, 0x64),
++         .muted = SkColorSetRGB(0x47, 0x5f, 0x7f),
++         .subtle = SkColorSetRGB(0x64, 0x7b, 0x9a),
++         .divider = SkColorSetRGB(0xbc, 0xcd, 0xe3),
++         .accent = SkColorSetRGB(0x1a, 0x73, 0xe8),
++         .on_accent = SkColorSetRGB(0xff, 0xff, 0xff),
++         .dark = false},
++     {
++         .frame = SkColorSetRGB(0x15, 0x22, 0x32),
++         .card = SkColorSetRGB(0x0e, 0x17, 0x23),
++         .tab = SkColorSetRGB(0x0e, 0x17, 0x23),
++         .field = SkColorSetRGB(0x22, 0x2f, 0x41),
++         .text = SkColorSetRGB(0xe3, 0xe9, 0xf2),
++         .muted = SkColorSetRGB(0x8f, 0xa9, 0xcb),
++         .subtle = SkColorSetRGB(0x79, 0x92, 0xb2),
++         .divider = SkColorSetRGB(0x3b, 0x4b, 0x5f),
++         .accent = SkColorSetRGB(0xb3, 0xcc, 0xec),
++         .on_accent = SkColorSetRGB(0x0d, 0x33, 0x64),
++         .dark = true}},
++    {"Émeraude", SkColorSetRGB(0x0b, 0x80, 0x43),
++     {
++         .frame = SkColorSetRGB(0xe3, 0xff, 0xf0),
++         .card = SkColorSetRGB(0xfb, 0xff, 0xfd),
++         .tab = SkColorSetRGB(0xfb, 0xff, 0xfd),
++         .field = SkColorSetRGB(0xd7, 0xfc, 0xe9),
++         .text = SkColorSetRGB(0x0d, 0x64, 0x37),
++         .muted = SkColorSetRGB(0x47, 0x7f, 0x62),
++         .subtle = SkColorSetRGB(0x64, 0x9a, 0x7e),
++         .divider = SkColorSetRGB(0xbc, 0xe3, 0xcf),
++         .accent = SkColorSetRGB(0x0b, 0x80, 0x43),
++         .on_accent = SkColorSetRGB(0xff, 0xff, 0xff),
++         .dark = false},
++     {
++         .frame = SkColorSetRGB(0x15, 0x32, 0x23),
++         .card = SkColorSetRGB(0x0e, 0x23, 0x18),
++         .tab = SkColorSetRGB(0x0e, 0x23, 0x18),
++         .field = SkColorSetRGB(0x22, 0x41, 0x31),
++         .text = SkColorSetRGB(0xe3, 0xf2, 0xea),
++         .muted = SkColorSetRGB(0x8f, 0xcb, 0xac),
++         .subtle = SkColorSetRGB(0x79, 0xb2, 0x94),
++         .divider = SkColorSetRGB(0x3b, 0x5f, 0x4c),
++         .accent = SkColorSetRGB(0xb3, 0xec, 0xce),
++         .on_accent = SkColorSetRGB(0x0d, 0x64, 0x37),
++         .dark = true}},
++    {"Carmin", SkColorSetRGB(0xc5, 0x22, 0x1f),
++     {
++         .frame = SkColorSetRGB(0xff, 0xe4, 0xe3),
++         .card = SkColorSetRGB(0xff, 0xfb, 0xfb),
++         .tab = SkColorSetRGB(0xff, 0xfb, 0xfb),
++         .field = SkColorSetRGB(0xfc, 0xd8, 0xd7),
++         .text = SkColorSetRGB(0x64, 0x0f, 0x0d),
++         .muted = SkColorSetRGB(0x7f, 0x48, 0x47),
++         .subtle = SkColorSetRGB(0x9a, 0x65, 0x64),
++         .divider = SkColorSetRGB(0xe3, 0xbd, 0xbc),
++         .accent = SkColorSetRGB(0xc5, 0x22, 0x1f),
++         .on_accent = SkColorSetRGB(0xff, 0xff, 0xff),
++         .dark = false},
++     {
++         .frame = SkColorSetRGB(0x32, 0x16, 0x15),
++         .card = SkColorSetRGB(0x23, 0x0e, 0x0e),
++         .tab = SkColorSetRGB(0x23, 0x0e, 0x0e),
++         .field = SkColorSetRGB(0x41, 0x23, 0x22),
++         .text = SkColorSetRGB(0xf2, 0xe3, 0xe3),
++         .muted = SkColorSetRGB(0xcb, 0x90, 0x8f),
++         .subtle = SkColorSetRGB(0xb2, 0x7a, 0x79),
++         .divider = SkColorSetRGB(0x5f, 0x3c, 0x3b),
++         .accent = SkColorSetRGB(0xec, 0xb4, 0xb3),
++         .on_accent = SkColorSetRGB(0x64, 0x0f, 0x0d),
++         .dark = true}},
++    {"Mandarine", SkColorSetRGB(0xe8, 0x71, 0x0a),
++     {
++         .frame = SkColorSetRGB(0xff, 0xf0, 0xe3),
++         .card = SkColorSetRGB(0xff, 0xfd, 0xfb),
++         .tab = SkColorSetRGB(0xff, 0xfd, 0xfb),
++         .field = SkColorSetRGB(0xfc, 0xe8, 0xd7),
++         .text = SkColorSetRGB(0x64, 0x35, 0x0d),
++         .muted = SkColorSetRGB(0x7f, 0x61, 0x47),
++         .subtle = SkColorSetRGB(0x9a, 0x7d, 0x64),
++         .divider = SkColorSetRGB(0xe3, 0xce, 0xbc),
++         .accent = SkColorSetRGB(0xe8, 0x71, 0x0a),
++         .on_accent = SkColorSetRGB(0xff, 0xff, 0xff),
++         .dark = false},
++     {
++         .frame = SkColorSetRGB(0x32, 0x22, 0x15),
++         .card = SkColorSetRGB(0x23, 0x18, 0x0e),
++         .tab = SkColorSetRGB(0x23, 0x18, 0x0e),
++         .field = SkColorSetRGB(0x41, 0x30, 0x22),
++         .text = SkColorSetRGB(0xf2, 0xea, 0xe3),
++         .muted = SkColorSetRGB(0xcb, 0xab, 0x8f),
++         .subtle = SkColorSetRGB(0xb2, 0x93, 0x79),
++         .divider = SkColorSetRGB(0x5f, 0x4c, 0x3b),
++         .accent = SkColorSetRGB(0xec, 0xcd, 0xb3),
++         .on_accent = SkColorSetRGB(0x64, 0x35, 0x0d),
++         .dark = true}},
++    {"Améthyste", SkColorSetRGB(0x93, 0x34, 0xe6),
++     {
++         .frame = SkColorSetRGB(0xf2, 0xe3, 0xff),
++         .card = SkColorSetRGB(0xfd, 0xfb, 0xff),
++         .tab = SkColorSetRGB(0xfd, 0xfb, 0xff),
++         .field = SkColorSetRGB(0xeb, 0xd7, 0xfc),
++         .text = SkColorSetRGB(0x3b, 0x0d, 0x64),
++         .muted = SkColorSetRGB(0x65, 0x47, 0x7f),
++         .subtle = SkColorSetRGB(0x81, 0x64, 0x9a),
++         .divider = SkColorSetRGB(0xd1, 0xbc, 0xe3),
++         .accent = SkColorSetRGB(0x93, 0x34, 0xe6),
++         .on_accent = SkColorSetRGB(0xff, 0xff, 0xff),
++         .dark = false},
++     {
++         .frame = SkColorSetRGB(0x24, 0x15, 0x32),
++         .card = SkColorSetRGB(0x19, 0x0e, 0x23),
++         .tab = SkColorSetRGB(0x19, 0x0e, 0x23),
++         .field = SkColorSetRGB(0x33, 0x22, 0x41),
++         .text = SkColorSetRGB(0xeb, 0xe3, 0xf2),
++         .muted = SkColorSetRGB(0xaf, 0x8f, 0xcb),
++         .subtle = SkColorSetRGB(0x97, 0x79, 0xb2),
++         .divider = SkColorSetRGB(0x4e, 0x3b, 0x5f),
++         .accent = SkColorSetRGB(0xd1, 0xb3, 0xec),
++         .on_accent = SkColorSetRGB(0x3b, 0x0d, 0x64),
++         .dark = true}}
++};
++
++constexpr GlyphePrismPalette kOled = {
++    .frame = SkColorSetRGB(0x00, 0x00, 0x00),
++    .card = SkColorSetRGB(0x00, 0x00, 0x00),
++    .tab = SkColorSetRGB(0x1a, 0x1a, 0x1f),
++    .field = SkColorSetRGB(0x0f, 0x0f, 0x12),
++    .text = SkColorSetRGB(0xec, 0xec, 0xef),
++    .muted = SkColorSetRGB(0x8b, 0x8b, 0x95),
++    .subtle = SkColorSetRGB(0x6b, 0x6b, 0x74),
++    .divider = SkColorSetRGB(0x26, 0x26, 0x2c),
++    .accent = SkColorSetRGB(0xff, 0xff, 0xff),
++    .on_accent = SkColorSetRGB(0x00, 0x00, 0x00),
++    .dark = true};
++
++// Mélange : `alpha` de `fg` sur `bg`.
++SkColor Mix(SkColor fg, SkColor bg, int alpha) {
++  return color_utils::AlphaBlend(fg, bg, static_cast<SkAlpha>(alpha));
++}
++
++}  // namespace
++
++const GlypheTheme& GetGlypheTheme(int index) {
++  return kThemes[index >= 0 && index < kGlypheThemeCount ? index : 0];
++}
++
++const GlypheTheme* FindGlypheTheme(SkColor seed) {
++  for (const GlypheTheme& theme : kThemes) {
++    if (theme.seed == seed) {
++      return &theme;
++    }
++  }
++  return nullptr;
++}
++
++void SetGlypheOled(bool enabled) {
++  g_oled.store(enabled);
++}
++
++bool IsGlypheOled() {
++  return g_oled.load();
++}
++
++GlyphePrismPalette GlyphePageColorPalette(SkColor page) {
++  const SkColor bg = SkColorSetA(page, SK_AlphaOPAQUE);
++  const bool dark = color_utils::IsDark(bg);
++  const SkColor fg = dark ? SkColorSetRGB(0xf4, 0xf5, 0xf7)
++                          : SkColorSetRGB(0x15, 0x16, 0x1a);
++  return {.frame = bg,
++          .card = bg,
++          .tab = Mix(fg, bg, 0x1c),
++          .field = Mix(fg, bg, 0x12),
++          .text = fg,
++          .muted = Mix(fg, bg, 0xb8),
++          .subtle = Mix(fg, bg, 0x8a),
++          .divider = Mix(fg, bg, 0x38),
++          .accent = fg,
++          .on_accent = bg,
++          .dark = dark};
++}
++
++const GlyphePrismPalette* GetGlyphePrismPalette(const ColorProviderKey& key) {
++  if (IsGlypheRedNight() || key.custom_theme ||
++      key.system_theme != SystemTheme::kDefault ||
++      key.contrast_mode == ColorProviderKey::ContrastMode::kHigh ||
++      key.forced_colors != ColorProviderKey::ForcedColors::kNone) {
++    return nullptr;
++  }
++  if (IsGlypheOled()) {
++    return &kOled;
++  }
++  const bool dark = key.color_mode == ColorProviderKey::ColorMode::kDark;
++  const GlypheTheme* theme = nullptr;
++  if (key.user_color_source == ColorProviderKey::UserColorSource::kGrayscale ||
++      !key.user_color.has_value()) {
++    theme = &kThemes[0];  // Prism par défaut.
++  } else {
++    theme = FindGlypheTheme(*key.user_color);
++  }
++  if (!theme) {
++    return nullptr;  // Couleur libre (pipette) : couleurs dérivées de Helium.
++  }
++  return dark ? &theme->dark : &theme->light;
++}
++
++void AddGlyphePrismMixer(ColorProvider* provider,
++                         const ColorProviderKey& key) {
++  const GlyphePrismPalette* p = GetGlyphePrismPalette(key);
++  if (!p) {
++    return;
++  }
++  // Teinte des états (survol, sélection) : l’accent en clair, le texte en
++  // sombre pour rester visible sur les fonds profonds.
++  const SkColor tint = p->dark ? p->text : p->accent;
++  const SkColor lowest = p->dark ? Mix(SK_ColorBLACK, p->card, 0x40)
++                                 : SK_ColorWHITE;
++  const SkColor elevated = p->dark ? Mix(p->text, p->card, 0x12)
++                                   : SK_ColorWHITE;
++
++  ColorMixer& mixer = provider->AddMixer();
++  mixer[kColorSysPrimary] = {p->accent};
++  mixer[kColorSysOnPrimary] = {p->on_accent};
++  mixer[kColorSysPrimaryContainer] = {Mix(p->accent, p->card, 0x2e)};
++  mixer[kColorSysOnPrimaryContainer] = {p->text};
++  mixer[kColorSysInversePrimary] = {Mix(p->accent, p->card, 0x80)};
++  mixer[kColorSysOnSurface] = {p->text};
++  mixer[kColorSysOnSurfaceVariant] = {p->muted};
++  mixer[kColorSysOnSurfaceSecondary] = {p->muted};
++  mixer[kColorSysOnSurfaceSubtle] = {p->subtle};
++  mixer[kColorSysOnSurfacePrimary] = {p->accent};
++  mixer[kColorSysOnSurfacePrimaryInactive] = {p->muted};
++  mixer[kColorSysSurface] = {p->card};
++  mixer[kColorSysSurface1] = {Mix(p->frame, p->card, 0x33)};
++  mixer[kColorSysSurface2] = {Mix(p->frame, p->card, 0x66)};
++  mixer[kColorSysSurface3] = {Mix(p->frame, p->card, 0x99)};
++  mixer[kColorSysSurface4] = {Mix(p->frame, p->card, 0xcc)};
++  mixer[kColorSysSurface5] = {p->frame};
++  mixer[kColorSysSurfaceVariant] = {Mix(p->muted, p->card, 0x2e)};
++  mixer[kColorSysSurfaceContainerLowest] = {lowest};
++  mixer[kColorSysSurfaceContainerLow] = {Mix(p->frame, p->card, 0x40)};
++  mixer[kColorSysSurfaceContainer] = {Mix(p->frame, p->card, 0x80)};
++  mixer[kColorSysSurfaceContainerHigh] = {Mix(p->frame, p->card, 0xc0)};
++  mixer[kColorSysSurfaceContainerHighest] = {Mix(p->text, p->frame, 0x10)};
++  mixer[kColorSysBase] = {p->card};
++  mixer[kColorSysBaseContainer] = {Mix(p->frame, p->card, 0x80)};
++  mixer[kColorSysBaseContainerElevated] = {elevated};
++  mixer[kColorSysHeader] = {p->frame};
++  mixer[kColorSysHeaderInactive] = {p->frame};
++  mixer[kColorSysHeaderContainer] = {p->tab};
++  mixer[kColorSysHeaderContainerInactive] = {p->tab};
++  mixer[kColorSysOnHeaderPrimary] = {p->muted};
++  mixer[kColorSysOnHeaderPrimaryInactive] = {p->subtle};
++  mixer[kColorSysOnHeaderDivider] = {p->divider};
++  mixer[kColorSysOnHeaderDividerInactive] = {p->divider};
++  mixer[kColorSysDivider] = {Mix(p->muted, p->card, 0x30)};
++  mixer[kColorSysOutline] = {p->subtle};
++  mixer[kColorSysNeutralOutline] = {Mix(p->muted, p->card, 0x50)};
++  mixer[kColorSysTonalOutline] = {Mix(p->accent, p->card, 0x80)};
++  mixer[kColorSysNeutralContainer] = {Mix(p->frame, p->card, 0xa0)};
++  mixer[kColorSysTonalContainer] = {Mix(p->accent, p->card, 0x2e)};
++  mixer[kColorSysOnTonalContainer] = {p->text};
++  mixer[kColorSysOmniboxContainer] = {p->field};
++  mixer[kColorSysStateHoverOnSubtle] = {SkColorSetA(tint, 0x14)};
++  mixer[kColorSysStateHoverOnProminent] = {SkColorSetA(p->on_accent, 0x1f)};
++  mixer[kColorSysStateRippleNeutralOnSubtle] = {SkColorSetA(tint, 0x29)};
++  mixer[kColorSysStateHeaderHover] = {SkColorSetA(tint, 0x1a)};
++  mixer[kColorSysStateHeaderHoverInactive] = {SkColorSetA(tint, 0x14)};
++  mixer[kColorSysStateHeaderSelect] = {SkColorSetA(tint, 0x24)};
++  mixer[kColorSysStateFocusRing] = {p->accent};
++  mixer[kColorSysStateTextHighlight] = {Mix(p->accent, p->card, 0x55)};
++  mixer[kColorSysStateOnTextHighlight] = {p->text};
++}
++
++}  // namespace ui
+--- /dev/null
++++ b/ui/webui/resources/cr_components/customize_color_scheme_mode/oled_mode.svg
+@@ -0,0 +1 @@
++<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><circle cx="12" cy="12" r="8.4"/></svg>
+--- /dev/null
++++ b/ui/webui/resources/cr_components/customize_color_scheme_mode/night_mode.svg
+@@ -0,0 +1 @@
++<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><path d="M13.6 3.7a8.4 8.4 0 1 0 6.7 13.4 7 7 0 0 1-6.7-13.4Z"/><path d="M18.5 3.2l.8 1.9 1.9.8-1.9.8-.8 1.9-.8-1.9-1.9-.8 1.9-.8Z"/></svg>
+--- a/ui/color/BUILD.gn
++++ b/ui/color/BUILD.gn
+@@ -175,6 +175,8 @@
+     "ref_color_mixer.cc",
+     "ref_color_mixer.h",
+     "sys_color_mixer.cc",
++    "glyphe_prism.cc",
++    "glyphe_prism.h",
+     "glyphe_red_night.cc",
+     "glyphe_red_night.h",
+     "sys_color_mixer.h",
+--- a/ui/color/color_mixers.cc
++++ b/ui/color/color_mixers.cc
+@@ -11,6 +11,7 @@
+ #include "ui/color/material_ui_color_mixer.h"
+ #include "ui/color/native_color_mixers.h"
+ #include "ui/color/ref_color_mixer.h"
++#include "ui/color/glyphe_prism.h"
+ #include "ui/color/glyphe_red_night.h"
+ #include "ui/color/sys_color_mixer.h"
+ #include "ui/color/ui_color_mixer.h"
+@@ -26,6 +27,7 @@
+   AddRefColorMixer(provider, key);
+   // TODO(tluk): Determine the correct place to insert the sys color mixer.
+   AddSysColorMixer(provider, key);
++  AddGlyphePrismMixer(provider, key);
+   AddGlypheRedNightMixer(provider, key);
+ #if BUILDFLAG(IS_ANDROID)
+   AddSysColorMixerAndroid(provider, key);
+--- a/chrome/browser/ui/color/chrome_color_mixers.cc
++++ b/chrome/browser/ui/color/chrome_color_mixers.cc
+@@ -9,7 +9,11 @@
+ #include "ui/color/color_mixer.h"
+ #include "ui/color/color_provider.h"
+ #include "ui/color/color_recipe.h"
++#include "ui/color/glyphe_prism.h"
+ #include "ui/color/glyphe_red_night.h"
++#include "ui/gfx/color_utils.h"
++
++#include <optional>
+ 
+ #include <memory>
+ #include <string_view>
+@@ -99,6 +103,61 @@
+     key.custom_theme->AddColorMixers(provider, key);
+   }
+ 
++  // Helium Glyphe : cadre, onglets et barre d’outils du thème Glyphe, de la
++  // couleur de la page active (si l’option est activée) ou en OLED.
++  std::optional<ui::GlyphePrismPalette> glyphe_page;
++  if (!key.app_controller && key.app_background_color.has_value() &&
++      !ui::IsGlypheRedNight()) {
++    glyphe_page = ui::GlyphePageColorPalette(*key.app_background_color);
++  }
++  if (const ui::GlyphePrismPalette* prism =
++          glyphe_page ? &*glyphe_page : ui::GetGlyphePrismPalette(key)) {
++    ui::ColorMixer& p = provider->AddMixer();
++    for (ui::ColorId id : std::initializer_list<ui::ColorId>{
++             ui::kColorFrameActive, ui::kColorFrameInactive, kColorToolbar,
++             kColorToolbarTopSeparatorFrameActive,
++             kColorToolbarTopSeparatorFrameInactive,
++             kColorToolbarContentAreaSeparator,
++             kColorToolbarContentAreaSeparatorSolid}) {
++      p[id] = {prism->frame};
++    }
++    for (ui::ColorId id : std::initializer_list<ui::ColorId>{
++             kColorTabBackgroundActiveFrameActive,
++             kColorTabBackgroundActiveFrameInactive,
++             kColorTabBackgroundSelectedFrameActive,
++             kColorTabBackgroundSelectedFrameInactive,
++             kColorTabBackgroundSelectedHoverFrameActive,
++             kColorTabBackgroundSelectedHoverFrameInactive}) {
++      p[id] = {prism->tab};
++    }
++    p[kColorTabBackgroundInactiveFrameActive] = {
++        SkColorSetA(prism->tab, SK_AlphaTRANSPARENT)};
++    p[kColorTabBackgroundInactiveFrameInactive] = {
++        SkColorSetA(prism->tab, SK_AlphaTRANSPARENT)};
++    p[kColorTabBackgroundInactiveHoverFrameActive] = {
++        SkColorSetA(prism->tab, 0x80)};
++    p[kColorTabBackgroundInactiveHoverFrameInactive] = {
++        SkColorSetA(prism->tab, 0x80)};
++    p[kColorTabForegroundActiveFrameActive] = {prism->text};
++    p[kColorTabForegroundActiveFrameInactive] = {prism->text};
++    p[kColorTabForegroundInactiveFrameActive] = {prism->muted};
++    p[kColorTabForegroundInactiveFrameInactive] = {prism->muted};
++    p[kColorTabDividerFrameActive] = {prism->divider};
++    p[kColorTabDividerFrameInactive] = {prism->divider};
++    p[kColorNewTabButtonForegroundFrameActive] = {prism->muted};
++    p[kColorLocationBarBackground] = {prism->field};
++    p[kColorLocationBarBackgroundHovered] = {color_utils::AlphaBlend(
++        prism->dark ? prism->text : prism->accent, prism->field,
++        SkAlpha{0x14})};
++    p[kColorOmniboxText] = {prism->text};
++    p[kColorOmniboxTextDimmed] = {prism->muted};
++    p[kColorToolbarButtonIcon] = {prism->text};
++    p[kColorToolbarButtonIconInactive] = {SkColorSetA(prism->subtle, 0x99)};
++    p[kColorToolbarText] = {prism->text};
++    p[kColorToolbarSeparatorDefault] = {prism->divider};
++    p[kColorToolbarExtensionSeparatorEnabled] = {prism->divider};
++  }
++
+   // Helium Glyphe : cadre, onglets et barre d’outils en nuit rouge.
+   if (ui::IsGlypheRedNight()) {
+     const SkColor red = ui::GlypheRedNightColor();
+--- a/chrome/browser/ui/webui/cr_components/theme_color_picker/customize_chrome_colors.h
++++ b/chrome/browser/ui/webui/cr_components/theme_color_picker/customize_chrome_colors.h
+@@ -47,7 +47,7 @@
+   ui::mojom::BrowserColorVariant variant;
+ };
+ 
+-extern const std::array<DynamicColorInfo, 13> kDynamicCustomizeChromeColors;
++extern const std::array<DynamicColorInfo, 11> kDynamicCustomizeChromeColors;
+ 
+ SkColor HueToSkColor(float hue);
+ 
+--- a/chrome/browser/ui/webui/cr_components/theme_color_picker/customize_chrome_colors.cc
++++ b/chrome/browser/ui/webui/cr_components/theme_color_picker/customize_chrome_colors.cc
+@@ -39,60 +39,51 @@
+         std::make_index_sequence<std::size(kCustomizeChromeColorIds)>{});
+ 
+ const decltype(kDynamicCustomizeChromeColors) kDynamicCustomizeChromeColors =
+-    std::array<DynamicColorInfo, 13>{
+-        // ID 0 reserved for other colors.
+-        // ID 1 reserved for grayscale theme.
+-        DynamicColorInfo(/*id=*/2,
+-                         SkColorSetRGB(140, 171, 228),
++    std::array<DynamicColorInfo, 11>{
++        // Helium Glyphe : seuls les thèmes Glyphe (ui/color/glyphe_prism.cc).
++        DynamicColorInfo(/*id=*/20,
++                         SkColorSetRGB(0x34, 0x50, 0xd1),
+                          IDS_NTP_COLORS_BLUE,
+                          ui::mojom::BrowserColorVariant::kTonalSpot),
+-        DynamicColorInfo(/*id=*/3,
+-                         SkColorSetRGB(140, 171, 228),
+-                         IDS_NTP_COLORS_COOL_GREY,
+-                         ui::mojom::BrowserColorVariant::kNeutral),
+-        DynamicColorInfo(/*id=*/4,
+-                         SkColorSetRGB(136, 136, 136),
++        DynamicColorInfo(/*id=*/21,
++                         SkColorSetRGB(0x27, 0x27, 0x2a),
+                          IDS_NTP_COLORS_GREY,
+-                         ui::mojom::BrowserColorVariant::kNeutral),
+-        DynamicColorInfo(/*id=*/5,
+-                         SkColorSetRGB(38, 166, 154),
+-                         IDS_NTP_COLORS_AQUA,
+                          ui::mojom::BrowserColorVariant::kTonalSpot),
+-        DynamicColorInfo(/*id=*/6,
+-                         SkColorSetRGB(0, 255, 0),
++        DynamicColorInfo(/*id=*/22,
++                         SkColorSetRGB(0xc4, 0x53, 0x0a),
++                         IDS_NTP_COLORS_APRICOT,
++                         ui::mojom::BrowserColorVariant::kTonalSpot),
++        DynamicColorInfo(/*id=*/23,
++                         SkColorSetRGB(0x2f, 0x6b, 0x4f),
+                          IDS_NTP_COLORS_GREEN,
+                          ui::mojom::BrowserColorVariant::kTonalSpot),
+-        DynamicColorInfo(/*id=*/7,
+-                         SkColorSetRGB(135, 186, 129),
+-                         IDS_NTP_COLORS_VIRIDIAN,
+-                         ui::mojom::BrowserColorVariant::kNeutral),
+-        DynamicColorInfo(/*id=*/8,
+-                         SkColorSetRGB(250, 223, 115),
+-                         IDS_NTP_COLORS_CITRON,
++        DynamicColorInfo(/*id=*/24,
++                         SkColorSetRGB(0x6b, 0x4f, 0xd1),
++                         IDS_NTP_COLORS_VIOLET,
+                          ui::mojom::BrowserColorVariant::kTonalSpot),
+-        DynamicColorInfo(/*id=*/9,
+-                         SkColorSetRGB(255, 128, 0),
++        DynamicColorInfo(/*id=*/25,
++                         SkColorSetRGB(0xc2, 0x30, 0x4d),
++                         IDS_NTP_COLORS_ROSE,
++                         ui::mojom::BrowserColorVariant::kTonalSpot),
++        DynamicColorInfo(/*id=*/26,
++                         SkColorSetRGB(0x1a, 0x73, 0xe8),
++                         IDS_NTP_COLORS_LIGHT_BLUE,
++                         ui::mojom::BrowserColorVariant::kTonalSpot),
++        DynamicColorInfo(/*id=*/27,
++                         SkColorSetRGB(0x0b, 0x80, 0x43),
++                         IDS_NTP_COLORS_DARK_GREEN,
++                         ui::mojom::BrowserColorVariant::kTonalSpot),
++        DynamicColorInfo(/*id=*/28,
++                         SkColorSetRGB(0xc5, 0x22, 0x1f),
++                         IDS_NTP_COLORS_DARK_PINK_AND_RED,
++                         ui::mojom::BrowserColorVariant::kTonalSpot),
++        DynamicColorInfo(/*id=*/29,
++                         SkColorSetRGB(0xe8, 0x71, 0x0a),
+                          IDS_NTP_COLORS_ORANGE,
+                          ui::mojom::BrowserColorVariant::kTonalSpot),
+-        DynamicColorInfo(/*id=*/10,
+-                         SkColorSetRGB(252, 219, 201),
+-                         IDS_NTP_COLORS_APRICOT,
+-                         ui::mojom::BrowserColorVariant::kNeutral),
+-        DynamicColorInfo(/*id=*/11,
+-                         SkColorSetRGB(243, 178, 190),
+-                         IDS_NTP_COLORS_ROSE,
+-                         ui::mojom::BrowserColorVariant::kTonalSpot),
+-        DynamicColorInfo(/*id=*/12,
+-                         SkColorSetRGB(243, 178, 190),
+-                         IDS_NTP_COLORS_PINK,
+-                         ui::mojom::BrowserColorVariant::kNeutral),
+-        DynamicColorInfo(/*id=*/13,
+-                         SkColorSetRGB(255, 0, 255),
+-                         IDS_NTP_COLORS_FUCHSIA,
+-                         ui::mojom::BrowserColorVariant::kTonalSpot),
+-        DynamicColorInfo(/*id=*/14,
+-                         SkColorSetRGB(229, 213, 252),
+-                         IDS_NTP_COLORS_VIOLET,
++        DynamicColorInfo(/*id=*/30,
++                         SkColorSetRGB(0x93, 0x34, 0xe6),
++                         IDS_NTP_COLORS_DARK_PURPLE,
+                          ui::mojom::BrowserColorVariant::kTonalSpot),
+     };
+ 
+--- a/chrome/browser/ui/webui/cr_components/theme_color_picker/theme_color_picker_handler.cc
++++ b/chrome/browser/ui/webui/cr_components/theme_color_picker/theme_color_picker_handler.cc
+@@ -3,6 +3,8 @@
+ // found in the LICENSE file.
+ 
+ #include "chrome/browser/ui/webui/cr_components/theme_color_picker/theme_color_picker_handler.h"
++
++#include "ui/color/glyphe_prism.h"
+ 
+ #include <limits>
+ 
+@@ -58,6 +60,14 @@
+   color->base = is_dark_mode ? color_palette->secondary().get(50)
+                              : color_palette->primary().get(80);
+   color->variant = color_info.variant;
++  // Helium Glyphe : la pastille montre les vraies couleurs du thème.
++  if (const ui::GlypheTheme* glyphe = ui::FindGlypheTheme(color_info.color)) {
++    const ui::GlyphePrismPalette& p = is_dark_mode ? glyphe->dark : glyphe->light;
++    color->name = glyphe->name;
++    color->background = p.frame;
++    color->foreground = p.accent;
++    color->base = p.tab;
++  }
+   return color;
+ }
+ }  // namespace
+--- a/ui/webui/resources/cr_components/theme_color_picker/theme_color_picker.html.ts
++++ b/ui/webui/resources/cr_components/theme_color_picker/theme_color_picker.html.ts
+@@ -12,17 +12,7 @@
+ <!-- TODO(crbug.com/40881996): Make grid adaptive. -->
+ <cr-grid columns="${this.columns}" role="radiogroup"
+     aria-label="${this.i18n('colorsContainerLabel')}">
+-  <cr-theme-color id="greyDefaultColor"
+-      .backgroundColor="${this.greyDefaultColor_.background}"
+-      .baseColor="${this.greyDefaultColor_.base}"
+-      .foregroundColor="${this.greyDefaultColor_.foreground}"
+-      title="${this.i18n('greyDefaultColorName')}"
+-      aria-label="${this.i18n('greyDefaultColorName')}" role="radio"
+-      ?checked="${this.isGreyDefaultColorSelected_}"
+-      aria-checked="${this.isGreyDefaultColorSelected_}"
+-      tabindex="${this.tabIndex_(this.isGreyDefaultColorSelected_)}"
+-      @click="${this.onGreyDefaultColorClick_}">
+-  </cr-theme-color>
++  <!-- Helium Glyphe : pastille grise retirée, Prism est le défaut. -->
+   ${this.colors_.map((item, index) => html`
+     <cr-theme-color class="chrome-color" .backgroundColor="${item.background}"
+         .baseColor="${item.base}" .foregroundColor="${item.foreground}"
+--- a/chrome/browser/themes/theme_service.cc
++++ b/chrome/browser/themes/theme_service.cc
+@@ -3,6 +3,8 @@
+ // found in the LICENSE file.
+ 
+ #include "chrome/browser/themes/theme_service.h"
++
++#include "ui/color/glyphe_prism.h"
+ 
+ #include <stddef.h>
+ 
+@@ -364,10 +366,24 @@
+ void ThemeService::Init() {
+   theme_helper_->DCheckCalledOnValidSequence();
+ 
+-  if (profile_->IsNewProfile() && !UsingPolicyTheme() &&
+-      !profile_->GetPrefs()->HasPrefPath(prefs::kCurrentThemeID) &&
+-      !profile_->GetPrefs()->HasPrefPath(prefs::kGrayscaleThemeEnabled)) {
+-    profile_->GetPrefs()->SetBoolean(prefs::kGrayscaleThemeEnabled, true);
++  // Helium Glyphe : thème Prism par défaut, aussi pour les profils restés
++  // sur le gris de Helium (la pastille grise n’existe plus).
++  {
++    PrefService* glyphe_prefs = profile_->GetPrefs();
++    const bool glyphe_new_profile =
++        profile_->IsNewProfile() &&
++        !glyphe_prefs->HasPrefPath(prefs::kGrayscaleThemeEnabled);
++    if (!UsingPolicyTheme() &&
++        !glyphe_prefs->HasPrefPath(prefs::kCurrentThemeID) &&
++        (glyphe_new_profile ||
++         glyphe_prefs->GetBoolean(prefs::kGrayscaleThemeEnabled))) {
++      glyphe_prefs->SetBoolean(prefs::kGrayscaleThemeEnabled, false);
++      glyphe_prefs->SetInteger(prefs::kUserColor,
++                               static_cast<int>(ui::kGlyphePrismSeed));
++      glyphe_prefs->SetInteger(
++          prefs::kBrowserColorVariant,
++          static_cast<int>(ui::mojom::BrowserColorVariant::kTonalSpot));
++    }
+   }
+ 
+   InitFromPrefs();
+@@ -497,7 +513,13 @@
+   }
+ 
+   ClearThemeData(/*reset_all_settings=*/true);
+-  profile_->GetPrefs()->SetBoolean(prefs::kGrayscaleThemeEnabled, true);
++  // Helium Glyphe : la réinitialisation revient au thème Prism.
++  profile_->GetPrefs()->SetBoolean(prefs::kGrayscaleThemeEnabled, false);
++  profile_->GetPrefs()->SetInteger(prefs::kUserColor,
++                                   static_cast<int>(ui::kGlyphePrismSeed));
++  profile_->GetPrefs()->SetInteger(
++      prefs::kBrowserColorVariant,
++      static_cast<int>(ui::mojom::BrowserColorVariant::kTonalSpot));
+ 
+   NotifyThemeChanged();
+ }
+--- a/chrome/common/pref_names.h
++++ b/chrome/common/pref_names.h
+@@ -335,6 +335,10 @@
+     "webkit.webprefs.force_dark_mode_enabled";
+ // Helium Glyphe : pages web converties en rouge sur noir.
+ inline constexpr char kGlypheRedNightEnabled[] = "glyphe.red_night.enabled";
++// Helium Glyphe : interface en noir pur (mode OLED du panneau Personnaliser).
++inline constexpr char kGlypheOledEnabled[] = "glyphe.oled.enabled";
++// Helium Glyphe : la barre du haut prend la couleur de la page active.
++inline constexpr char kGlypheFollowPageColor[] = "glyphe.follow_page_color";
+ 
+ inline constexpr char kWebKitCommonScript[] = "Zyyy";
+ inline constexpr char kWebKitStandardFontFamily[] =
+--- a/chrome/browser/ui/prefs/prefs_tab_helper.cc
++++ b/chrome/browser/ui/prefs/prefs_tab_helper.cc
+@@ -412,6 +412,8 @@
+   registry->RegisterBooleanPref(prefs::kWebKitForceDarkModeEnabled,
+                                 force_dark_mode_enabled);
+   registry->RegisterBooleanPref(prefs::kGlypheRedNightEnabled, false);
++  registry->RegisterBooleanPref(prefs::kGlypheOledEnabled, false);
++  registry->RegisterBooleanPref(prefs::kGlypheFollowPageColor, false);
+   registry->RegisterStringPref(prefs::kDefaultCharset,
+                                l10n_util::GetStringUTF8(IDS_DEFAULT_ENCODING),
+                                user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
+--- a/chrome/browser/ui/views/frame/contents_web_view.cc
++++ b/chrome/browser/ui/views/frame/contents_web_view.cc
+@@ -12,6 +12,7 @@
+ #include "chrome/common/pref_names.h"
+ #include "components/prefs/pref_service.h"
+ #include "ui/color/color_provider_manager.h"
++#include "ui/color/glyphe_prism.h"
+ #include "ui/color/glyphe_red_night.h"
+ #include "ui/compositor/layer.h"
+ #include "ui/native_theme/native_theme.h"
+@@ -58,6 +59,14 @@
+         prefs::kGlypheRedNightEnabled,
+         base::BindRepeating(&ContentsWebView::UpdateGlypheRedNight,
+                             base::Unretained(this)));
++    glyphe_pref_registrar_.Add(
++        prefs::kGlypheOledEnabled,
++        base::BindRepeating(&ContentsWebView::UpdateGlypheRedNight,
++                            base::Unretained(this)));
++    glyphe_pref_registrar_.Add(
++        prefs::kGlypheFollowPageColor,
++        base::BindRepeating(&ContentsWebView::UpdateGlyphePageColor,
++                            base::Unretained(this)));
+   }
+ }
+ 
+@@ -66,13 +75,49 @@
+   if (glyphe_pref_registrar_.prefs()) {
+     const bool glyphe_on = glyphe_pref_registrar_.prefs()->GetBoolean(
+         prefs::kGlypheRedNightEnabled);
+-    if (ui::IsGlypheRedNight() != glyphe_on) {
++    const bool glyphe_oled = glyphe_pref_registrar_.prefs()->GetBoolean(
++        prefs::kGlypheOledEnabled);
++    if (ui::IsGlypheRedNight() != glyphe_on ||
++        ui::IsGlypheOled() != glyphe_oled) {
+       ui::SetGlypheRedNight(glyphe_on);
++      ui::SetGlypheOled(glyphe_oled);
+       ui::ColorProviderManager::Get().ResetColorProviderCache();
+       ui::NativeTheme::GetInstanceForNativeUi()->NotifyOnNativeThemeUpdated();
+     }
+   }
+   // Les pages sont converties par GlypheNightTabHelper.
++}
++
++void ContentsWebView::UpdateGlyphePageColor() {
++  // La clé de couleurs de la fenêtre lit la couleur de la page active
++  // (BrowserWidget::GetColorProviderKey) : il suffit de la recalculer
++  // quand cette couleur change.
++  if (!GetWidget() || !glyphe_pref_registrar_.prefs()) {
++    return;
++  }
++  const bool follow = glyphe_pref_registrar_.prefs()->GetBoolean(
++      prefs::kGlypheFollowPageColor);
++  std::optional<SkColor> color;
++  if (follow && web_contents()) {
++    color = web_contents()->GetThemeColor();
++    if (!color) {
++      color = web_contents()->GetBackgroundColor();
++    }
++  }
++  if (follow == glyphe_follow_page_ && color == glyphe_page_color_) {
++    return;
++  }
++  glyphe_follow_page_ = follow;
++  glyphe_page_color_ = color;
++  GetWidget()->ThemeChanged();
++}
++
++void ContentsWebView::DidChangeThemeColor() {
++  UpdateGlyphePageColor();
++}
++
++void ContentsWebView::OnBackgroundColorChanged() {
++  UpdateGlyphePageColor();
+ }
+ 
+ ContentsWebView::~ContentsWebView() = default;
+@@ -182,6 +227,7 @@
+ void ContentsWebView::SetWebContents(content::WebContents* web_contents) {
+   views::WebView::SetWebContents(web_contents);
+   UpdateGlypheRedNight();
++  UpdateGlyphePageColor();
+   if (web_contents == nullptr) {
+     status_bubble_.reset();
+     holder()->SetProperty(views::kIsBlockedByModalKey, false);
+--- a/chrome/browser/ui/views/frame/contents_web_view.h
++++ b/chrome/browser/ui/views/frame/contents_web_view.h
+@@ -11,6 +11,10 @@
+ #include "build/build_config.h"
+ #include "chrome/browser/ui/views/frame/web_contents_close_handler_delegate.h"
+ #include "components/prefs/pref_change_registrar.h"
++
++#include <optional>
++
++#include "third_party/skia/include/core/SkColor.h"
+ #include "chrome/common/buildflags.h"
+ #include "ui/base/interaction/element_identifier.h"
+ #include "ui/base/metadata/metadata_header_macros.h"
+@@ -71,6 +75,8 @@
+   // prompt).
+ #if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
+   void DidGetUserInteraction(const blink::WebInputEvent& event) override;
++  void DidChangeThemeColor() override;
++  void OnBackgroundColorChanged() override;
+ #endif
+ 
+   // ui::View overrides:
+@@ -84,6 +90,10 @@
+   void UpdateBackgroundColor();
+   // Helium Glyphe : applique ou retire le filtre « nuit rouge ».
+   void UpdateGlypheRedNight();
++  // Helium Glyphe : barre du haut à la couleur de la page active.
++  void UpdateGlyphePageColor();
++  std::optional<SkColor> glyphe_page_color_;
++  bool glyphe_follow_page_ = false;
+   PrefChangeRegistrar glyphe_pref_registrar_;
+ 
+   std::unique_ptr<StatusBubbleViews> status_bubble_;
+--- a/chrome/browser/ui/views/frame/browser_widget.cc
++++ b/chrome/browser/ui/views/frame/browser_widget.cc
+@@ -36,6 +36,10 @@
+ #include "chrome/browser/ui/views/helium/native_frame_materials.h"
+ #include "chrome/browser/ui/web_applications/app_browser_controller.h"
+ #include "chrome/common/chrome_switches.h"
++#include "chrome/common/pref_names.h"
++#include "components/prefs/pref_service.h"
++#include "content/public/browser/web_contents.h"
++#include "ui/color/glyphe_red_night.h"
+ #include "ui/base/hit_test.h"
+ #include "ui/base/mojom/menu_source_type.mojom-shared.h"
+ #include "ui/base/mojom/window_show_state.mojom.h"
+@@ -501,6 +505,22 @@
+     key.app_controller = app_controller;
+     key.app_background_color = app_controller->GetBackgroundColor();
+   }
++  // Helium Glyphe : couleur de la page active dans la barre du haut
++  // (champ réservé aux applis web, libre pour une fenêtre normale).
++  else if (!ui::IsGlypheRedNight() &&
++           profile->GetPrefs()->GetBoolean(prefs::kGlypheFollowPageColor)) {
++    if (content::WebContents* contents =
++            browser_view_->GetActiveWebContents()) {
++      std::optional<SkColor> page = contents->GetThemeColor();
++      if (!page || SkColorGetA(*page) == SK_AlphaTRANSPARENT) {
++        page = contents->GetBackgroundColor();
++      }
++      // theme-color souvent semi-transparente (YouTube) : rendue opaque.
++      if (page && SkColorGetA(*page) != SK_AlphaTRANSPARENT) {
++        key.app_background_color = SkColorSetA(*page, SK_AlphaOPAQUE);
++      }
++    }
++  }
+ 
+ #if BUILDFLAG(IS_CHROMEOS)
+   // ChromeOS SystemWebApps use the OS theme all the time.
+--- a/ui/webui/resources/cr_components/customize_color_scheme_mode/customize_color_scheme_mode.mojom
++++ b/ui/webui/resources/cr_components/customize_color_scheme_mode/customize_color_scheme_mode.mojom
+@@ -8,6 +8,9 @@
+   kSystem = 0,
+   kLight = 1,
+   kDark = 2,
++  // Helium Glyphe
++  kOled = 3,
++  kRedNight = 4,
+ };
+ 
+ // Used by the component to bootstrap bidirectional communication.
+@@ -24,10 +27,14 @@
+   SetColorSchemeMode(ColorSchemeMode colorSchemeMode);
+   // Gets the current color mode.
+   InitializeColorSchemeMode();
++  // Helium Glyphe : la barre du haut suit la couleur de la page.
++  SetFollowPageColor(bool enabled);
+ };
+ 
+ // WebUI-side handler for requests from the browser.
+ interface CustomizeColorSchemeModeClient {
+   // Sets the current color mode.
+   SetColorSchemeMode(ColorSchemeMode colorSchemeMode);
++  // Helium Glyphe : état de « Couleur de la page dans la barre ».
++  SetFollowPageColor(bool enabled);
+ };
+--- a/ui/webui/resources/cr_components/customize_color_scheme_mode/customize_color_scheme_mode.ts
++++ b/ui/webui/resources/cr_components/customize_color_scheme_mode/customize_color_scheme_mode.ts
+@@ -2,6 +2,7 @@
+ // Use of this source code is governed by a BSD-style license that can be
+ // found in the LICENSE file.
+ 
++import '//resources/cr_elements/cr_toggle/cr_toggle.js';
+ import './segmented_button.js';
+ import './segmented_button_option.js';
+ 
+@@ -17,6 +18,8 @@
+ export interface ColorSchemeModeOption {
+   id: string;
+   value: ColorSchemeMode;
++  // Helium Glyphe : libellé direct pour les modes ajoutés.
++  label?: string;
+ }
+ 
+ export const colorSchemeModeOptions: ColorSchemeModeOption[] = [
+@@ -27,6 +30,16 @@
+   {
+     id: 'darkMode',
+     value: ColorSchemeMode.kDark,
++  },
++  {
++    id: 'oledMode',
++    value: ColorSchemeMode.kOled,
++    label: 'OLED',
++  },
++  {
++    id: 'nightMode',
++    value: ColorSchemeMode.kRedNight,
++    label: 'Nuit',
+   },
+   {
+     id: 'systemMode',
+@@ -54,6 +67,7 @@
+     return {
+       currentMode_: {type: Object, state: true},
+       colorSchemeModeOptions_: {type: Array, state: true},
++      followPageColor_: {type: Boolean, state: true},
+     };
+   }
+ 
+@@ -64,6 +78,8 @@
+ 
+   private browserProxy_: BrowserProxy = browserProxyFactory.getInstance();
+   private setColorSchemeModeListenerId_: number|null = null;
++  protected accessor followPageColor_: boolean = false;
++  private setFollowPageColorListenerId_: number|null = null;
+ 
+   override connectedCallback() {
+     super.connectedCallback();
+@@ -76,6 +92,11 @@
+               assert(!!currentMode);
+               this.currentMode_ = currentMode;
+             });
++    this.setFollowPageColorListenerId_ =
++        this.browserProxy_.callbackRouter.setFollowPageColor.addListener(
++            (enabled: boolean) => {
++              this.followPageColor_ = enabled;
++            });
+     this.browserProxy_.handler.initializeColorSchemeMode();
+   }
+ 
+@@ -84,7 +105,16 @@
+     this.browserProxy_.callbackRouter.removeListener(
+         this.setColorSchemeModeListenerId_);
+     this.setColorSchemeModeListenerId_ = null;
++    if (this.setFollowPageColorListenerId_ !== null) {
++      this.browserProxy_.callbackRouter.removeListener(
++          this.setFollowPageColorListenerId_);
++      this.setFollowPageColorListenerId_ = null;
++    }
+     super.disconnectedCallback();
++  }
++
++  protected onFollowPageColorChange_(e: CustomEvent<boolean>) {
++    this.browserProxy_.handler.setFollowPageColor(e.detail);
+   }
+ 
+   protected onSelectedChanged_(e: CustomEvent<{value: string}>) {
+--- a/ui/webui/resources/cr_components/customize_color_scheme_mode/customize_color_scheme_mode.html.ts
++++ b/ui/webui/resources/cr_components/customize_color_scheme_mode/customize_color_scheme_mode.html.ts
+@@ -12,10 +12,17 @@
+     group-aria-label="${this.i18n('colorSchemeModeLabel')}"
+     @selected-changed="${this.onSelectedChanged_}">
+   ${this.colorSchemeModeOptions_.map(item => html`
+-    <segmented-button-option name="${item.id}" title="${this.i18n(item.id)}">
++    <segmented-button-option name="${item.id}"
++        title="${item.label ?? this.i18n(item.id)}">
+       <div id="${item.id}" class="cr-icon" slot="prefix-icon"></div>
+-      ${this.i18n(item.id)}
++      ${item.label ?? this.i18n(item.id)}
+     </segmented-button-option>
+   `)}
+-</segmented-button>`;
++</segmented-button>
++<div id="glypheFollowPage">
++  <span id="glypheFollowPageLabel">Couleur de la page dans la barre</span>
++  <cr-toggle ?checked="${this.followPageColor_}"
++      aria-labelledby="glypheFollowPageLabel"
++      @change="${this.onFollowPageColorChange_}"></cr-toggle>
++</div>`;
+ }
+--- a/ui/webui/resources/cr_components/customize_color_scheme_mode/customize_color_scheme_mode.css
++++ b/ui/webui/resources/cr_components/customize_color_scheme_mode/customize_color_scheme_mode.css
+@@ -21,6 +21,24 @@
+   --cr-icon-image: url(chrome://resources/cr_components/customize_color_scheme_mode/system_mode_old.svg);
+ }
+ 
++#oledMode {
++  --cr-icon-image: url(chrome://resources/cr_components/customize_color_scheme_mode/oled_mode.svg);
++}
++
++#nightMode {
++  --cr-icon-image: url(chrome://resources/cr_components/customize_color_scheme_mode/night_mode.svg);
++}
++
++#glypheFollowPage {
++  align-items: center;
++  color: var(--cr-primary-text-color);
++  display: flex;
++  font-size: 13px;
++  gap: 12px;
++  justify-content: space-between;
++  margin-top: 12px;
++}
++
+ :host-context([webui-rounded-icons]) #lightMode {
+   --cr-icon-image: url(chrome://resources/cr_components/customize_color_scheme_mode/light_mode.svg);
+ }
+--- a/ui/webui/resources/cr_components/customize_color_scheme_mode/BUILD.gn
++++ b/ui/webui/resources/cr_components/customize_color_scheme_mode/BUILD.gn
+@@ -28,6 +28,8 @@
+     "dark_mode_old.svg",
+     "light_mode.svg",
+     "light_mode_old.svg",
++    "night_mode.svg",
++    "oled_mode.svg",
+     "system_mode.svg",
+     "system_mode_old.svg",
+   ]
+--- a/chrome/browser/ui/webui/cr_components/customize_color_scheme_mode/customize_color_scheme_mode_handler.h
++++ b/chrome/browser/ui/webui/cr_components/customize_color_scheme_mode/customize_color_scheme_mode_handler.h
+@@ -7,6 +7,7 @@
+ 
+ #include "base/memory/raw_ptr.h"
+ #include "chrome/browser/themes/theme_service_observer.h"
++#include "components/prefs/pref_change_registrar.h"
+ #include "mojo/public/cpp/bindings/receiver.h"
+ #include "mojo/public/cpp/bindings/remote.h"
+ #include "ui/webui/resources/cr_components/customize_color_scheme_mode/customize_color_scheme_mode.mojom.h"
+@@ -33,6 +34,7 @@
+   void SetColorSchemeMode(
+       customize_color_scheme_mode::mojom::ColorSchemeMode colorMode) override;
+   void InitializeColorSchemeMode() override;
++  void SetFollowPageColor(bool enabled) override;
+ 
+   // ThemeServiceObserver:
+   void OnThemeChanged() override;
+@@ -48,6 +50,8 @@
+       receiver_;
+ 
+   const raw_ptr<ThemeService> theme_service_;
++  // Helium Glyphe : modes OLED et Nuit, couleur de la page (prefs de profil).
++  PrefChangeRegistrar glyphe_prefs_;
+ };
+ 
+ #endif  // CHROME_BROWSER_UI_WEBUI_CR_COMPONENTS_CUSTOMIZE_COLOR_SCHEME_MODE_CUSTOMIZE_COLOR_SCHEME_MODE_HANDLER_H_
+--- a/chrome/browser/ui/webui/cr_components/customize_color_scheme_mode/customize_color_scheme_mode_handler.cc
++++ b/chrome/browser/ui/webui/cr_components/customize_color_scheme_mode/customize_color_scheme_mode_handler.cc
+@@ -7,6 +7,9 @@
+ #include "chrome/browser/profiles/profile.h"
+ #include "chrome/browser/themes/theme_service.h"
+ #include "chrome/browser/themes/theme_service_factory.h"
++#include "base/functional/bind.h"
++#include "chrome/common/pref_names.h"
++#include "components/prefs/pref_service.h"
+ #include "ui/webui/resources/cr_components/customize_color_scheme_mode/customize_color_scheme_mode.mojom.h"
+ 
+ CustomizeColorSchemeModeHandler::CustomizeColorSchemeModeHandler(
+@@ -22,6 +25,19 @@
+       theme_service_(ThemeServiceFactory::GetForProfile(profile)) {
+   CHECK(theme_service_);
+   theme_service_->AddObserver(this);
++  glyphe_prefs_.Init(profile->GetPrefs());
++  for (const char* pref :
++       {prefs::kGlypheOledEnabled, prefs::kGlypheRedNightEnabled,
++        prefs::kGlypheFollowPageColor}) {
++    glyphe_prefs_.Add(
++        pref, base::BindRepeating(
++                  &CustomizeColorSchemeModeHandler::UpdateColorSchemeMode,
++                  base::Unretained(this)));
++  }
++}
++
++void CustomizeColorSchemeModeHandler::SetFollowPageColor(bool enabled) {
++  glyphe_prefs_.prefs()->SetBoolean(prefs::kGlypheFollowPageColor, enabled);
+ }
+ 
+ CustomizeColorSchemeModeHandler::~CustomizeColorSchemeModeHandler() {
+@@ -30,8 +46,20 @@
+ 
+ void CustomizeColorSchemeModeHandler::SetColorSchemeMode(
+     customize_color_scheme_mode::mojom::ColorSchemeMode colorMode) {
++  using Mode = customize_color_scheme_mode::mojom::ColorSchemeMode;
++  PrefService* prefs = glyphe_prefs_.prefs();
++  // Nuit : le mode nuit rouge, par-dessus le reste.
++  if (colorMode == Mode::kRedNight) {
++    prefs->SetBoolean(prefs::kGlypheRedNightEnabled, true);
++    return;
++  }
++  prefs->SetBoolean(prefs::kGlypheRedNightEnabled, false);
++  // OLED : mode sombre (pages comprises) et interface en noir pur.
++  prefs->SetBoolean(prefs::kGlypheOledEnabled, colorMode == Mode::kOled);
+   theme_service_->SetBrowserColorScheme(
+-      static_cast<ThemeService::BrowserColorScheme>(colorMode));
++      colorMode == Mode::kOled
++          ? ThemeService::BrowserColorScheme::kDark
++          : static_cast<ThemeService::BrowserColorScheme>(colorMode));
+ }
+ 
+ void CustomizeColorSchemeModeHandler::InitializeColorSchemeMode() {
+@@ -43,6 +71,17 @@
+ }
+ 
+ void CustomizeColorSchemeModeHandler::UpdateColorSchemeMode() {
++  using Mode = customize_color_scheme_mode::mojom::ColorSchemeMode;
++  remote_client_->SetFollowPageColor(
++      glyphe_prefs_.prefs()->GetBoolean(prefs::kGlypheFollowPageColor));
++  if (glyphe_prefs_.prefs()->GetBoolean(prefs::kGlypheRedNightEnabled)) {
++    remote_client_->SetColorSchemeMode(Mode::kRedNight);
++    return;
++  }
++  if (glyphe_prefs_.prefs()->GetBoolean(prefs::kGlypheOledEnabled)) {
++    remote_client_->SetColorSchemeMode(Mode::kOled);
++    return;
++  }
+   remote_client_->SetColorSchemeMode(
+       static_cast<customize_color_scheme_mode::mojom::ColorSchemeMode>(
+           theme_service_->GetBrowserColorScheme()));
+--- a/chrome/browser/ui/webui/cr_components/customize_color_scheme_mode/BUILD.gn
++++ b/chrome/browser/ui/webui/cr_components/customize_color_scheme_mode/BUILD.gn
+@@ -17,6 +17,8 @@
+     "//base",
+     "//chrome/browser/profiles:profile",
+     "//chrome/browser/themes",
++    "//chrome/common:constants",
++    "//components/prefs",
+   ]
+ }
+ 
+--- a/chrome/browser/ui/views/frame/multi_contents_view.h
++++ b/chrome/browser/ui/views/frame/multi_contents_view.h
+@@ -62,7 +62,7 @@
+     int end = 0;
+   };
+ 
+-  static constexpr int kSplitViewContentInset = 3;
++  static constexpr int kSplitViewContentInset = 6;  // Glyphe : page en retrait
+ 
+   MultiContentsView(BrowserView* browser_view,
+                     std::unique_ptr<MultiContentsViewDelegate> delegate);
+--- a/chrome/browser/ui/views/helium/frame_corner_radius.cc
++++ b/chrome/browser/ui/views/helium/frame_corner_radius.cc
+@@ -8,7 +8,7 @@
+ #include "chrome/browser/ui/layout_constants.h"
+ 
+ int GetGenericFrameRadius() {
+-  return 8;
++  return 10;  // Glyphe : coins de la page
+ }
+ 
+ #if !BUILDFLAG(IS_MAC)
+--- a/chrome/browser/ui/tabs/tab_style.cc
++++ b/chrome/browser/ui/tabs/tab_style.cc
+@@ -21,11 +21,11 @@
+ // the tab.
+ constexpr int kSeparatorThickness = 1;
+ constexpr int kSeparatorHorizontalMargin = 5;
+-constexpr int kSeparatorHeight = 16;
++constexpr int kSeparatorHeight = 14;  // Glyphe
+ 
+ 
+ // The standard tab width is 190 DIP, excluding separators and overlap.
+-constexpr int kTabWidth = 190;
++constexpr int kTabWidth = 240;  // Glyphe : onglets plus larges
+ 
+ // Split tabs need more space to be readable.
+ constexpr int kSplitTabWidth = 250;
+--- a/chrome/browser/ui/layout_constants.cc
++++ b/chrome/browser/ui/layout_constants.cc
+@@ -87,7 +87,7 @@
+     case LayoutConstant::kLocationBarTrailingDecorationInnerPadding:
+       return touch_ui ? 3 : 8;
+     case LayoutConstant::kLocationBarHeight:
+-      return touch_ui ? 36 : 28;
++      return touch_ui ? 36 : 30;  // Glyphe
+     // LINT.IfChange(LocationBarIconSize)
+     case LayoutConstant::kLocationBarIconSize:
+       return touch_ui ? 20 : 16;
+@@ -113,7 +113,7 @@
+     case LayoutConstant::kTabCloseButtonSize:
+       return touch_ui ? 24 : (features::IsRoundedIconsEnabled() ? 14 : 16);
+     case LayoutConstant::kTabHeight:
+-      return 31;
++      return 30;  // Glyphe
+     case LayoutConstant::kTabStripHeight:
+       return GetLayoutConstant(LayoutConstant::kTabHeight) +
+              GetLayoutConstant(LayoutConstant::kTabStripPadding);
+@@ -122,7 +122,7 @@
+     case LayoutConstant::kTabSeparatorHeight:
+       return touch_ui ? 24 : 20;
+     case LayoutConstant::kTabPreTitlePadding:
+-      return 6;
++      return 8;  // Glyphe
+     case LayoutConstant::kTabVerticalPadding:
+       return 6;
+     case LayoutConstant::kTabHorizontalPadding:
+@@ -132,10 +132,9 @@
+     case LayoutConstant::kTabstripToolbarOverlap:
+       return 0;
+     case LayoutConstant::kToolbarButtonHeight:
+-      return touch_ui ? 48 : 28;
++      return touch_ui ? 48 : 30;  // Glyphe
+     case LayoutConstant::kToolbarButtonIconSize:
+-      return touch_ui ? kDefaultTouchableIconSize
+-                      : kDefaultIconSizeChromeRefresh;
++      return touch_ui ? kDefaultTouchableIconSize : 18;  // Glyphe
+     case LayoutConstant::kToolbarDividerCornerRadius:
+       return 1;
+     case LayoutConstant::kToolbarDividerHeight:
+@@ -145,9 +144,9 @@
+     case LayoutConstant::kToolbarDividerWidth:
+       return 1;
+     case LayoutConstant::kToolbarElementPadding:
+-      return touch_ui ? 0 : GetLayoutConstant(LayoutConstant::kHeliumBasePadding);
++      return touch_ui ? 0 : 2;  // Glyphe
+     case LayoutConstant::kToolbarIconDefaultMargin:
+-      return touch_ui ? 0 : GetLayoutConstant(LayoutConstant::kHeliumBasePadding);
++      return touch_ui ? 0 : 2;  // Glyphe
+     case LayoutConstant::kToolbarButtonRefreshExpandedMargin:
+       return 5;
+     case LayoutConstant::kLocationBarMargin:
+@@ -223,7 +222,7 @@
+     }
+ 
+     case TOOLBAR_BUTTON:
+-      return gfx::Insets(touch_ui ? 12 : 4);
++      return gfx::Insets(touch_ui ? 12 : 6);  // Glyphe : 18 + 2 × 6 = 30
+ 
+     case BROWSER_APP_MENU_CHIP_PADDING:
+       if (touch_ui) {
+@@ -247,7 +246,8 @@
+ 
+     case TOOLBAR_INTERIOR_MARGIN: {
+       const int base = GetLayoutConstant(LayoutConstant::kHeliumBasePadding);
+-      return gfx::Insets::VH(base, base * 2);
++      // Glyphe : rangée de 36 px, 1 px au-dessus, 5 px avant la page.
++      return gfx::Insets::TLBR(base - 2, base - 1, base + 2, base - 1);
+     }
+ 
+     case WEBUI_TAB_STRIP_TOOLBAR_INTERIOR_MARGIN:
+--- a/chrome/browser/ui/views/location_bar/location_bar_view.cc
++++ b/chrome/browser/ui/views/location_bar/location_bar_view.cc
+@@ -582,8 +582,9 @@
+ 
+ // static
+ int LocationBarView::ComputeBorderRadius(gfx::Size size) {
+-  return ChromeLayoutProvider::Get()->GetCornerRadiusMetric(
+-      views::Emphasis::kHigh, size);
++  // Glyphe : champ d’adresse à coins de 10 px.
++  return std::min(10, ChromeLayoutProvider::Get()->GetCornerRadiusMetric(
++                         views::Emphasis::kHigh, size));
+ }
+ 
+ // static
+--- a/ui/gfx/platform_font_skia.cc
++++ b/ui/gfx/platform_font_skia.cc
+@@ -16,6 +16,7 @@
+ #include "skia/ext/font_utils.h"
+ #include "third_party/skia/include/core/SkFont.h"
+ #include "third_party/skia/include/core/SkFontMetrics.h"
++#include "third_party/skia/include/core/SkFontMgr.h"
+ #include "third_party/skia/include/core/SkFontStyle.h"
+ #include "third_party/skia/include/core/SkString.h"
+ #include "third_party/skia/include/core/SkTypeface.h"
+@@ -180,6 +181,19 @@
+     style = font_settings.style;
+     weight = static_cast<Font::Weight>(font_settings.weight);
+     params = linux_ui->GetDefaultFontRenderParams();
++    // Helium Glyphe : Instrument Sans Medium 13 px quand elle est installée.
++    if (sk_sp<SkTypeface> glyphe = skia::DefaultFontMgr()->matchFamilyStyle(
++            "Instrument Sans", SkFontStyle(500, SkFontStyle::kNormal_Width,
++                                           SkFontStyle::kUpright_Slant))) {
++      SkString glyphe_family;
++      glyphe->getFamilyName(&glyphe_family);
++      if (glyphe_family.equals("Instrument Sans")) {
++        family = "Instrument Sans";
++        size_pixels = 13;
++        style = Font::NORMAL;
++        weight = Font::Weight::MEDIUM;
++      }
++    }
+   } else
+ #endif
+       if (default_font_description_) {
+--- a/ui/gfx/font_render_params_linux.cc
++++ b/ui/gfx/font_render_params_linux.cc
+@@ -272,6 +272,14 @@
+       params.hinting = FontRenderParams::HINTING_NONE;
+   }
+ 
++  // Helium Glyphe : lissage en niveaux de gris, sans hinting, avec
++  // positionnement sous-pixel (rendu de la maquette).
++  if (params.antialiasing) {
++    params.subpixel_rendering = FontRenderParams::SUBPIXEL_RENDERING_NONE;
++    params.subpixel_positioning = true;
++    params.hinting = FontRenderParams::HINTING_NONE;
++  }
++
+   // Use the first family from the list if Fontconfig didn't suggest a family.
+   if (family_out && family_out->empty() && !actual_query.families.empty())
+     *family_out = actual_query.families[0];

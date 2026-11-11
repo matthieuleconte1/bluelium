@@ -106,7 +106,7 @@
      case WEBUI_TAB_STRIP_TOOLBAR_INTERIOR_MARGIN:
 --- a/chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.cc
 +++ b/chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.cc
-@@ -667,7 +667,7 @@
+@@ -669,7 +669,7 @@
        GetLayoutConstant(LayoutConstant::kTabStripHeight) -
        GetLayoutConstant(LayoutConstant::kTabstripToolbarOverlap) -
        NewTabButton::kButtonSize.height();
@@ -115,7 +115,7 @@
    const int bottom_inset =
        extra_vertical_space - top_inset +
        GetLayoutConstant(LayoutConstant::kTabstripToolbarOverlap);
-@@ -779,7 +779,7 @@
+@@ -781,7 +781,7 @@
  
    tab_strip_->SetProperty(
        views::kMarginsKey,
@@ -124,7 +124,7 @@
                          tab_strip_right_margin.value_or(0)));
  }
  
-@@ -1105,7 +1105,7 @@
+@@ -1107,7 +1107,7 @@
        GetLayoutConstant(LayoutConstant::kTabStripHeight) -
        GetLayoutConstant(LayoutConstant::kTabstripToolbarOverlap) -
        TabStripControlButton::kButtonSize.height();

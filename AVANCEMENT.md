@@ -176,11 +176,11 @@ Règles de l'Atelier Glyphe appliquées au DOM et au CSS :
       publiée avec le jeton de `/root/glyphe/github.env`.
 - [x] `glyphe-update` (PC) lit la dernière release GitHub, vérifie le SHA-256,
       installe quand Bluelium est fermé.
-- [ ] Vérifier que la série s'applique sur un Helium neuf
-      (`tools/sync-builder.sh --patch-only`), puis premier build complet PGO
-      et première release.
-- [ ] Recopier les patchs régénérés dans `patches/glyphe/` (ils remplaceront
-      les .patch décalés, dont `prism-ui.patch`).
+- [x] La série (22 patchs) s'applique sur un Helium 0.21.2.1 neuf
+      (`tools/sync-builder.sh --patch-only`, 12 nov.). Patchs régénérés recopiés :
+      seuls `prism-ui` (thèmes, largeur des onglets) et `layout-spacing` différaient.
+- [ ] Premier build complet PGO lancé le 12 nov. dans la nuit : vérifier la
+      release sur GitHub, puis `autobuild/switch-to-bluelium.sh` (Helium fermé).
 - Outils : `tools/respec.py` (met à jour l'arbre quand une spec déjà
   appliquée change) ; `apply_spec.py` refuse les remplacements vides ou
   contenus dans leur motif.
