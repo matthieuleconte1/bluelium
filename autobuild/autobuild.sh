@@ -20,7 +20,7 @@
 #
 # FORCE=1 reconstruit même si rien n'a changé. PGO=false pour aller plus vite.
 # PATCH_ONLY=1 s'arrête après la série Bluelium (vérifie qu'elle s'applique).
-set -euo pipefail
+set -Eeuo pipefail  # -E : le piège ERR vaut aussi dans les fonctions de Helium
 
 G=/root/glyphe
 W=/root/helium-auto
@@ -90,7 +90,8 @@ PY
 # 4. Sources neuves (le cache de téléchargement est gardé), étapes de Helium,
 #    puis la série Bluelium sur l'arbre final, comme dans l'arbre de dev.
 export CCACHE_DIR=/root/.ccache CCACHE_MAXSIZE=60G CCACHE_BASEDIR=$W/build/src
-rm -rf build/src
+# Caches de substitution de Helium : leur présence fait échouer la relance.
+rm -rf build/src build/namesubs.tar build/subs.tar.gz
 . "$W/scripts/shared.sh"
 setup_environment
 fetch_sources false "${PGO:-true}"
