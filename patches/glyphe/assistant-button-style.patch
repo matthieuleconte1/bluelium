@@ -1,0 +1,132 @@
+--- a/chrome/browser/ui/views/toolbar/pinned_action_toolbar_button.h
++++ b/chrome/browser/ui/views/toolbar/pinned_action_toolbar_button.h
+@@ -54,6 +54,7 @@
+   }
+   void SetActionEngaged(bool action_engaged);
+   void UpdateIcon() override;
++  void UpdateColorsAndInsets() override;
+   bool ShouldShowEphemerallyInToolbar();
+   bool IsIconVisible() { return is_icon_visible_; }
+   bool IsPinned() { return pinned_; }
+--- a/chrome/browser/ui/views/toolbar/pinned_action_toolbar_button.cc
++++ b/chrome/browser/ui/views/toolbar/pinned_action_toolbar_button.cc
+@@ -3,6 +3,16 @@
+ // found in the LICENSE file.
+ 
+ #include "chrome/browser/ui/views/toolbar/pinned_action_toolbar_button.h"
++#include "chrome/browser/ui/actions/chrome_action_id.h"
++#include "chrome/browser/ui/color/chrome_color_id.h"
++#include "chrome/browser/ui/views/side_panel/glyphe_assistant.h"  // nogncheck
++#include "ui/gfx/color_utils.h"
++#include "ui/gfx/image/image_skia_operations.h"
++#include "ui/views/background.h"
++#include "ui/views/controls/highlight_path_generator.h"
++#include "chrome/browser/themes/theme_service.h"
++#include "chrome/browser/themes/theme_service_factory.h"
++#include "ui/color/glyphe_prism.h"
+ 
+ #include <string>
+ #include <type_traits>
+@@ -152,11 +162,17 @@
+ void PinnedActionToolbarButton::AddHighlight() {
+   anchor_higlight_ = AddAnchorHighlight();
+   GetViewAccessibility().SetCheckedState(ax::mojom::CheckedState::kTrue);
++  if (action_id_ == kActionSidePanelShowGlypheAssistant) {
++    UpdateColorsAndInsets();
++  }
+ }
+ 
+ void PinnedActionToolbarButton::ResetHighlight() {
+   anchor_higlight_.reset();
+   GetViewAccessibility().SetCheckedState(ax::mojom::CheckedState::kFalse);
++  if (action_id_ == kActionSidePanelShowGlypheAssistant) {
++    UpdateColorsAndInsets();
++  }
+ }
+ 
+ bool PinnedActionToolbarButton::IsHighlighted() const {
+@@ -240,7 +256,51 @@
+   skip_execution_ = false;
+ }
+ 
++void PinnedActionToolbarButton::UpdateColorsAndInsets() {
++  ToolbarButton::UpdateColorsAndInsets();
++  if (action_id_ != kActionSidePanelShowGlypheAssistant || !GetColorProvider()) {
++    return;
++  }
++  const auto* colors = GetColorProvider();
++  const bool glyphe_active = IsActive();
++  // Repos : logo monochrome sur pastille discrète. Panneau ouvert : pastille
++  // pleine à l'accent (bleu de la planche), logo de la couleur opposée.
++  // Panneau ouvert : pastille pleine à la couleur du thème (sa pastille dans
++  // Personnaliser, #3450d1 pour Prism) et logo blanc. Repos : logo noir ou
++  // blanc selon le thème, sur une pastille discrète.
++  SkColor seed = ui::kGlyphePrismSeed;
++  if (const ThemeService* theme =
++          ThemeServiceFactory::GetForProfile(browser_->GetProfile());
++      theme && !theme->GetIsGrayscale() && theme->GetUserColor()) {
++    seed = *theme->GetUserColor();
++  }
++  const SkColor icon = glyphe_active
++                           ? SK_ColorWHITE
++                           : colors->GetColor(ui::kColorSysOnSurface);
++  const SkColor background =
++      glyphe_active
++          ? seed
++          : color_utils::AlphaBlend(icon, colors->GetColor(kColorToolbar),
++                                    SkAlpha{0x14});
++  SetBackground(views::CreateRoundedRectBackground(background, 15));
++  // Survol, appui et anneau de focus ronds, comme la pastille.
++  views::InstallCircleHighlightPathGenerator(this);
++  gfx::ImageSkia logo = glyphe::AssistantIcon(
++      glyphe::CurrentAssistant(browser_->GetProfile())).Rasterize(colors);
++  logo = gfx::ImageSkiaOperations::CreateColorMask(logo, icon);
++  for (auto state : {STATE_NORMAL, STATE_HOVERED, STATE_PRESSED}) {
++    SetImageModel(state, ui::ImageModel::FromImageSkia(logo));
++  }
++  if (status_indicator_) {
++    status_indicator_->Hide();
++  }
++}
++
+ void PinnedActionToolbarButton::UpdateIcon() {
++  if (action_id_ == kActionSidePanelShowGlypheAssistant) {
++    UpdateColorsAndInsets();
++    return;
++  }
+   const std::optional<VectorIcons>& icons = GetVectorIcons();
+   // If the button is a cached permanent button the color provider will not be
+   // available.
+@@ -272,6 +332,9 @@
+ 
+ void PinnedActionToolbarButton::SetActionEngaged(bool action_engaged) {
+   action_engaged_ = action_engaged;
++  if (action_id_ == kActionSidePanelShowGlypheAssistant) {
++    UpdateColorsAndInsets();
++  }
+   UpdateFlexPriority();
+ }
+ 
+@@ -280,6 +343,10 @@
+ }
+ 
+ void PinnedActionToolbarButton::UpdateStatusIndicator() {
++  if (action_id_ == kActionSidePanelShowGlypheAssistant) {
++    status_indicator_->Hide();
++    return;
++  }
+   if (action_engaged_ && is_icon_visible_) {
+     status_indicator_->Show();
+   } else {
+@@ -418,6 +485,11 @@
+         views::Button::STATE_NORMAL,
+         action_view_->IsIconVisible() ? image_model : ui::ImageModel());
+   }
++  // L’image du modèle est appliquée après SetActionEngaged : reteinter le
++  // logo IA en dernier pour conserver le blanc lorsque le panneau est ouvert.
++  if (action_view_->GetActionId() == kActionSidePanelShowGlypheAssistant) {
++    action_view_->UpdateIcon();
++  }
+   // Set the accessible name. Fall back to the tooltip if one is not provided.
+   // If pinned, the pinned state is added to the accessible name.
+   const std::u16string accessible_name(action_item->GetAccessibleName().empty()

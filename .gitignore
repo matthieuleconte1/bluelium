@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+# Logos d'origine des assistants (marques) : non redistribués.
+assets/icons/claude*
+assets/icons/chatgpt*
+assets/icons/gemini*
+assets/icons/mistral*
+# Configuration locale du PC (hôtes de build, connecteurs).
+specs/reference/validation/native-hosts.json

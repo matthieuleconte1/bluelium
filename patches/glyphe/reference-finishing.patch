@@ -1,0 +1,250 @@
+--- a/components/omnibox/browser/vector_icons/star.icon
++++ b/components/omnibox/browser/vector_icons/star.icon
+@@ -1,47 +1,45 @@
+-// Copyright 2026 The Chromium Authors
+-// Use of this source code is governed by a BSD-style license that can be
+-// found in the LICENSE file.
+-
++// Glyphe: Material Symbols Rounded bookmark, wght=350, opsz=20.
+ CANVAS_DIMENSIONS, 20,
+ FILL_RULE_NONZERO,
+-MOVE_TO, 7.33f, 13.9f,
+-LINE_TO, 10, 12.31f,
+-R_LINE_TO, 2.69f, 1.58f,
+-R_LINE_TO, -0.71f, -3,
+-R_LINE_TO, 2.31f, -1.98f,
+-R_LINE_TO, -3.06f, -0.27f,
+-LINE_TO, 10, 5.79f,
+-LINE_TO, 8.77f, 8.65f,
+-R_LINE_TO, -3.06f, 0.27f,
+-R_LINE_TO, 2.34f, 1.98f,
++MOVE_TO, 10.00000f, 14.77562f,
++LINE_TO, 7.15866f, 15.92306f,
++CUBIC_TO, 6.69926f, 16.10682f, 6.25936f, 16.05674f, 5.83895f, 15.77282f,
++CUBIC_TO, 5.41855f, 15.48890f, 5.20835f, 15.09774f, 5.20835f, 14.59934f,
++LINE_TO, 5.20835f, 4.62821f,
++CUBIC_TO, 5.20835f, 4.23441f, 5.34654f, 3.89932f, 5.62293f, 3.62293f,
++CUBIC_TO, 5.89932f, 3.34654f, 6.23441f, 3.20835f, 6.62821f, 3.20835f,
++LINE_TO, 13.37179f, 3.20835f,
++CUBIC_TO, 13.76559f, 3.20835f, 14.10068f, 3.34654f, 14.37707f, 3.62293f,
++CUBIC_TO, 14.65346f, 3.89932f, 14.79165f, 4.23441f, 14.79165f, 4.62821f,
++LINE_TO, 14.79165f, 14.59934f,
++CUBIC_TO, 14.79165f, 15.09774f, 14.58145f, 15.48890f, 14.16105f, 15.77282f,
++CUBIC_TO, 13.74064f, 16.05674f, 13.30074f, 16.10682f, 12.84134f, 15.92306f,
+ CLOSE,
+-R_MOVE_TO, 2.67f, 0.17f,
+-R_LINE_TO, -3.42f, 2.04f,
+-R_ARC_TO, 0.76f, 0.76f, 0, 0, 1, -0.83f, -0.04f,
+-R_ARC_TO, 0.76f, 0.76f, 0, 0, 1, -0.25f, -0.34f,
+-R_ARC_TO, 0.71f, 0.71f, 0, 0, 1, -0.02f, -0.45f,
+-R_LINE_TO, 0.9f, -3.81f,
+-R_LINE_TO, -3.02f, -2.56f,
+-R_ARC_TO, 0.67f, 0.67f, 0, 0, 1, -0.23f, -0.38f,
+-R_ARC_TO, 0.94f, 0.94f, 0, 0, 1, 0.02f, -0.43f,
+-R_ARC_TO, 0.72f, 0.72f, 0, 0, 1, 0.23f, -0.34f,
+-R_CUBIC_TO, 0.11f, -0.09f, 0.25f, -0.14f, 0.42f, -0.16f,
+-LINE_TO, 7.75f, 7.23f,
+-R_LINE_TO, 1.56f, -3.62f,
+-R_ARC_TO, 0.75f, 0.75f, 0, 0, 1, 0.29f, -0.34f,
+-R_ARC_TO, 0.73f, 0.73f, 0, 0, 1, 0.79f, 0,
+-R_ARC_TO, 0.75f, 0.75f, 0, 0, 1, 0.29f, 0.34f,
+-LINE_TO, 12.25f, 7.25f,
+-R_LINE_TO, 3.96f, 0.33f,
+-R_CUBIC_TO, 0.17f, 0.02f, 0.31f, 0.07f, 0.42f, 0.17f,
+-R_CUBIC_TO, 0.11f, 0.1f, 0.19f, 0.22f, 0.23f, 0.36f,
+-R_CUBIC_TO, 0.04f, 0.14f, 0.04f, 0.28f, 0.01f, 0.42f,
+-R_ARC_TO, 0.73f, 0.73f, 0, 0, 1, -0.24f, 0.38f,
+-R_LINE_TO, -3, 2.56f,
+-R_LINE_TO, 0.9f, 3.81f,
+-R_ARC_TO, 0.71f, 0.71f, 0, 0, 1, -0.02f, 0.45f,
+-R_ARC_TO, 0.73f, 0.73f, 0, 0, 1, -0.64f, 0.49f,
+-R_ARC_TO, 0.76f, 0.76f, 0, 0, 1, -0.44f, -0.1f,
++MOVE_TO, 10.00000f, 13.37500f,
++LINE_TO, 13.31970f, 14.69471f,
++CUBIC_TO, 13.36244f, 14.71340f, 13.40317f, 14.70940f, 13.44190f, 14.68269f,
++CUBIC_TO, 13.48063f, 14.65597f, 13.50000f, 14.61991f, 13.50000f, 14.57450f,
++LINE_TO, 13.50000f, 4.62821f,
++CUBIC_TO, 13.50000f, 4.59616f, 13.48664f, 4.56678f, 13.45993f, 4.54007f,
++CUBIC_TO, 13.43322f, 4.51336f, 13.40384f, 4.50000f, 13.37179f, 4.50000f,
++LINE_TO, 6.62821f, 4.50000f,
++CUBIC_TO, 6.59616f, 4.50000f, 6.56678f, 4.51336f, 6.54007f, 4.54007f,
++CUBIC_TO, 6.51336f, 4.56678f, 6.50000f, 4.59616f, 6.50000f, 4.62821f,
++LINE_TO, 6.50000f, 14.57450f,
++CUBIC_TO, 6.50000f, 14.61991f, 6.51937f, 14.65597f, 6.55810f, 14.68269f,
++CUBIC_TO, 6.59683f, 14.70940f, 6.63756f, 14.71340f, 6.68030f, 14.69471f,
+ CLOSE,
+-R_MOVE_TO, 0, -4,
+-CLOSE
++MOVE_TO, 10.00000f, 4.50000f,
++LINE_TO, 6.68030f, 4.50000f,
++CUBIC_TO, 6.63756f, 4.50000f, 6.59683f, 4.50000f, 6.55810f, 4.50000f,
++CUBIC_TO, 6.51937f, 4.50000f, 6.50000f, 4.50000f, 6.50000f, 4.50000f,
++LINE_TO, 6.50000f, 4.50000f,
++CUBIC_TO, 6.50000f, 4.50000f, 6.51336f, 4.50000f, 6.54007f, 4.50000f,
++CUBIC_TO, 6.56678f, 4.50000f, 6.59616f, 4.50000f, 6.62821f, 4.50000f,
++LINE_TO, 13.37179f, 4.50000f,
++CUBIC_TO, 13.40384f, 4.50000f, 13.43322f, 4.50000f, 13.45993f, 4.50000f,
++CUBIC_TO, 13.48664f, 4.50000f, 13.50000f, 4.50000f, 13.50000f, 4.50000f,
++LINE_TO, 13.50000f, 4.50000f,
++CUBIC_TO, 13.50000f, 4.50000f, 13.48063f, 4.50000f, 13.44190f, 4.50000f,
++CUBIC_TO, 13.40317f, 4.50000f, 13.36244f, 4.50000f, 13.31970f, 4.50000f,
++CLOSE,
+--- a/components/omnibox/browser/vector_icons/star_filled.icon
++++ b/components/omnibox/browser/vector_icons/star_filled.icon
+@@ -1,34 +1,45 @@
+-// Copyright 2026 The Chromium Authors
+-// Use of this source code is governed by a BSD-style license that can be
+-// found in the LICENSE file.
+-
++// Glyphe: Material Symbols Rounded bookmark, wght=350, opsz=20.
+ CANVAS_DIMENSIONS, 20,
+ FILL_RULE_NONZERO,
+-R_MOVE_TO, 10, 14.06f,
+-R_LINE_TO, -3.42f, 2.04f,
+-R_ARC_TO, 0.76f, 0.76f, 0, 0, 1, -0.83f, -0.04f,
+-R_ARC_TO, 0.76f, 0.76f, 0, 0, 1, -0.25f, -0.34f,
+-R_ARC_TO, 0.71f, 0.71f, 0, 0, 1, -0.02f, -0.45f,
+-R_LINE_TO, 0.9f, -3.81f,
+-R_LINE_TO, -3.02f, -2.56f,
+-R_ARC_TO, 0.67f, 0.67f, 0, 0, 1, -0.23f, -0.38f,
+-R_ARC_TO, 0.94f, 0.94f, 0, 0, 1, 0.02f, -0.43f,
+-R_ARC_TO, 0.72f, 0.72f, 0, 0, 1, 0.23f, -0.34f,
+-R_CUBIC_TO, 0.11f, -0.09f, 0.25f, -0.14f, 0.42f, -0.16f,
+-LINE_TO, 7.75f, 7.23f,
+-R_LINE_TO, 1.56f, -3.62f,
+-R_ARC_TO, 0.75f, 0.75f, 0, 0, 1, 0.29f, -0.34f,
+-R_ARC_TO, 0.73f, 0.73f, 0, 0, 1, 0.79f, 0,
+-R_ARC_TO, 0.75f, 0.75f, 0, 0, 1, 0.29f, 0.34f,
+-LINE_TO, 12.25f, 7.25f,
+-R_LINE_TO, 3.96f, 0.33f,
+-R_CUBIC_TO, 0.17f, 0.02f, 0.31f, 0.07f, 0.42f, 0.17f,
+-R_CUBIC_TO, 0.11f, 0.1f, 0.19f, 0.22f, 0.23f, 0.36f,
+-R_CUBIC_TO, 0.04f, 0.14f, 0.04f, 0.28f, 0.01f, 0.42f,
+-R_ARC_TO, 0.73f, 0.73f, 0, 0, 1, -0.24f, 0.38f,
+-R_LINE_TO, -3, 2.56f,
+-R_LINE_TO, 0.9f, 3.81f,
+-R_ARC_TO, 0.71f, 0.71f, 0, 0, 1, -0.02f, 0.45f,
+-R_ARC_TO, 0.73f, 0.73f, 0, 0, 1, -0.64f, 0.49f,
+-R_ARC_TO, 0.76f, 0.76f, 0, 0, 1, -0.44f, -0.1f,
+-CLOSE
++MOVE_TO, 10.00000f, 14.77562f,
++LINE_TO, 7.15866f, 15.92306f,
++CUBIC_TO, 6.69926f, 16.10682f, 6.25936f, 16.05674f, 5.83895f, 15.77282f,
++CUBIC_TO, 5.41855f, 15.48890f, 5.20835f, 15.09774f, 5.20835f, 14.59934f,
++LINE_TO, 5.20835f, 4.62821f,
++CUBIC_TO, 5.20835f, 4.23441f, 5.34654f, 3.89932f, 5.62293f, 3.62293f,
++CUBIC_TO, 5.89932f, 3.34654f, 6.23441f, 3.20835f, 6.62821f, 3.20835f,
++LINE_TO, 13.37179f, 3.20835f,
++CUBIC_TO, 13.76559f, 3.20835f, 14.10068f, 3.34654f, 14.37707f, 3.62293f,
++CUBIC_TO, 14.65346f, 3.89932f, 14.79165f, 4.23441f, 14.79165f, 4.62821f,
++LINE_TO, 14.79165f, 14.59934f,
++CUBIC_TO, 14.79165f, 15.09774f, 14.58145f, 15.48890f, 14.16105f, 15.77282f,
++CUBIC_TO, 13.74064f, 16.05674f, 13.30074f, 16.10682f, 12.84134f, 15.92306f,
++CLOSE,
++MOVE_TO, 10.00000f, 13.37500f,
++LINE_TO, 13.31970f, 14.69471f,
++CUBIC_TO, 13.36244f, 14.71340f, 13.40317f, 14.70940f, 13.44190f, 14.68269f,
++CUBIC_TO, 13.48063f, 14.65597f, 13.50000f, 14.61991f, 13.50000f, 14.57450f,
++LINE_TO, 13.50000f, 4.62821f,
++CUBIC_TO, 13.50000f, 4.59616f, 13.48664f, 4.56678f, 13.45993f, 4.54007f,
++CUBIC_TO, 13.43322f, 4.51336f, 13.40384f, 4.50000f, 13.37179f, 4.50000f,
++LINE_TO, 6.62821f, 4.50000f,
++CUBIC_TO, 6.59616f, 4.50000f, 6.56678f, 4.51336f, 6.54007f, 4.54007f,
++CUBIC_TO, 6.51336f, 4.56678f, 6.50000f, 4.59616f, 6.50000f, 4.62821f,
++LINE_TO, 6.50000f, 14.57450f,
++CUBIC_TO, 6.50000f, 14.61991f, 6.51937f, 14.65597f, 6.55810f, 14.68269f,
++CUBIC_TO, 6.59683f, 14.70940f, 6.63756f, 14.71340f, 6.68030f, 14.69471f,
++CLOSE,
++MOVE_TO, 10.00000f, 13.37500f,
++LINE_TO, 6.68030f, 14.69471f,
++CUBIC_TO, 6.63756f, 14.71340f, 6.59683f, 14.70940f, 6.55810f, 14.68269f,
++CUBIC_TO, 6.51937f, 14.65597f, 6.50000f, 14.61991f, 6.50000f, 14.57450f,
++LINE_TO, 6.50000f, 4.62821f,
++CUBIC_TO, 6.50000f, 4.59616f, 6.51336f, 4.56678f, 6.54007f, 4.54007f,
++CUBIC_TO, 6.56678f, 4.51336f, 6.59616f, 4.50000f, 6.62821f, 4.50000f,
++LINE_TO, 13.37179f, 4.50000f,
++CUBIC_TO, 13.40384f, 4.50000f, 13.43322f, 4.51336f, 13.45993f, 4.54007f,
++CUBIC_TO, 13.48664f, 4.56678f, 13.50000f, 4.59616f, 13.50000f, 4.62821f,
++LINE_TO, 13.50000f, 14.57450f,
++CUBIC_TO, 13.50000f, 14.61991f, 13.48063f, 14.65597f, 13.44190f, 14.68269f,
++CUBIC_TO, 13.40317f, 14.70940f, 13.36244f, 14.71340f, 13.31970f, 14.69471f,
++CLOSE,
+--- a/chrome/browser/ui/browser_ui_prefs.cc
++++ b/chrome/browser/ui/browser_ui_prefs.cc
+@@ -159,7 +159,7 @@
+   registry->RegisterIntegerPref(prefs::kBookmarkBarRenderedOnNtpCount, 0);
+   registry->RegisterBooleanPref(prefs::kPinContextualTaskButton, true,
+                                 pref_registration_flags);
+-  registry->RegisterBooleanPref(prefs::kPinSplitTabButton, false,
++  registry->RegisterBooleanPref(prefs::kPinSplitTabButton, true,
+                                 pref_registration_flags);
+ 
+   registry->RegisterBooleanPref(prefs::kShowBackButton, true);
+--- a/chrome/browser/ui/color/chrome_color_mixers.cc
++++ b/chrome/browser/ui/color/chrome_color_mixers.cc
+@@ -150,7 +150,7 @@
+         prism->dark ? prism->text : prism->accent, prism->field,
+         SkAlpha{0x14})};
+     p[kColorOmniboxText] = {prism->text};
+-    p[kColorOmniboxTextDimmed] = {prism->muted};
++    p[kColorOmniboxTextDimmed] = {prism->subtle};
+     p[kColorToolbarButtonIcon] = {prism->text};
+     p[kColorToolbarButtonIconInactive] = {SkColorSetA(prism->subtle, 0x99)};
+     p[kColorToolbarText] = {prism->text};
+--- a/chrome/browser/ui/views/toolbar/toolbar_button.cc
++++ b/chrome/browser/ui/views/toolbar/toolbar_button.cc
+@@ -165,8 +165,7 @@
+ }
+ 
+ int ToolbarButton::GetRoundedCornerRadius() const {
+-  return ChromeLayoutProvider::Get()->GetCornerRadiusMetric(
+-      views::Emphasis::kHigh, GetTargetSize());
++  return GetTargetSize().height() / 2;  // Glyphe: boutons circulaires de 30px
+ }
+ 
+ float ToolbarButton::GetCornerRadiusFor(ToolbarButton::Edge edge) const {
+--- a/chrome/browser/ui/views/toolbar/toolbar_view.cc
++++ b/chrome/browser/ui/views/toolbar/toolbar_view.cc
+@@ -3,6 +3,7 @@
+ // found in the LICENSE file.
+ 
+ #include "chrome/browser/ui/views/toolbar/toolbar_view.h"
++#include "ui/views/controls/separator.h"
+ 
+ #include <algorithm>
+ #include <memory>
+@@ -661,6 +662,12 @@
+         std::make_unique<ExtensionsToolbarCoordinator>(extensions_container_);
+   }
+ 
++  // Glyphe: séparateur de 18px entre extensions et assistant.
++  auto* glyphe_separator = AddChildView(std::make_unique<views::Separator>());
++  glyphe_separator->SetPreferredSize(gfx::Size(1, 18));
++  glyphe_separator->SetProperty(views::kMarginsKey, gfx::Insets::VH(0, 4));
++  glyphe_separator->SetColorId(kColorToolbarSeparatorDefault);
++
+   if (!features::IsWebUIPinnedToolbarActionsEnabled()) {
+     pinned_toolbar_actions_container_ = AddChildView(
+         std::make_unique<PinnedToolbarActionsContainer>(browser_view_, this));
+--- a/chrome/browser/ui/views/side_panel/side_panel.cc
++++ b/chrome/browser/ui/views/side_panel/side_panel.cc
+@@ -69,8 +69,8 @@
+ 
+ namespace {
+ 
+-constexpr int kContentMargin = 3;
+-constexpr int kResizeAreaMargin = 6;
++constexpr int kContentMargin = 5;
++constexpr int kResizeAreaMargin = 5;
+ constexpr int kSidePanelMinimumContentWidth = 200;
+ constexpr int kSidePanelDefaultWidthSnapDistance = 15;
+ 
+@@ -109,7 +109,7 @@
+ 
+ // This is how many units of the toolbar are essentially expected to be
+ // background.
+-constexpr int kOverlapFromToolbar = 4;
++constexpr int kOverlapFromToolbar = 0;
+ 
+ bool IsResizeAreaOnLeft(const SidePanel* side_panel) {
+   return (side_panel->IsRightAligned() && !base::i18n::IsRTL()) ||

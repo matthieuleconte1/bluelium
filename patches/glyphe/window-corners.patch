@@ -1,0 +1,79 @@
+--- a/chrome/browser/ui/views/frame/browser_frame_view_linux.cc
++++ b/chrome/browser/ui/views/frame/browser_frame_view_linux.cc
+@@ -8,6 +8,8 @@
+ #include "chrome/browser/ui/views/chrome_layout_provider.h"
+ #include "chrome/browser/ui/views/frame/browser_native_widget_aura_linux.h"
+ #include "chrome/browser/ui/views/frame/browser_view.h"
++#include "chrome/browser/ui/views/helium/frame_corner_radius.h"
++#include "ui/compositor/layer.h"
+ #include "ui/base/hit_test.h"
+ #include "ui/base/metadata/metadata_impl_macros.h"
+ #include "ui/gfx/geometry/insets_f.h"
+@@ -58,7 +60,7 @@
+   float radius = GetRestoredCornerRadiusDip();
+   return views::GetRestoredClipRegion(
+       gfx::RectF(GetLocalBounds()), border,
+-      gfx::RoundedCornersF(radius, radius, 0, 0));
++      gfx::RoundedCornersF(radius, radius, radius, radius));  // Glyphe
+ }
+ 
+ // static
+@@ -124,6 +126,27 @@
+   return frame_component;
+ }
+ 
++void BrowserFrameViewLinux::Layout(PassKey) {
++  LayoutSuperclass<OpaqueBrowserFrameView>(this);
++  // Glyphe : découpe arrondie de toute la zone du navigateur, pour que les
++  // vues peintes dans un calque (onglets, barre d’outils) ne débordent pas
++  // sur les coins de la fenêtre.
++  BrowserView* view = GetBrowserView();
++  if (!view) {
++    return;
++  }
++  const gfx::RoundedCornersF radii = GetWindowRoundedCorners();
++  if (!view->layer()) {
++    if (radii.IsEmpty()) {
++      return;
++    }
++    view->SetPaintToLayer();
++    view->layer()->SetFillsBoundsOpaquely(false);
++  }
++  view->layer()->SetRoundedCornerRadius(radii);
++  view->layer()->SetIsFastRoundedCorner(true);
++}
++
+ float BrowserFrameViewLinux::GetRestoredCornerRadiusDip() const {
+ #if BUILDFLAG(IS_LINUX)
+   const bool tiled = browser_widget()->tiled();
+@@ -134,8 +157,7 @@
+       !views::Widget::IsWindowCompositingSupported()) {
+     return 0;
+   }
+-  return ChromeLayoutProvider::Get()->GetCornerRadiusMetric(
+-      views::Emphasis::kHigh);
++  return GetSystemWindowRadius();  // Glyphe : même rayon que la page
+ }
+ 
+ int BrowserFrameViewLinux::GetTranslucentTopAreaHeight() const {
+@@ -208,7 +230,9 @@
+   if (auto* const widget = GetWidget();
+       widget && !widget->IsFullscreen() && !widget->IsMaximized()) {
+     const float radius_dip = GetRestoredCornerRadiusDip();
+-    return gfx::RoundedCornersF(radius_dip, radius_dip, 0, 0);
++    // Glyphe : les quatre coins.
++    return gfx::RoundedCornersF(radius_dip, radius_dip, radius_dip,
++                                radius_dip);
+   }
+   return gfx::RoundedCornersF();
+ }
+--- a/chrome/browser/ui/views/frame/browser_frame_view_linux.h
++++ b/chrome/browser/ui/views/frame/browser_frame_view_linux.h
+@@ -43,6 +43,7 @@
+   bool CaptionButtonsOnTrailingEdge() const override;
+   BoundsAndMargins GetCaptionButtonBounds() const override;
+   gfx::RoundedCornersF GetWindowRoundedCorners() const override;
++  void Layout(PassKey) override;  // Glyphe : coins arrondis
+ 
+   // Gets the shadow metrics (radius, offset, and number of shadows).  This will
+   // always return shadow values, even if shadows are not actually drawn.

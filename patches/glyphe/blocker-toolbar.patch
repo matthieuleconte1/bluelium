@@ -1,0 +1,186 @@
+--- a/components/vector_icons/shield.icon
++++ b/components/vector_icons/shield.icon
+@@ -1,37 +1,55 @@
+-// Copyright 2026 The Chromium Authors
+-// Use of this source code is governed by a BSD-style license that can be
+-// found in the LICENSE file.
+-
++// Glyphe: Material Symbols Rounded shield, wght=350, opsz=20.
+ CANVAS_DIMENSIONS, 20,
+ FILL_RULE_NONZERO,
+-MOVE_TO, 9.75f, 17.91f,
+-R_ARC_TO, 0.86f, 0.86f, 0, 0, 1, -0.23f, -0.05f,
+-R_CUBIC_TO, -1.82f, -0.6f, -3.28f, -1.7f, -4.37f, -3.31f,
+-CUBIC_TO, 4.05f, 12.93f, 3.5f, 11.17f, 3.5f, 9.27f,
+-V_LINE_TO, 5.52f,
+-R_CUBIC_TO, 0, -0.31f, 0.09f, -0.6f, 0.26f, -0.85f,
+-R_CUBIC_TO, 0.17f, -0.25f, 0.41f, -0.43f, 0.7f, -0.54f,
+-R_LINE_TO, 5, -1.92f,
+-R_CUBIC_TO, 0.18f, -0.07f, 0.36f, -0.1f, 0.54f, -0.1f,
+-R_CUBIC_TO, 0.18f, 0, 0.36f, 0.04f, 0.54f, 0.1f,
+-R_LINE_TO, 5, 1.92f,
+-R_CUBIC_TO, 0.29f, 0.11f, 0.52f, 0.29f, 0.7f, 0.54f,
+-R_CUBIC_TO, 0.18f, 0.25f, 0.26f, 0.54f, 0.26f, 0.85f,
+-R_V_LINE_TO, 3.75f,
+-R_CUBIC_TO, 0, 1.9f, -0.55f, 3.66f, -1.64f, 5.27f,
+-R_CUBIC_TO, -1.1f, 1.61f, -2.56f, 2.72f, -4.37f, 3.31f,
+-R_ARC_TO, 0.86f, 0.86f, 0, 0, 1, -0.23f, 0.05f,
+-R_ARC_TO, 2.68f, 2.68f, 0, 0, 1, -0.5f, 0,
++MOVE_TO, 9.53277f, 17.63380f,
++CUBIC_TO, 7.77215f, 17.03658f, 6.36125f, 15.95645f, 5.30009f, 14.39342f,
++CUBIC_TO, 4.23893f, 12.83039f, 3.70835f, 11.12286f, 3.70835f, 9.27083f,
++LINE_TO, 3.70835f, 5.61299f,
++CUBIC_TO, 3.70835f, 5.31316f, 3.79031f, 5.04331f, 3.95424f, 4.80345f,
++CUBIC_TO, 4.11817f, 4.56358f, 4.33829f, 4.39086f, 4.61459f, 4.28527f,
++LINE_TO, 9.48638f, 2.42069f,
++CUBIC_TO, 9.65892f, 2.35392f, 9.83013f, 2.32053f, 10.00000f, 2.32053f,
++CUBIC_TO, 10.16987f, 2.32053f, 10.34108f, 2.35392f, 10.51362f, 2.42069f,
++LINE_TO, 15.38541f, 4.28527f,
++CUBIC_TO, 15.66171f, 4.39086f, 15.88183f, 4.56358f, 16.04576f, 4.80345f,
++CUBIC_TO, 16.20969f, 5.04331f, 16.29165f, 5.31316f, 16.29165f, 5.61299f,
++LINE_TO, 16.29165f, 9.27083f,
++CUBIC_TO, 16.29165f, 11.12286f, 15.76107f, 12.83039f, 14.69991f, 14.39342f,
++CUBIC_TO, 13.63875f, 15.95645f, 12.22785f, 17.03658f, 10.46723f, 17.63380f,
++CUBIC_TO, 10.40040f, 17.66158f, 10.32532f, 17.67894f, 10.24199f, 17.68588f,
++CUBIC_TO, 10.15865f, 17.69283f, 10.07799f, 17.69630f, 10.00000f, 17.69630f,
++CUBIC_TO, 9.92201f, 17.69630f, 9.84135f, 17.69283f, 9.75801f, 17.68588f,
++CUBIC_TO, 9.67468f, 17.67894f, 9.59960f, 17.66158f, 9.53277f, 17.63380f,
+ CLOSE,
+-R_MOVE_TO, 0.25f, -1.47f,
+-R_CUBIC_TO, 1.45f, -0.45f, 2.64f, -1.34f, 3.58f, -2.69f,
+-ARC_TO, 7.61f, 7.61f, 0, 0, 0, 15, 9.27f,
+-V_LINE_TO, 5.52f,
+-R_LINE_TO, -5, -1.91f,
+-LINE_TO, 5, 5.52f,
+-R_V_LINE_TO, 3.75f,
+-R_CUBIC_TO, 0, 1.64f, 0.47f, 3.14f, 1.42f, 4.48f,
+-R_CUBIC_TO, 0.94f, 1.34f, 2.14f, 2.24f, 3.58f, 2.69f,
++MOVE_TO, 10.00000f, 16.43750f,
++CUBIC_TO, 11.44444f, 15.98958f, 12.63889f, 15.09375f, 13.58333f, 13.75000f,
++CUBIC_TO, 14.52778f, 12.40625f, 15.00000f, 10.91319f, 15.00000f, 9.27083f,
++LINE_TO, 15.00000f, 5.60898f,
++CUBIC_TO, 15.00000f, 5.58227f, 14.99265f, 5.55823f, 14.97796f, 5.53686f,
++CUBIC_TO, 14.96327f, 5.51549f, 14.94257f, 5.49946f, 14.91586f, 5.48878f,
++LINE_TO, 10.04407f, 3.62420f,
++CUBIC_TO, 10.03072f, 3.61886f, 10.01603f, 3.61619f, 10.00000f, 3.61619f,
++CUBIC_TO, 9.98397f, 3.61619f, 9.96928f, 3.61886f, 9.95593f, 3.62420f,
++LINE_TO, 5.08414f, 5.48878f,
++CUBIC_TO, 5.05743f, 5.49946f, 5.03673f, 5.51549f, 5.02204f, 5.53686f,
++CUBIC_TO, 5.00735f, 5.55823f, 5.00000f, 5.58227f, 5.00000f, 5.60898f,
++LINE_TO, 5.00000f, 9.27083f,
++CUBIC_TO, 5.00000f, 10.91319f, 5.47222f, 12.40625f, 6.41667f, 13.75000f,
++CUBIC_TO, 7.36111f, 15.09375f, 8.55556f, 15.98958f, 10.00000f, 16.43750f,
+ CLOSE,
+-R_MOVE_TO, 0, -6.42f,
+-CLOSE
++MOVE_TO, 10.00000f, 10.02885f,
++CUBIC_TO, 10.00000f, 10.02885f, 10.00000f, 10.02885f, 10.00000f, 10.02885f,
++CUBIC_TO, 10.00000f, 10.02885f, 10.00000f, 10.02885f, 10.00000f, 10.02885f,
++LINE_TO, 10.00000f, 10.02885f,
++CUBIC_TO, 10.00000f, 10.02885f, 10.00000f, 10.02885f, 10.00000f, 10.02885f,
++CUBIC_TO, 10.00000f, 10.02885f, 10.00000f, 10.02885f, 10.00000f, 10.02885f,
++LINE_TO, 10.00000f, 10.02885f,
++CUBIC_TO, 10.00000f, 10.02885f, 10.00000f, 10.02885f, 10.00000f, 10.02885f,
++CUBIC_TO, 10.00000f, 10.02885f, 10.00000f, 10.02885f, 10.00000f, 10.02885f,
++LINE_TO, 10.00000f, 10.02885f,
++CUBIC_TO, 10.00000f, 10.02885f, 10.00000f, 10.02885f, 10.00000f, 10.02885f,
++CUBIC_TO, 10.00000f, 10.02885f, 10.00000f, 10.02885f, 10.00000f, 10.02885f,
++LINE_TO, 10.00000f, 10.02885f,
++CUBIC_TO, 10.00000f, 10.02885f, 10.00000f, 10.02885f, 10.00000f, 10.02885f,
++CUBIC_TO, 10.00000f, 10.02885f, 10.00000f, 10.02885f, 10.00000f, 10.02885f,
++CLOSE,
+--- a/chrome/browser/ui/extensions/extension_action_view_model.h
++++ b/chrome/browser/ui/extensions/extension_action_view_model.h
+@@ -112,6 +112,9 @@
+   void InspectPopup() override;
+   content::WebContents* GetCurrentWebContents() const override;
+ 
++  // Glyphe: valeur réelle du badge pour le compteur du bloqueur.
++  std::u16string GetGlypheBadgeText(content::WebContents* web_contents) const;
++
+   // Returns the extension associated with this model.
+   const extensions::Extension* GetExtension() const;
+ 
+--- a/chrome/browser/ui/extensions/extension_action_view_model.cc
++++ b/chrome/browser/ui/extensions/extension_action_view_model.cc
+@@ -292,6 +292,16 @@
+       gfx::ImageSkia(GetIconImageSource(web_contents, size), size));
+ }
+ 
++std::u16string ExtensionActionViewModel::GetGlypheBadgeText(
++    content::WebContents* web_contents) const {
++  if (!ExtensionIsValid() || !web_contents) {
++    return u"0";
++  }
++  const std::string text = extension_action_->GetDisplayBadgeText(
++      sessions::SessionTabHelper::IdForTab(web_contents).id());
++  return text.empty() ? u"0" : base::UTF8ToUTF16(text);
++}
++
+ std::u16string ExtensionActionViewModel::GetActionName() const {
+   if (!ExtensionIsValid()) {
+     return std::u16string();
+--- a/chrome/browser/ui/views/toolbar/toolbar_action_view.cc
++++ b/chrome/browser/ui/views/toolbar/toolbar_action_view.cc
+@@ -3,6 +3,13 @@
+ // found in the LICENSE file.
+ 
+ #include "chrome/browser/ui/views/toolbar/toolbar_action_view.h"
++#include "chrome/browser/ui/extensions/extension_action_view_model.h"
++#include "chrome/browser/ui/color/chrome_color_id.h"
++#include "components/vector_icons/vector_icons.h"
++#include "ui/gfx/font_list.h"
++#include "ui/views/border.h"
++#include "ui/views/controls/label.h"
++#include "ui/views/controls/highlight_path_generator.h"
+ 
+ #include <string>
+ 
+@@ -200,7 +207,25 @@
+     return;
+   }
+ 
+-  ui::ImageModel icon = view_model_->GetIcon(web_contents, GetPreferredSize());
++  ui::ImageModel icon;
++  if (view_model_->GetId() == "blockjmkbacgjkknlgpkjjiijinjdanf") {
++    // ID fixe du composant uBlock de Helium : garder son popup et son moteur.
++    const auto* extension_model =
++        static_cast<ExtensionActionViewModel*>(view_model_.get());
++    SetText(extension_model->GetGlypheBadgeText(web_contents));
++    label()->SetFontList(gfx::FontList("Instrument Sans, 12px"));
++    SetEnabledTextColors(kColorToolbarButtonIcon);
++    SetImageLabelSpacing(4);
++    SetMinSize(gfx::Size(30, 30));
++    SetBorder(views::CreateEmptyBorder(gfx::Insets::TLBR(0, 7, 0, 9)));
++    // Survol et focus sur la pastille elle-même (la bordure remplacée
++    // décalait le calcul standard des boutons de la barre).
++    views::InstallRoundRectHighlightPathGenerator(this, gfx::Insets(), 15);
++    icon = ui::ImageModel::FromVectorIcon(vector_icons::kShieldIcon,
++                                         kColorToolbarButtonIcon, 18);
++  } else {
++    icon = view_model_->GetIcon(web_contents, GetPreferredSize());
++  }
+   if (!icon.IsEmpty()) {
+     SetImageModel(views::Button::STATE_NORMAL, icon);
+     SetImageModel(views::Button::STATE_DISABLED,
+@@ -225,6 +250,9 @@
+ 
+ gfx::Size ToolbarActionView::CalculatePreferredSize(
+     const views::SizeBounds& available_size) const {
++  if (view_model_->GetId() == "blockjmkbacgjkknlgpkjjiijinjdanf") {
++    return views::MenuButton::CalculatePreferredSize(available_size);
++  }
+   return delegate_->GetToolbarActionSize();
+ }
+ 
+--- a/chrome/browser/ui/views/toolbar/toolbar_icon_container_view.cc
++++ b/chrome/browser/ui/views/toolbar/toolbar_icon_container_view.cc
+@@ -290,7 +290,7 @@
+   }
+ 
+   bool showing_before = border_.layer()->GetTargetOpacity() == 1;
+-  border_.layer()->SetOpacity(GetHighlighted() ? 1 : 0);
++  border_.layer()->SetOpacity(0);  // Glyphe : pas de bordure de conteneur
+ 
+   if (showing_before == (border_.layer()->GetTargetOpacity() == 1)) {
+     return;

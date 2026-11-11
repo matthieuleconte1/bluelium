@@ -1,0 +1,142 @@
+--- /dev/null
++++ b/components/vector_icons/glyphe_split.icon
+@@ -0,0 +1,11 @@
++// Helium Glyphe : vue divisée (Material « vertical_split »).
++
++CANVAS_DIMENSIONS, 24,
++ROUND_RECT, 3, 5, 7, 2, 1,
++ROUND_RECT, 3, 9, 7, 2, 1,
++ROUND_RECT, 3, 13, 7, 2, 1,
++ROUND_RECT, 3, 17, 7, 2, 1,
++ROUND_RECT, 13, 5, 8, 2, 1,
++ROUND_RECT, 13, 17, 8, 2, 1,
++ROUND_RECT, 13, 7, 2, 10, 0,
++ROUND_RECT, 19, 7, 2, 10, 0
+--- a/chrome/browser/ui/tabs/tab_style.cc
++++ b/chrome/browser/ui/tabs/tab_style.cc
+@@ -28,7 +28,7 @@
+ constexpr int kTabWidth = 240;  // Glyphe : onglets plus larges
+ 
+ // Split tabs need more space to be readable.
+-constexpr int kSplitTabWidth = 250;
++constexpr int kSplitTabWidth = 400;  // Glyphe
+ 
+ constexpr int kTabHorizontalPadding = 10;  // Glyphe: 10px inside painted edge
+ 
+--- a/components/vector_icons/BUILD.gn
++++ b/components/vector_icons/BUILD.gn
+@@ -30,6 +30,7 @@
+       "add_old.icon",
+       "add_weight500_custom.icon",
+       "glyphe_add_bold.icon",
++      "glyphe_split.icon",
+       "ads_chrome_refresh_old.icon",
+       "ads_click.icon",
+       "ads_click_old.icon",
+--- a/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc
++++ b/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc
+@@ -160,6 +160,17 @@
+       top_right_corner_radius = 0;
+     }
+ 
++    // Glyphe : vue divisée, les deux moitiés forment une seule pastille.
++    if (delegate_->IsLeftSplitTab()) {
++      right = aligned_bounds.right();
++      top_right_corner_radius = 0;
++      bottom_right_corner_radius = 0;
++    } else if (delegate_->IsRightSplitTab()) {
++      left = aligned_bounds.x() + tab_style()->GetTabOverlap() * scale;
++      top_left_corner_radius = 0;
++      bottom_left_corner_radius = 0;
++    }
++
+     // Radii are clockwise from top left.
+     const SkVector radii[4] = {
+         SkVector(top_left_corner_radius, top_left_corner_radius),
+@@ -404,6 +415,12 @@
+ gfx::Insets HorizontalTabStyleViews::GetContentsInsets() const {
+   gfx::Insets base_style_insets = tab_style()->GetContentsInsets();
+   gfx::Insets split_insets = gfx::Insets(0);
++  // Glyphe : contenu de chaque moitié dans son segment.
++  if (delegate_->IsLeftSplitTab()) {
++    split_insets = gfx::Insets::TLBR(0, -2, 0, 5);
++  } else if (delegate_->IsRightSplitTab()) {
++    split_insets = gfx::Insets::TLBR(0, 2, 0, 2);
++  }
+ 
+   gfx::Insets insets =
+       gfx::Insets::TLBR(
+--- a/chrome/browser/ui/views/tabs/tab.cc
++++ b/chrome/browser/ui/views/tabs/tab.cc
+@@ -79,6 +79,10 @@
+ #include "ui/gfx/geometry/rect_conversions.h"
+ #include "ui/gfx/geometry/skia_conversions.h"
+ #include "ui/gfx/paint_vector_icon.h"
++#include "cc/paint/paint_flags.h"
++#include "components/vector_icons/vector_icons.h"
++#include "ui/color/color_id.h"
++#include "ui/color/color_provider.h"
+ #include "ui/views/accessibility/view_accessibility.h"
+ #include "ui/views/border.h"
+ #include "ui/views/bubble/bubble_border.h"
+@@ -922,6 +926,60 @@
+ 
+ void Tab::OnPaint(gfx::Canvas* canvas) {
+   tab_style_views()->PaintTab(canvas);
++
++  // Glyphe : onglet combiné de la vue divisée (segment actif + icône).
++  if (!split().has_value() || !GetColorProvider()) {
++    return;
++  }
++  const std::vector<Tab*> pair = controller()->GetTabsInSplit(this);
++  if (pair.size() != 2) {
++    return;
++  }
++  const bool is_left = pair[base::i18n::IsRTL() ? 1 : 0] == this;
++  const gfx::RectF pill = gfx::SkRectToRectF(
++      tab_style_views()
++          ->GetPath(TabStyle::PathType::kActiveTab, 1.0f, TabPathFlags())
++          .getBounds());
++  // Jonction : bord droit de l'onglet de gauche, x=1 dans celui de droite.
++  const float junction = is_left ? width() : 1.0f;
++  constexpr float kInset = 3.0f;
++  constexpr float kIconSize = 14.0f;
++  constexpr float kIconGap = 3.0f;
++  const float half_zone = kIconSize / 2 + kIconGap;
++
++  if (IsActive() && controller_->IsActiveTab(this)) {
++    gfx::RectF segment = pill;
++    segment.Inset(kInset);
++    if (is_left) {
++      segment.set_width(junction - half_zone - segment.x());
++    } else {
++      const float right = segment.right();
++      segment.set_x(junction + half_zone);
++      segment.set_width(right - segment.x());
++    }
++    if (!segment.IsEmpty()) {
++      cc::PaintFlags flags;
++      flags.setAntiAlias(true);
++      flags.setColor(SkColorSetA(
++          GetColorProvider()->GetColor(ui::kColorSysPrimary), 0x1A));
++      canvas->DrawRoundRect(segment, 6.0f, flags);
++    }
++  }
++
++  const SkColor foreground =
++      tab_style_views()->CalculateTargetColors().foreground_color;
++  canvas->Save();
++  if (!is_left) {
++    // Colonne x=0 déjà couverte par l'onglet de gauche.
++    canvas->ClipRect(gfx::Rect(1, 0, width() - 1, height()));
++  }
++  canvas->Translate(gfx::Vector2d(
++      static_cast<int>(junction - kIconSize / 2),
++      static_cast<int>(pill.CenterPoint().y() - kIconSize / 2)));
++  gfx::PaintVectorIcon(canvas, vector_icons::kGlypheSplitIcon,
++                       static_cast<int>(kIconSize),
++                       SkColorSetA(foreground, 0x99));
++  canvas->Restore();
+ }
+ 
+ void Tab::AddedToWidget() {

@@ -1,0 +1,84 @@
+Done. Made 36425 targets from 5066 files in 3645ms
+depot_tools/siso.py: Using Siso binary from SISO_PATH: third_party/siso/cipd/siso.
+offline mode
+ninja: Entering directory `out/Default'
+
+
+disable fast local for non-interactive: fastlocal=1->0
+ use `--fast_local` to enable fast local with non-interactive mode
+schedule pending:1+ready:0 (node:86166 edge:2)
+build start: Ready 1 Pending 1
+rebuild manifest finished
+
+loading build.ninja... done 668.850447ms
+load siso config done 856.542926ms
+schedule pending:1+ready:0 (node:437213 edge:2)
+build start: Ready 1 Pending 1
+rebuild manifest finished
+schedule pending:1+ready:0 (node:437213 edge:5)
+build start: Ready 8600 Pending 87387
+[0/47904] 4.21s S ACTION //components/resources:about_credits(//build/toolchain/linux:clang_x64)
+[0/21837] 4.53s S CXX obj/chrome/browser/ui/layout_constants/layout_constants.o
+[0/11121] 5.13s F CXX obj/chrome/browser/ui/layout_constants/layout_constants.o
+[1/11117] 7.68s F ACTION //components/resources:about_credits(//build/toolchain/linux:clang_x64)
+[2/7280] 7.71s S CXX obj/chrome/browser/ui/views/tabs/base_impl/tab_strip_layout.o
+[2/6172] 7.72s S CXX obj/chrome/browser/ui/views/frame/opaque_browser_frame_view_layout/opaque_browser_frame_view_layout.o
+[2/6047] 7.72s S CXX obj/chrome/browser/ui/views/frame/multi_contents_resize_area_impl/multi_contents_resize_area.o
+[2/5371] 7.72s S CXX obj/chrome/browser/ui/views/layout_provider_impl/chrome_typography.o
+[2/4667] 7.73s S CXX obj/chrome/browser/ui/focus/impl/browser_focus_controller_views.o
+[2/4650] 7.73s S CXX obj/chrome/browser/ui/views/frame/browser_view_layout_impl/browser_view_layout_impl.o
+[2/4434] 7.73s S CXX obj/chrome/browser/ui/views/frame/tab_modal_dialog_host_impl/tab_modal_dialog_host.o
+[2/4280] 7.74s S CXX obj/chrome/browser/ui/views/frame/browser_frame_view_linux/browser_frame_view_layout_linux.o
+[2/4138] 7.74s S CXX obj/chrome/browser/ui/views/frame/browser_view_app_layout_impl/browser_view_app_layout_impl.o
+[2/3991] 7.74s S CXX obj/chrome/browser/ui/toasts/impl/toast_controller.o
+[2/3974] 7.74s S CXX obj/chrome/browser/ui/views/frame/browser_view_popup_layout_impl/browser_view_popup_layout_impl.o
+[2/2747] 7.76s S CXX obj/chrome/browser/ui/views/tabs/tab/impl/tab_icon.o
+[2/2690] 7.76s S CXX obj/chrome/browser/ui/views/frame/multi_contents_view_impl/multi_contents_view.o
+[2/2442] 7.76s S CXX obj/chrome/browser/ui/lens/impl/overlay_base_controller.o
+[2/1914] 7.77s S CXX obj/chrome/browser/ui/tabs/impl/tab_style.o
+[2/1052] 7.79s S CXX obj/chrome/browser/ui/views/tabs/common/impl/horizontal_tab_style_views.o
+[2/923] 7.79s S CXX obj/chrome/browser/ui/views/tabs/tab_container_impl/tab_container_impl.o
+[2/692] 7.80s S CXX obj/chrome/browser/ui/views/frame/horizontal_tab_strip_region_view/horizontal_tab_strip_region_view.o
+[2/663] 7.80s S CXX obj/chrome/browser/ui/views/frame/browser_view/browser_view.o
+[2/630] 7.80s S CXX obj/chrome/browser/ui/views/tabs/tab_impl/tab.o
+[2/386] 7.80s S CXX obj/chrome/browser/ui/views/frame/browser_view_tabbed_layout_impl/browser_view_tabbed_layout_impl.o
+[2/320] 7.80s S CXX obj/chrome/browser/ui/views/frame/browser_view_layout_core_impl/browser_view_layout.o
+[2/85] 7.81s S CXX obj/chrome/browser/ui/browser_window/internal/internal/browser_window_features.o
+[2/85] 8.44s F CXX obj/chrome/browser/ui/views/tabs/base_impl/tab_strip_layout.o
+[3/84] 8.73s F CXX obj/chrome/browser/ui/tabs/impl/tab_style.o
+[4/83] 10.75s F CXX obj/chrome/browser/ui/views/frame/browser_frame_view_linux/browser_frame_view_layout_linux.o
+[5/83] 13.05s F CXX obj/chrome/browser/ui/views/frame/opaque_browser_frame_view_layout/opaque_browser_frame_view_layout.o
+[6/71] 15.71s F CXX obj/chrome/browser/ui/views/tabs/tab/impl/tab_icon.o
+[7/57] 15.73s F CXX obj/chrome/browser/ui/views/tabs/common/impl/horizontal_tab_style_views.o
+[8/50] 16.19s F CXX obj/chrome/browser/ui/views/frame/browser_view_popup_layout_impl/browser_view_popup_layout_impl.o
+[9/50] 16.50s F CXX obj/chrome/browser/ui/views/tabs/tab_container_impl/tab_container_impl.o
+[10/48] 16.55s F CXX obj/chrome/browser/ui/views/frame/browser_view_layout_core_impl/browser_view_layout.o
+[11/47] 16.77s F CXX obj/chrome/browser/ui/views/frame/multi_contents_resize_area_impl/multi_contents_resize_area.o
+[12/47] 17.76s F CXX obj/chrome/browser/ui/toasts/impl/toast_controller.o
+[13/46] 18.08s F CXX obj/chrome/browser/ui/views/frame/browser_view_app_layout_impl/browser_view_app_layout_impl.o
+[14/46] 18.89s F CXX obj/chrome/browser/ui/focus/impl/browser_focus_controller_views.o
+[15/45] 19.32s F CXX obj/chrome/browser/ui/views/layout_provider_impl/chrome_typography.o
+[16/44] 20.97s F CXX obj/chrome/browser/ui/views/frame/browser_view_tabbed_layout_impl/browser_view_tabbed_layout_impl.o
+[17/44] 22.05s F CXX obj/chrome/browser/ui/lens/impl/overlay_base_controller.o
+[18/43] 22.36s F CXX obj/chrome/browser/ui/views/frame/browser_view_layout_impl/browser_view_layout_impl.o
+[19/38] 23.31s F CXX obj/chrome/browser/ui/views/frame/tab_modal_dialog_host_impl/tab_modal_dialog_host.o
+[20/37] 26.85s F CXX obj/chrome/browser/ui/views/frame/multi_contents_view_impl/multi_contents_view.o
+[21/36] 26.98s F CXX obj/chrome/browser/ui/views/tabs/tab_impl/tab.o
+[22/35] 31.33s F CXX obj/chrome/browser/ui/views/frame/horizontal_tab_strip_region_view/horizontal_tab_strip_region_view.o
+[23/31] 47.06s F CXX obj/chrome/browser/ui/browser_window/internal/internal/browser_window_features.o
+[24/30] 51.76s F CXX obj/chrome/browser/ui/views/frame/browser_view/browser_view.o
+[25/28] 51.86s S LINK ./helium
+[25/27] 4m37.80s F LINK ./helium
+build finished
+
+	
+noexec:0 local:26 remote:0 cache:0 skip:95961
+  cache-write:0(err:0) fallback:0 retry:0
+fs: ops: 1552(err:27) / r:848(err:0) 1.60GiB / w:1(err:0) 1.55MiB
+
+
+ resource/capa used(err)  wait-avg |   s m |  serv-avg |   s m |
+   pool=link/1      1(0)     0.00s |▅      |  3m44.01s |     ▅ |
+shutdown cloud logging/monitoring done 7.852µs
+
+4m38.57s Build Succeeded: 26 steps - 0.09/s

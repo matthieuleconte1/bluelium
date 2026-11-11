@@ -1,0 +1,26 @@
+{
+  "root": "/tmp/glyphe-native-hS55kP",
+  "extension": "jlohplnagjmmefjnaehoomkmfkckmmnl",
+  "cases": {
+    "com.glyphe.test": {
+      "reply": {
+        "echo": {
+          "glyphe": 157
+        },
+        "origin": "chrome-extension://jlohplnagjmmefjnaehoomkmfkckmmnl/"
+      }
+    },
+    "com.glyphe.chrome": {
+      "reply": {
+        "echo": {
+          "glyphe": 157
+        },
+        "origin": "chrome-extension://jlohplnagjmmefjnaehoomkmfkckmmnl/"
+      }
+    },
+    "com.glyphe.denied": {
+      "error": "Access to the specified native messaging host is forbidden."
+    }
+  },
+  "passed": true
+}

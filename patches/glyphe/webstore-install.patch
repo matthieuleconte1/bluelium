@@ -1,0 +1,19 @@
+--- a/chrome/browser/extensions/extension_management.cc
++++ b/chrome/browser/extensions/extension_management.cc
+@@ -411,6 +411,16 @@
+       "always-prompt-for-install") {
+     return true;
+   }
++  // Glyphe: the Helium store helper downloads CRX directly from Google.
++  // Keep explicit MIME-handling overrides and all installer/policy checks.
++  if (!command_line.HasSwitch("extension-mime-request-handling") &&
++      url.SchemeIs("https") &&
++      ((url.host() == "clients2.google.com" &&
++        url.path() == "/service/update2/crx") ||
++       (url.host() == "clients2.googleusercontent.com" &&
++        url.path().starts_with("/crx/blobs/")))) {
++    return true;
++  }
+   // No allowed install sites specified, disallow by default.
+   if (!global_settings_->install_sources.has_value())
+     return false;

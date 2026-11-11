@@ -1,0 +1,33 @@
+--- a/chrome/browser/extensions/api/messaging/launch_context_posix.cc
++++ b/chrome/browser/extensions/api/messaging/launch_context_posix.cc
+@@ -14,6 +14,8 @@
+ #include "base/path_service.h"
+ #include "base/posix/eintr_wrapper.h"
+ #include "base/process/launch.h"
++#include "base/environment.h"
++#include "base/nix/xdg_util.h"
+ #include "build/build_config.h"
+ #include "build/chromeos_buildflags.h"
+ #include "chrome/browser/extensions/api/messaging/native_messaging_logging.h"
+@@ -51,6 +53,21 @@
+   if (result.empty() && allow_user_level_hosts) {
+     result = FindManifestInDir(chrome::DIR_CHROME_USER_NATIVE_MESSAGING, host_name);
+   }
++
++#if BUILDFLAG(IS_LINUX)
++  // Glyphe: Chromium user hosts, after Helium and Google Chrome.
++  // Respect NativeMessagingUserLevelHosts exactly as the primary paths do.
++  if (result.empty() && allow_user_level_hosts) {
++    auto env = base::Environment::Create();
++    const base::FilePath config = base::nix::GetXDGDirectory(
++        env.get(), base::nix::kXdgConfigHomeEnvVar, ".config");
++    const base::FilePath manifest = config.Append("chromium")
++        .Append("NativeMessagingHosts").Append(host_name + ".json");
++    if (base::PathExists(manifest)) {
++      result = manifest;
++    }
++  }
++#endif
+ 
+   if (result.empty()) {
+     result = FindManifestInDir(chrome::DIR_NATIVE_MESSAGING, host_name);

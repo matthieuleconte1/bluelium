@@ -1,0 +1,14 @@
+{
+  "label": "officiel",
+  "bin": "/opt/helium-browser-bin/helium",
+  "startup_ms": [
+    220,
+    210,
+    215
+  ],
+  "speedometer": [
+    22.5,
+    22.5
+  ],
+  "pss_mb": 859
+}

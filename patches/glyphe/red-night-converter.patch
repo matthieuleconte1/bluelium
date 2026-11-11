@@ -1,0 +1,184 @@
+--- a/chrome/common/pref_names.h
++++ b/chrome/common/pref_names.h
+@@ -333,6 +333,8 @@
+ #endif
+ inline constexpr char kWebKitForceDarkModeEnabled[] =
+     "webkit.webprefs.force_dark_mode_enabled";
++// Helium Glyphe : pages web converties en rouge sur noir.
++inline constexpr char kGlypheRedNightEnabled[] = "glyphe.red_night.enabled";
+ 
+ inline constexpr char kWebKitCommonScript[] = "Zyyy";
+ inline constexpr char kWebKitStandardFontFamily[] =
+--- a/chrome/browser/ui/prefs/prefs_tab_helper.cc
++++ b/chrome/browser/ui/prefs/prefs_tab_helper.cc
+@@ -411,6 +411,7 @@
+           : pref_defaults.force_dark_mode_enabled;
+   registry->RegisterBooleanPref(prefs::kWebKitForceDarkModeEnabled,
+                                 force_dark_mode_enabled);
++  registry->RegisterBooleanPref(prefs::kGlypheRedNightEnabled, false);
+   registry->RegisterStringPref(prefs::kDefaultCharset,
+                                l10n_util::GetStringUTF8(IDS_DEFAULT_ENCODING),
+                                user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
+--- a/chrome/browser/ui/prefs/pref_watcher.cc
++++ b/chrome/browser/ui/prefs/pref_watcher.cc
+@@ -78,6 +78,7 @@
+     prefs::kWebKitPasswordEchoEnabledTouch,
+ #endif
+     prefs::kWebKitForceDarkModeEnabled,
++    prefs::kGlypheRedNightEnabled,
+     prefs::kWebKitJavascriptEnabled,
+     prefs::kWebKitLoadsImagesAutomatically,
+     prefs::kWebKitMinimumFontSize,
+--- a/chrome/browser/chrome_content_browser_client.cc
++++ b/chrome/browser/chrome_content_browser_client.cc
+@@ -4772,7 +4772,8 @@
+       prefs::kAccessibilityTouchpadOverscrollHistoryNavigation);
+ #endif
+   web_prefs->force_dark_mode_enabled =
+-      prefs->GetBoolean(prefs::kWebKitForceDarkModeEnabled);
++      prefs->GetBoolean(prefs::kWebKitForceDarkModeEnabled) ||
++      prefs->GetBoolean(prefs::kGlypheRedNightEnabled);
+ 
+ #if BUILDFLAG(IS_CHROMEOS)
+   web_prefs->always_show_focus =
+--- a/chrome/app/chrome_command_ids.h
++++ b/chrome/app/chrome_command_ids.h
+@@ -123,6 +123,7 @@
+ 
+ #define IDC_CTRL_S_SHORTCUT             34090
+ #define IDC_TOGGLE_ZEN_MODE_TOP_CHROME_PIN 34091
++#define IDC_GLYPHE_TOGGLE_RED_NIGHT     34092
+ 
+ // Tab group Commands
+ #define IDC_ADD_NEW_TAB_TO_GROUP      34100
+--- a/chrome/browser/ui/accelerator_table.cc
++++ b/chrome/browser/ui/accelerator_table.cc
+@@ -68,6 +68,8 @@
+     {ui::VKEY_L, ui::EF_PLATFORM_ACCELERATOR, IDC_FOCUS_LOCATION},
+     {ui::VKEY_L, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR,
+      IDC_TOGGLE_ZEN_MODE_TOP_CHROME_PIN},
++    {ui::VKEY_N, ui::EF_SHIFT_DOWN | ui::EF_ALT_DOWN,
++     IDC_GLYPHE_TOGGLE_RED_NIGHT},
+     {ui::VKEY_T, ui::EF_PLATFORM_ACCELERATOR, IDC_NEW_TAB},
+     {ui::VKEY_O, ui::EF_PLATFORM_ACCELERATOR, IDC_OPEN_FILE},
+     {ui::VKEY_P, ui::EF_PLATFORM_ACCELERATOR, IDC_PRINT},
+--- a/chrome/browser/ui/browser_command_controller.cc
++++ b/chrome/browser/ui/browser_command_controller.cc
+@@ -1561,6 +1561,13 @@
+                                     time_stamp);
+       break;
+     }
++    case IDC_GLYPHE_TOGGLE_RED_NIGHT: {
++      PrefService* glyphe_prefs = profile()->GetPrefs();
++      glyphe_prefs->SetBoolean(
++          prefs::kGlypheRedNightEnabled,
++          !glyphe_prefs->GetBoolean(prefs::kGlypheRedNightEnabled));
++      break;
++    }
+     case IDC_TOGGLE_ZEN_MODE_TOP_CHROME_PIN: {
+       if (auto* browser_view =
+               BrowserView::GetBrowserViewForBrowser(browser_)) {
+@@ -2146,6 +2153,7 @@
+   // These are always enabled; the menu determines their menu item visibility.
+   command_updater_->UpdateCommandEnabled(IDC_UPGRADE_DIALOG, true);
+   command_updater_->UpdateCommandEnabled(IDC_HELIUM_SERVICES_OPEN, true);
++  command_updater_->UpdateCommandEnabled(IDC_GLYPHE_TOGGLE_RED_NIGHT, true);
+   command_updater_->UpdateCommandEnabled(IDC_TOGGLE_ZEN_MODE_TOP_CHROME_PIN,
+                                          false);
+   command_updater_->UpdateCommandEnabled(IDC_SET_BROWSER_AS_DEFAULT, true);
+--- a/chrome/browser/ui/views/frame/contents_web_view.h
++++ b/chrome/browser/ui/views/frame/contents_web_view.h
+@@ -10,6 +10,7 @@
+ #include "base/memory/raw_ptr.h"
+ #include "build/build_config.h"
+ #include "chrome/browser/ui/views/frame/web_contents_close_handler_delegate.h"
++#include "components/prefs/pref_change_registrar.h"
+ #include "chrome/common/buildflags.h"
+ #include "ui/base/interaction/element_identifier.h"
+ #include "ui/base/metadata/metadata_header_macros.h"
+@@ -81,6 +82,10 @@
+ 
+  private:
+   void UpdateBackgroundColor();
++  // Helium Glyphe : applique ou retire le filtre « nuit rouge ».
++  void UpdateGlypheRedNight();
++  PrefChangeRegistrar glyphe_pref_registrar_;
++
+   std::unique_ptr<StatusBubbleViews> status_bubble_;
+   std::unique_ptr<WebContentsCloseHandler> web_contents_close_handler_;
+ 
+--- a/chrome/browser/ui/views/frame/contents_web_view.cc
++++ b/chrome/browser/ui/views/frame/contents_web_view.cc
+@@ -6,7 +6,12 @@
+ 
+ #include "base/debug/dump_without_crashing.h"
+ #include "build/build_config.h"
++#include "base/functional/bind.h"
++#include "chrome/browser/profiles/profile.h"
+ #include "chrome/browser/ui/color/chrome_color_id.h"
++#include "chrome/common/pref_names.h"
++#include "components/prefs/pref_service.h"
++#include "ui/compositor/layer.h"
+ #include "chrome/browser/ui/views/frame/safe_invoke/safe_invoke.h"
+ #include "chrome/browser/ui/views/frame/web_contents_close_handler.h"
+ #include "chrome/browser/ui/views/status_bubble_views.h"
+@@ -43,6 +48,43 @@
+   status_bubble_ = std::make_unique<StatusBubbleViews>(this);
+   status_bubble_->Reposition();
+   web_contents_close_handler_ = std::make_unique<WebContentsCloseHandler>(this);
++  if (browser_context) {
++    glyphe_pref_registrar_.Init(
++        Profile::FromBrowserContext(browser_context)->GetPrefs());
++    glyphe_pref_registrar_.Add(
++        prefs::kGlypheRedNightEnabled,
++        base::BindRepeating(&ContentsWebView::UpdateGlypheRedNight,
++                            base::Unretained(this)));
++  }
++}
++
++void ContentsWebView::UpdateGlypheRedNight() {
++#if defined(USE_AURA)
++  content::WebContents* contents = web_contents();
++  if (!contents || !glyphe_pref_registrar_.prefs()) {
++    return;
++  }
++  gfx::NativeView native_view = contents->GetNativeView();
++  if (!native_view || !native_view->layer()) {
++    return;
++  }
++  ui::Layer* page_layer = native_view->layer();
++  if (!glyphe_pref_registrar_.prefs()->GetBoolean(
++          prefs::kGlypheRedNightEnabled)) {
++    if (page_layer->LayerHasCustomColorMatrix()) {
++      page_layer->ClearLayerCustomColorMatrix();
++    }
++    return;
++  }
++  // Luminance (Rec. 709) envoyée sur le seul canal rouge, à 85 %.
++  // La page a déjà été assombrie par Blink (force_dark_mode_enabled).
++  cc::FilterOperation::Matrix matrix = {
++      0.18f, 0.61f, 0.06f, 0.0f, 0.0f,
++      0.0f,  0.0f,  0.0f,  0.0f, 0.0f,
++      0.0f,  0.0f,  0.0f,  0.0f, 0.0f,
++      0.0f,  0.0f,  0.0f,  1.0f, 0.0f};
++  page_layer->SetLayerCustomColorMatrix(matrix);
++#endif  // defined(USE_AURA)
+ }
+ 
+ ContentsWebView::~ContentsWebView() = default;
+@@ -151,6 +193,7 @@
+ 
+ void ContentsWebView::SetWebContents(content::WebContents* web_contents) {
+   views::WebView::SetWebContents(web_contents);
++  UpdateGlypheRedNight();
+   if (web_contents == nullptr) {
+     status_bubble_.reset();
+     holder()->SetProperty(views::kIsBlockedByModalKey, false);
+@@ -285,6 +328,7 @@
+     UpdateBackgroundColor();
+   }
+   WebView::RenderViewReady();
++  UpdateGlypheRedNight();
+ }
+ 
+ BEGIN_METADATA(ContentsWebView)

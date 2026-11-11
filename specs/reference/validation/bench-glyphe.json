@@ -1,0 +1,14 @@
+{
+  "label": "glyphe",
+  "bin": "/home/pc/Applications/helium-glyphe/helium",
+  "startup_ms": [
+    232,
+    223,
+    229
+  ],
+  "speedometer": [
+    18.1,
+    17.9
+  ],
+  "pss_mb": 801
+}

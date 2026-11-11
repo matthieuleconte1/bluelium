@@ -1,0 +1,138 @@
+Done. Made 36425 targets from 5066 files in 3260ms
+depot_tools/siso.py: Using Siso binary from SISO_PATH: third_party/siso/cipd/siso.
+offline mode
+ninja: Entering directory `out/Default'
+
+
+disable fast local for non-interactive: fastlocal=1->0
+ use `--fast_local` to enable fast local with non-interactive mode
+schedule pending:1+ready:0 (node:86166 edge:2)
+build start: Ready 1 Pending 1
+rebuild manifest finished
+
+loading build.ninja... done 696.738056ms
+load siso config done 992.009604ms
+schedule pending:1+ready:0 (node:437215 edge:2)
+build start: Ready 1 Pending 1
+rebuild manifest finished
+schedule pending:1+ready:0 (node:437215 edge:5)
+ 1.05s schedule pending:87387+ready:8600 (node:437215 edge:95987)
+
+build start: Ready 8600 Pending 87387
+[0/45132] 4.58s S ACTION //components/resources:about_credits(//build/toolchain/linux:clang_x64)
+[0/11116] 8.14s F ACTION //components/resources:about_credits(//build/toolchain/linux:clang_x64)
+[1/4404] 8.22s S CXX obj/chrome/browser/ui/views/frame/top_container_view_impl/top_container_view.o
+[1/4319] 8.22s S CXX obj/chrome/browser/ui/views/idle_bubble/idle_bubble.o
+[1/4293] 8.22s S CXX obj/chrome/browser/ui/views/frame/browser_view_layout_delegate_impl/browser_view_layout_delegate_impl.o
+[1/4292] 8.22s S CXX obj/chrome/browser/ui/views/frame/browser_root_view_impl/browser_root_view.o
+[1/4190] 8.22s S CXX obj/chrome/browser/ui/views/frame/browser_view_layout_impl/browser_view_layout_impl.o
+[1/4170] 8.22s S CXX obj/chrome/browser/ui/views/session_crashed_bubble_view/session_crashed_bubble_view.o
+[1/4158] 8.22s S CXX obj/chrome/browser/ui/views/frame/tab_modal_dialog_host_impl/tab_modal_dialog_host.o
+[1/3104] 8.26s S CXX obj/chrome/browser/ui/views/download/download/download_toolbar_ui_controller.o
+[1/2877] 8.26s S CXX obj/chrome/browser/ui/views/media_router/impl/cast_dialog_coordinator.o
+[1/2766] 8.26s S CXX obj/chrome/browser/ui/views/media_router/impl/cast_browser_controller.o
+[1/2640] 8.27s S CXX obj/chrome/browser/ui/views/side_panel/side_panel/side_panel_coordinator.o
+[1/2606] 8.27s S CXX obj/chrome/browser/ui/views/media_router/impl/media_router_dialog_controller_views.o
+[1/2383] 8.27s S CXX obj/chrome/browser/ui/views/media_router/impl/media_remoting_dialog_view.o
+[1/2352] 8.27s S CXX obj/chrome/browser/ui/toolbar/cast/impl/cast_toolbar_button_controller.o
+[1/1932] 8.28s S CXX obj/chrome/browser/ui/views/frame/multi_contents_view_impl/multi_contents_view.o
+[1/1924] 8.28s S CXX obj/chrome/browser/ui/views/side_panel/side_panel/comments_side_panel_coordinator.o
+[1/1705] 8.29s S CXX obj/chrome/browser/ui/views/profiles/cross_device_signin_qr_bubble_views/cross_device_signin_qr_bubble_views.o
+[1/1449] 8.29s S CXX obj/chrome/browser/ui/views/bookmarks/impl/bookmark_bar_view.o
+[1/1449] 8.29s S CXX obj/chrome/browser/ui/views/passwords/impl/password_bubble_view_base.o
+[1/1347] 8.30s S CXX obj/chrome/browser/ui/views/side_panel/side_panel/side_panel_toolbar_pinning_controller.o
+[1/1343] 8.30s S CXX obj/chrome/browser/ui/views/bubble_anchor_util_views_impl/bubble_anchor_util_views.o
+[1/1199] 8.30s S CXX obj/chrome/browser/ui/views/user_education/impl/browser_feature_promo_preconditions.o
+[1/1152] 8.30s S CXX obj/chrome/browser/ui/views/passwords/impl/manage_passwords_page_action_controller.o
+[1/1066] 8.30s S CXX obj/chrome/browser/ui/views/user_education/impl/browser_user_education_service.o
+[1/987] 8.31s S CXX obj/chrome/browser/ui/views/location_bar/impl/location_bar_view.o
+[1/987] 8.31s S CXX obj/chrome/browser/ui/toolbar/pinned_toolbar/impl/pinned_translate_action_listener.o
+[1/850] 8.31s S CXX obj/chrome/browser/ui/views/toolbar/impl/ai_overlay_toolbar_button.o
+[1/826] 8.31s S CXX obj/chrome/browser/ui/views/toolbar/impl/download_button_views.o
+[1/750] 8.32s S CXX obj/chrome/browser/ui/views/toolbar/impl/toolbar_controller.o
+[1/741] 8.32s S CXX obj/chrome/browser/ui/views/toolbar/impl/webui_pinned_toolbar_actions.o
+[1/732] 8.32s S CXX obj/chrome/browser/ui/views/web_apps/frame_toolbar/web_app_toolbar_button_container_impl/web_app_toolbar_button_container.o
+[1/731] 8.32s S CXX obj/chrome/browser/ui/views/toolbar/impl/browser_app_menu_button.o
+[1/730] 8.32s S CXX obj/chrome/browser/ui/views/toolbar/impl/chrome_labs_coordinator.o
+[1/725] 8.32s S CXX obj/chrome/browser/ui/views/toolbar/impl/overflow_menu.o
+[1/714] 8.32s S CXX obj/chrome/browser/ui/views/toolbar/impl/toolbar_view.o
+[1/700] 8.32s S CXX obj/chrome/browser/ui/views/toolbar/impl/chrome_labs_view_controller.o
+[1/670] 8.32s S CXX obj/chrome/browser/ui/views/toolbar/impl/pinned_toolbar_actions_container.o
+[1/649] 8.32s S CXX obj/chrome/browser/ui/views/frame/opaque_browser_frame_view_impl/opaque_browser_frame_view.o
+[1/644] 8.33s S CXX obj/chrome/browser/ui/views/frame/horizontal_tab_strip_region_view/horizontal_tab_strip_region_view.o
+[1/643] 8.33s S CXX obj/chrome/browser/ui/views/toolbar/impl/pinned_toolbar_actions_container_layout.o
+[1/638] 8.33s S CXX obj/chrome/browser/ui/browser_actions_impl/browser_actions.o
+[1/622] 8.33s S CXX obj/chrome/browser/ui/views/extensions/extensions_toolbar_desktop/extensions_toolbar_desktop.o
+[1/617] 8.33s S CXX obj/chrome/browser/ui/webui/webui_toolbar/impl/webui_toolbar_extensions_container.o
+[1/557] 8.33s S CXX obj/chrome/browser/ui/views/toolbar/impl/pinned_action_toolbar_button.o
+[1/548] 8.33s S CXX obj/chrome/browser/ui/views/toolbar/impl/split_tabs_button.o
+[1/542] 8.33s S CXX obj/chrome/browser/ui/desktop_to_mobile_promos/impl/ios_promos_utils.o
+[1/509] 8.34s S CXX obj/chrome/browser/ui/views/web_apps/frame_toolbar/web_app_frame_toolbar_view_impl/web_app_frame_toolbar_view.o
+[1/507] 8.34s S CXX obj/chrome/browser/ui/browser_window/internal/internal/browser_window_features.o
+[1/507] 8.34s S CXX obj/chrome/browser/ui/views/toolbar/impl/webui_app_menu_control.o
+[1/498] 8.34s S CXX obj/chrome/browser/ui/views/frame/browser_view/browser_view.o
+[1/485] 13.18s F CXX obj/chrome/browser/ui/views/toolbar/impl/pinned_toolbar_actions_container_layout.o
+[2/485] 21.17s F CXX obj/chrome/browser/ui/views/toolbar/impl/ai_overlay_toolbar_button.o
+[3/485] 22.04s F CXX obj/chrome/browser/ui/toolbar/pinned_toolbar/impl/pinned_translate_action_listener.o
+[4/485] 22.48s F CXX obj/chrome/browser/ui/views/passwords/impl/password_bubble_view_base.o
+[5/485] 22.68s F CXX obj/chrome/browser/ui/views/side_panel/side_panel/side_panel_toolbar_pinning_controller.o
+[6/485] 23.23s F CXX obj/chrome/browser/ui/toolbar/cast/impl/cast_toolbar_button_controller.o
+[7/484] 24.08s F CXX obj/chrome/browser/ui/views/idle_bubble/idle_bubble.o
+[8/484] 24.13s F CXX obj/chrome/browser/ui/views/media_router/impl/cast_dialog_coordinator.o
+[9/484] 26.30s F CXX obj/chrome/browser/ui/views/frame/browser_root_view_impl/browser_root_view.o
+[10/483] 26.91s F CXX obj/chrome/browser/ui/views/toolbar/impl/overflow_menu.o
+[11/483] 27.06s F CXX obj/chrome/browser/ui/views/toolbar/impl/download_button_views.o
+[12/482] 27.22s F CXX obj/chrome/browser/ui/views/frame/top_container_view_impl/top_container_view.o
+[13/482] 27.67s F CXX obj/chrome/browser/ui/views/side_panel/side_panel/comments_side_panel_coordinator.o
+[14/482] 27.97s F CXX obj/chrome/browser/ui/views/toolbar/impl/browser_app_menu_button.o
+[15/482] 28.59s F CXX obj/chrome/browser/ui/views/frame/multi_contents_view_impl/multi_contents_view.o
+[16/482] 28.87s F CXX obj/chrome/browser/ui/views/side_panel/side_panel/side_panel_coordinator.o
+[17/102] 28.96s F CXX obj/chrome/browser/ui/views/media_router/impl/media_remoting_dialog_view.o
+[18/102] 29.24s F CXX obj/chrome/browser/ui/views/bookmarks/impl/bookmark_bar_view.o
+[19/101] 29.95s F CXX obj/chrome/browser/ui/views/toolbar/impl/chrome_labs_view_controller.o
+[20/101] 30.28s F CXX obj/chrome/browser/ui/views/frame/browser_view_layout_impl/browser_view_layout_impl.o
+[21/96] 31.28s F CXX obj/chrome/browser/ui/views/session_crashed_bubble_view/session_crashed_bubble_view.o
+[22/95] 31.29s F CXX obj/chrome/browser/ui/views/passwords/impl/manage_passwords_page_action_controller.o
+[23/94] 31.50s F CXX obj/chrome/browser/ui/views/toolbar/impl/toolbar_controller.o
+[24/94] 31.54s F CXX obj/chrome/browser/ui/views/frame/tab_modal_dialog_host_impl/tab_modal_dialog_host.o
+[25/93] 31.72s F CXX obj/chrome/browser/ui/views/toolbar/impl/webui_pinned_toolbar_actions.o
+[26/92] 31.74s F CXX obj/chrome/browser/ui/views/frame/browser_view_layout_delegate_impl/browser_view_layout_delegate_impl.o
+[27/92] 32.27s F CXX obj/chrome/browser/ui/views/media_router/impl/cast_browser_controller.o
+[28/91] 33.82s F CXX obj/chrome/browser/ui/views/media_router/impl/media_router_dialog_controller_views.o
+[29/91] 33.90s F CXX obj/chrome/browser/ui/views/web_apps/frame_toolbar/web_app_toolbar_button_container_impl/web_app_toolbar_button_container.o
+[30/91] 35.18s F CXX obj/chrome/browser/ui/views/toolbar/impl/pinned_toolbar_actions_container.o
+[31/91] 38.12s F CXX obj/chrome/browser/ui/views/extensions/extensions_toolbar_desktop/extensions_toolbar_desktop.o
+[32/83] 40.53s F CXX obj/chrome/browser/ui/views/user_education/impl/browser_feature_promo_preconditions.o
+[33/83] 40.79s F CXX obj/chrome/browser/ui/views/download/download/download_toolbar_ui_controller.o
+[34/73] 42.47s F CXX obj/chrome/browser/ui/views/toolbar/impl/pinned_action_toolbar_button.o
+[35/73] 44.04s F CXX obj/chrome/browser/ui/desktop_to_mobile_promos/impl/ios_promos_utils.o
+[36/72] 44.20s F CXX obj/chrome/browser/ui/views/toolbar/impl/chrome_labs_coordinator.o
+[37/72] 45.00s F CXX obj/chrome/browser/ui/views/toolbar/impl/split_tabs_button.o
+[38/72] 45.08s F CXX obj/chrome/browser/ui/views/frame/opaque_browser_frame_view_impl/opaque_browser_frame_view.o
+[39/70] 45.45s F CXX obj/chrome/browser/ui/views/web_apps/frame_toolbar/web_app_frame_toolbar_view_impl/web_app_frame_toolbar_view.o
+[40/70] 45.49s F CXX obj/chrome/browser/ui/webui/webui_toolbar/impl/webui_toolbar_extensions_container.o
+[41/65] 45.82s F CXX obj/chrome/browser/ui/views/bubble_anchor_util_views_impl/bubble_anchor_util_views.o
+[42/65] 45.98s F CXX obj/chrome/browser/ui/views/profiles/cross_device_signin_qr_bubble_views/cross_device_signin_qr_bubble_views.o
+[43/64] 47.53s F CXX obj/chrome/browser/ui/views/toolbar/impl/webui_app_menu_control.o
+[44/64] 52.85s F CXX obj/chrome/browser/ui/views/frame/horizontal_tab_strip_region_view/horizontal_tab_strip_region_view.o
+[45/63] 54.52s F CXX obj/chrome/browser/ui/views/user_education/impl/browser_user_education_service.o
+[46/62] 58.78s F CXX obj/chrome/browser/ui/views/location_bar/impl/location_bar_view.o
+[47/61] 1m00.23s F CXX obj/chrome/browser/ui/views/toolbar/impl/toolbar_view.o
+[48/59] 1m02.42s F CXX obj/chrome/browser/ui/browser_actions_impl/browser_actions.o
+[49/57] 1m06.32s F CXX obj/chrome/browser/ui/browser_window/internal/internal/browser_window_features.o
+[50/55] 1m07.36s F CXX obj/chrome/browser/ui/views/frame/browser_view/browser_view.o
+[51/54] 1m07.47s S LINK ./helium
+[51/54] 4m41.29s F LINK ./helium
+build finished
+
+	
+noexec:0 local:52 remote:0 cache:0 skip:95935
+  cache-write:0(err:0) fallback:0 retry:0
+fs: ops: 1935(err:53) / r:918(err:0) 1.63GiB / w:1(err:0) 1.55MiB
+
+
+ resource/capa used(err)  wait-avg |   s m |  serv-avg |   s m |
+   pool=link/1      1(0)     0.00s |▅      |  3m31.73s |     ▅ |
+shutdown cloud logging/monitoring done 20.855µs
+
+4m41.98s Build Succeeded: 52 steps - 0.18/s

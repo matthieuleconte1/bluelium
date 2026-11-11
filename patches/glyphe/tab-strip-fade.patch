@@ -1,0 +1,25 @@
+--- a/chrome/browser/ui/views/tabs/common/tab_strip_view.cc
++++ b/chrome/browser/ui/views/tabs/common/tab_strip_view.cc
+@@ -574,19 +574,9 @@
+         views::ScrollView::ScrollBarMode::kDisabled);
+     scroll_view->SetTreatAllScrollEventsAsHorizontal(true);
+ 
+-    scroll_view->SetCustomOverflowIndicator(
+-        views::OverflowIndicatorAlignment::kLeft,
+-        std::make_unique<HorizontalTabStripOverflowIndicatorView>(
+-            views::OverflowIndicatorAlignment::kLeft),
+-        HorizontalTabStripOverflowIndicatorView::kTotalThickness,
+-        /*fills_opaquely=*/false);
+-
+-    scroll_view->SetCustomOverflowIndicator(
+-        views::OverflowIndicatorAlignment::kRight,
+-        std::make_unique<HorizontalTabStripOverflowIndicatorView>(
+-            views::OverflowIndicatorAlignment::kRight),
+-        HorizontalTabStripOverflowIndicatorView::kTotalThickness,
+-        /*fills_opaquely=*/false);
++    // Helium Glyphe : fondu sur les bords plutôt qu'une ombre.
++    scroll_view->SetOverflowGradientMask(
++        views::ScrollView::GradientDirection::kHorizontal);
+   }
+   callback_subscriptions_.emplace_back(
+       scroll_view->AddContentsScrolledCallback(base::BindRepeating(

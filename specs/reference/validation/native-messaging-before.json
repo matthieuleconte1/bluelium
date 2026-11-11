@@ -1,0 +1,21 @@
+{
+  "root": "/tmp/glyphe-native-t0QEvs",
+  "extension": "hbmnndanicijpbchihfikokjfoeldenf",
+  "cases": {
+    "com.glyphe.test": {
+      "error": "Specified native messaging host not found."
+    },
+    "com.glyphe.chrome": {
+      "reply": {
+        "echo": {
+          "glyphe": 157
+        },
+        "origin": "chrome-extension://hbmnndanicijpbchihfikokjfoeldenf/"
+      }
+    },
+    "com.glyphe.denied": {
+      "error": "Specified native messaging host not found."
+    }
+  },
+  "passed": false
+}

@@ -1,0 +1,360 @@
+--- a/ui/color/color_provider_manager.h
++++ b/ui/color/color_provider_manager.h
+@@ -13,6 +13,7 @@
+ #include "base/component_export.h"
+ #include "base/containers/flat_map.h"
+ #include "base/functional/callback.h"
++#include "base/functional/function_ref.h"
+ #include "ui/color/color_provider_key.h"
+ 
+ namespace ui {
+@@ -42,6 +43,11 @@
+ 
+   // Clears the ColorProviders stored in `color_providers_`.
+   void ResetColorProviderCache();
++
++  // Helium Glyphe : retire du cache les fournisseurs dont la clé vérifie
++  // `pred` (teintes intermédiaires du fondu de la barre).
++  void EraseColorProvidersIf(
++      base::FunctionRef<bool(const ColorProviderKey&)> pred);
+ 
+   // Appends `initializer` to the end of the current `initializer_list_`.
+   void AppendColorProviderInitializer(
+--- a/ui/color/color_provider_manager.cc
++++ b/ui/color/color_provider_manager.cc
+@@ -98,6 +98,12 @@
+       initializer_list_->Add(std::move(initializer)));
+ }
+ 
++void ColorProviderManager::EraseColorProvidersIf(
++    base::FunctionRef<bool(const ColorProviderKey&)> pred) {
++  base::EraseIf(color_providers_,
++                [&](const auto& entry) { return pred(entry.first); });
++}
++
+ ColorProvider* ColorProviderManager::GetColorProviderFor(ColorProviderKey key) {
+   auto iter = color_providers_.find(key);
+   if (iter == color_providers_.end()) {
+--- a/chrome/browser/ui/views/frame/browser_widget.h
++++ b/chrome/browser/ui/views/frame/browser_widget.h
+@@ -6,6 +6,9 @@
+ #define CHROME_BROWSER_UI_VIEWS_FRAME_BROWSER_WIDGET_H_
+ 
+ #include "base/memory/raw_ptr.h"
++#include "base/time/time.h"
++#include "base/timer/timer.h"
++#include "third_party/skia/include/core/SkColor.h"
+ #include "build/build_config.h"
+ #include "content/public/browser/keyboard_event_processing_result.h"
+ #include "ui/base/mojom/menu_source_type.mojom-forward.h"
+@@ -16,6 +19,7 @@
+ 
+ #if BUILDFLAG(IS_CHROMEOS)
+ #include <optional>
++#include <vector>
+ #endif
+ 
+ class BrowserFrameView;
+@@ -132,6 +136,11 @@
+   void SetTabDragKind(TabDragKind tab_drag_kind);
+   TabDragKind tab_drag_kind() const { return tab_drag_kind_; }
+ 
++  // Helium Glyphe : relit la couleur de la page active et passe en fondu
++  // à la nouvelle couleur de la barre. `immediate` saute l’attente de
++  // stabilisation (changement d’onglet, option basculée).
++  void UpdateGlyphePageColor(bool immediate);
++
+  protected:
+   // views::Widget:
+   void OnNativeThemeUpdated(ui::NativeTheme* observed_theme) override;
+@@ -173,6 +182,20 @@
+ 
+   // The BrowserView is our ClientView. This is a pointer to it.
+   raw_ptr<BrowserView> browser_view_;
++
++  // Helium Glyphe : fondu de la couleur de page.
++  void StartGlyphePageColorFade();
++  void StepGlyphePageColorFade();
++  void FinishGlyphePageColorFade();
++  // Couleur lue par GetColorProviderKey. Ne change qu’avec ThemeChanged(),
++  // jamais entre deux dessins partiels.
++  std::optional<SkColor> glyphe_shown_page_color_;
++  std::optional<SkColor> glyphe_target_page_color_;
++  SkColor glyphe_fade_from_ = SK_ColorTRANSPARENT;
++  base::TimeTicks glyphe_fade_start_;
++  std::vector<SkColor> glyphe_fade_steps_;
++  base::OneShotTimer glyphe_settle_timer_;
++  base::RepeatingTimer glyphe_fade_timer_;
+ 
+   std::unique_ptr<SystemMenuModelBuilder> menu_model_builder_;
+ 
+--- a/chrome/browser/ui/views/frame/browser_widget.cc
++++ b/chrome/browser/ui/views/frame/browser_widget.cc
+@@ -40,6 +40,10 @@
+ #include "components/prefs/pref_service.h"
+ #include "content/public/browser/web_contents.h"
+ #include "ui/color/glyphe_red_night.h"
++#include <algorithm>
++#include "ui/color/color_provider_manager.h"
++#include "ui/gfx/animation/tween.h"
++#include "ui/gfx/color_utils.h"
+ #include "ui/base/hit_test.h"
+ #include "ui/base/mojom/menu_source_type.mojom-shared.h"
+ #include "ui/base/mojom/window_show_state.mojom.h"
+@@ -507,19 +511,11 @@
+   }
+   // Helium Glyphe : couleur de la page active dans la barre du haut
+   // (champ réservé aux applis web, libre pour une fenêtre normale).
+-  else if (!ui::IsGlypheRedNight() &&
+-           profile->GetPrefs()->GetBoolean(prefs::kGlypheFollowPageColor)) {
+-    if (content::WebContents* contents =
+-            browser_view_->GetActiveWebContents()) {
+-      std::optional<SkColor> page = contents->GetThemeColor();
+-      if (!page || SkColorGetA(*page) == SK_AlphaTRANSPARENT) {
+-        page = contents->GetBackgroundColor();
+-      }
+-      // theme-color souvent semi-transparente (YouTube) : rendue opaque.
+-      if (page && SkColorGetA(*page) != SK_AlphaTRANSPARENT) {
+-        key.app_background_color = SkColorSetA(*page, SK_AlphaOPAQUE);
+-      }
+-    }
++  // Valeur mémorisée, mise à jour par UpdateGlyphePageColor() avec un
++  // ThemeChanged() : la lire en direct ici colorait seulement les zones
++  // redessinées.
++  else if (glyphe_shown_page_color_ && !ui::IsGlypheRedNight()) {
++    key.app_background_color = *glyphe_shown_page_color_;
+   }
+ 
+ #if BUILDFLAG(IS_CHROMEOS)
+@@ -541,6 +537,123 @@
+ #endif
+ 
+   return key;
++}
++
++void BrowserWidget::UpdateGlyphePageColor(bool immediate) {
++  if (!browser_view_) {
++    return;
++  }
++  Profile* profile = browser_view_->browser()->GetProfile();
++  const bool follow =
++      !ui::IsGlypheRedNight() &&
++      !web_app::AppBrowserController::From(browser_view_->browser()) &&
++      profile->GetPrefs()->GetBoolean(prefs::kGlypheFollowPageColor);
++  std::optional<SkColor> target;
++  // Nouvel onglet : couleurs du thème, comme Shimmer qui les suit.
++  content::WebContents* active = browser_view_->GetActiveWebContents();
++  const bool new_tab_page =
++      active && active->GetVisibleURL().SchemeIs("chrome") &&
++      (active->GetVisibleURL().host() == "new-tab-page" ||
++       active->GetVisibleURL().host() == "newtab");
++  if (follow && !new_tab_page) {
++    content::WebContents* contents = active;
++    std::optional<SkColor> page;
++    if (contents) {
++      page = contents->GetThemeColor();
++      if (!page || SkColorGetA(*page) == SK_AlphaTRANSPARENT) {
++        page = contents->GetBackgroundColor();
++      }
++    }
++    if (!page || SkColorGetA(*page) == SK_AlphaTRANSPARENT) {
++      // Couleur pas encore connue (chargement) : on garde la précédente
++      // plutôt que de repasser par le thème.
++      if (glyphe_target_page_color_) {
++        return;
++      }
++    } else {
++      // theme-color souvent semi-transparente (YouTube) : rendue opaque.
++      target = SkColorSetA(*page, SK_AlphaOPAQUE);
++    }
++  }
++  if (target == glyphe_target_page_color_) {
++    if (immediate && glyphe_settle_timer_.IsRunning()) {
++      glyphe_settle_timer_.Stop();
++      StartGlyphePageColorFade();
++    }
++    return;
++  }
++  glyphe_target_page_color_ = target;
++  if (immediate || !target || !glyphe_shown_page_color_) {
++    glyphe_settle_timer_.Stop();
++    StartGlyphePageColorFade();
++    return;
++  }
++  // Pendant un chargement la couleur change plusieurs fois de suite (fond
++  // blanc, puis celui du site) : on attend qu’elle se stabilise.
++  glyphe_settle_timer_.Start(
++      FROM_HERE, base::Milliseconds(120),
++      base::BindOnce(&BrowserWidget::StartGlyphePageColorFade,
++                     base::Unretained(this)));
++}
++
++void BrowserWidget::StartGlyphePageColorFade() {
++  if (!glyphe_target_page_color_ || !glyphe_shown_page_color_ ||
++      *glyphe_target_page_color_ == *glyphe_shown_page_color_) {
++    // Activation, désactivation ou rien à animer : passage direct.
++    glyphe_fade_timer_.Stop();
++    FinishGlyphePageColorFade();
++    return;
++  }
++  glyphe_fade_from_ = *glyphe_shown_page_color_;
++  glyphe_fade_start_ = base::TimeTicks::Now();
++  glyphe_fade_timer_.Start(
++      FROM_HERE, base::Milliseconds(33),
++      base::BindRepeating(&BrowserWidget::StepGlyphePageColorFade,
++                          base::Unretained(this)));
++  StepGlyphePageColorFade();
++}
++
++void BrowserWidget::StepGlyphePageColorFade() {
++  constexpr base::TimeDelta kDuration = base::Milliseconds(240);
++  const double t = std::clamp(
++      (base::TimeTicks::Now() - glyphe_fade_start_) / kDuration, 0.0, 1.0);
++  if (t >= 1.0 || !glyphe_target_page_color_) {
++    glyphe_fade_timer_.Stop();
++    FinishGlyphePageColorFade();
++    return;
++  }
++  const float eased = static_cast<float>(
++      gfx::Tween::CalculateValue(gfx::Tween::EASE_IN_OUT, t));
++  const SkColor color = color_utils::AlphaBlend(
++      *glyphe_target_page_color_, glyphe_fade_from_, eased);
++  if (glyphe_shown_page_color_ == color) {
++    return;
++  }
++  glyphe_shown_page_color_ = color;
++  glyphe_fade_steps_.push_back(color);
++  ThemeChanged();
++}
++
++void BrowserWidget::FinishGlyphePageColorFade() {
++  const bool changed = glyphe_shown_page_color_ != glyphe_target_page_color_;
++  glyphe_shown_page_color_ = glyphe_target_page_color_;
++  if (changed) {
++    ThemeChanged();
++  }
++  if (glyphe_fade_steps_.empty()) {
++    return;
++  }
++  // Les teintes intermédiaires ne resservent pas : le cache des
++  // fournisseurs de couleurs n’a pas de limite, on les libère.
++  std::vector<SkColor> steps;
++  steps.swap(glyphe_fade_steps_);
++  const std::optional<SkColor> keep = glyphe_shown_page_color_;
++  ui::ColorProviderManager::Get().EraseColorProvidersIf(
++      [&](const ui::ColorProviderKey& key) {
++        return !key.app_controller && key.app_background_color &&
++               key.app_background_color != keep &&
++               std::ranges::contains(steps, *key.app_background_color);
++      });
+ }
+ 
+ void BrowserWidget::OnMenuClosed() {
+--- a/chrome/browser/ui/views/frame/contents_web_view.cc
++++ b/chrome/browser/ui/views/frame/contents_web_view.cc
+@@ -3,6 +3,9 @@
+ // found in the LICENSE file.
+ 
+ #include "chrome/browser/ui/views/frame/contents_web_view.h"
++
++#include "chrome/browser/ui/views/frame/browser_view.h"
++#include "chrome/browser/ui/views/frame/browser_widget.h"
+ 
+ #include "base/debug/dump_without_crashing.h"
+ #include "build/build_config.h"
+@@ -83,41 +86,35 @@
+       ui::SetGlypheOled(glyphe_oled);
+       ui::ColorProviderManager::Get().ResetColorProviderCache();
+       ui::NativeTheme::GetInstanceForNativeUi()->NotifyOnNativeThemeUpdated();
++      UpdateGlyphePageColor();
+     }
+   }
+   // Les pages sont converties par GlypheNightTabHelper.
+ }
+ 
+ void ContentsWebView::UpdateGlyphePageColor() {
+-  // La clé de couleurs de la fenêtre lit la couleur de la page active
+-  // (BrowserWidget::GetColorProviderKey) : il suffit de la recalculer
+-  // quand cette couleur change.
+-  if (!GetWidget() || !glyphe_pref_registrar_.prefs()) {
+-    return;
+-  }
+-  const bool follow = glyphe_pref_registrar_.prefs()->GetBoolean(
+-      prefs::kGlypheFollowPageColor);
+-  std::optional<SkColor> color;
+-  if (follow && web_contents()) {
+-    color = web_contents()->GetThemeColor();
+-    if (!color) {
+-      color = web_contents()->GetBackgroundColor();
+-    }
+-  }
+-  if (follow == glyphe_follow_page_ && color == glyphe_page_color_) {
+-    return;
+-  }
+-  glyphe_follow_page_ = follow;
+-  glyphe_page_color_ = color;
+-  GetWidget()->ThemeChanged();
++  UpdateGlyphePageColorFor(/*immediate=*/true);
++}
++
++void ContentsWebView::UpdateGlyphePageColorFor(bool immediate) {
++  // La fenêtre garde la couleur affichée et gère le fondu.
++  views::Widget* widget = GetWidget();
++  if (!widget) {
++    return;
++  }
++  BrowserView* browser_view =
++      BrowserView::GetBrowserViewForNativeWindow(widget->GetNativeWindow());
++  if (browser_view && browser_view->browser_widget()) {
++    browser_view->browser_widget()->UpdateGlyphePageColor(immediate);
++  }
+ }
+ 
+ void ContentsWebView::DidChangeThemeColor() {
+-  UpdateGlyphePageColor();
++  UpdateGlyphePageColorFor(/*immediate=*/false);
+ }
+ 
+ void ContentsWebView::OnBackgroundColorChanged() {
+-  UpdateGlyphePageColor();
++  UpdateGlyphePageColorFor(/*immediate=*/false);
+ }
+ 
+ ContentsWebView::~ContentsWebView() = default;
+--- a/chrome/browser/ui/views/frame/contents_web_view.h
++++ b/chrome/browser/ui/views/frame/contents_web_view.h
+@@ -92,8 +92,7 @@
+   void UpdateGlypheRedNight();
+   // Helium Glyphe : barre du haut à la couleur de la page active.
+   void UpdateGlyphePageColor();
+-  std::optional<SkColor> glyphe_page_color_;
+-  bool glyphe_follow_page_ = false;
++  void UpdateGlyphePageColorFor(bool immediate);
+   PrefChangeRegistrar glyphe_pref_registrar_;
+ 
+   std::unique_ptr<StatusBubbleViews> status_bubble_;
+--- a/chrome/browser/ui/views/frame/themed_background.h
++++ b/chrome/browser/ui/views/frame/themed_background.h
+@@ -87,6 +87,8 @@
+  private:
+   // views::Background:
+   void Paint(gfx::Canvas* canvas, views::View* view) const override;
++  // Glyphe : redessin à chaque changement de couleurs (couleur de page).
++  void OnViewThemeChanged(views::View* view) override;
+ 
+   const raw_ptr<BrowserView> browser_view_;
+   ThemeChoice theme_choice_;
+--- a/chrome/browser/ui/views/frame/themed_background.cc
++++ b/chrome/browser/ui/views/frame/themed_background.cc
+@@ -51,6 +51,11 @@
+ ThemedBackground::ThemedBackground(BrowserView* browser_view,
+                                    ThemeChoice theme_choice)
+     : browser_view_(browser_view), theme_choice_(theme_choice) {}
++
++void ThemedBackground::OnViewThemeChanged(views::View* view) {
++  views::Background::OnViewThemeChanged(view);
++  view->SchedulePaint();
++}
+ 
+ void ThemedBackground::Paint(gfx::Canvas* canvas, views::View* view) const {
+   if (helium::ShouldUseNativeFrameMaterials(browser_view_)) {

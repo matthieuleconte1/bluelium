@@ -1,0 +1,231 @@
+{
+  "reference_board": "Onglet IA",
+  "reference": {
+    "tab_y": 5.5,
+    "tab_height": 30,
+    "url_y": 41,
+    "url_height": 30,
+    "content_y": 78,
+    "gap": 5.5
+  },
+  "native": {
+    "url_y": 41,
+    "url_height": 30,
+    "content_y": 78,
+    "page_viewport": [
+      1428,
+      816
+    ],
+    "visible_gap_pixels": 6
+  },
+  "selection_test": {
+    "before": [
+      [
+        19,
+        15,
+        30,
+        26
+      ],
+      [
+        202,
+        15,
+        213,
+        26
+      ],
+      [
+        385,
+        15,
+        396,
+        26
+      ],
+      [
+        568,
+        15,
+        579,
+        26
+      ]
+    ],
+    "after": [
+      [
+        19,
+        15,
+        30,
+        26
+      ],
+      [
+        202,
+        15,
+        213,
+        26
+      ],
+      [
+        385,
+        15,
+        396,
+        26
+      ],
+      [
+        568,
+        15,
+        579,
+        26
+      ]
+    ],
+    "passed": true
+  },
+  "overflow_tab_count": 14,
+  "installed_binary_sha256": "845d76da96c701ff6b30646425bf3bfb5712a8cfa7da3cb7f2effdf868fc6545",
+  "spacing_baseline_binary_sha256": "e01ac6c93c5fcff2814fe732410ac6d526a06644024c35f8cd334c6ac590e6d3",
+  "toolbar_assistant_validation": {
+    "date": "2026-11-11",
+    "binary_sha256": "845d76da96c701ff6b30646425bf3bfb5712a8cfa7da3cb7f2effdf868fc6545",
+    "native_capture": "audit-assistant-open.png",
+    "crop": [
+      16,
+      10,
+      1440,
+      900
+    ],
+    "reference": {
+      "url_x": 108,
+      "url_y": 41,
+      "url_height": 30,
+      "content_y": 78,
+      "panel_x": 994,
+      "panel_width": 440,
+      "header_y": 78,
+      "header_height": 48,
+      "separator_y": 126
+    },
+    "before": {
+      "panel_x": 996,
+      "panel_right": 1436,
+      "panel_width": 440,
+      "header_y": 73,
+      "separator_y": 121,
+      "profile_visible": true,
+      "split_button_visible": false
+    },
+    "after": {
+      "url_x": 108,
+      "url_y": 41,
+      "url_height": 30,
+      "content_y": 78,
+      "panel_x": 994,
+      "panel_right": 1434,
+      "panel_width": 440,
+      "header_y": 78,
+      "header_height": 48,
+      "separator_y": 126,
+      "profile_visible": false,
+      "toolbar_order": [
+        "blocker",
+        "split",
+        "extensions",
+        "separator",
+        "assistant",
+        "menu"
+      ],
+      "assistant_active_reference_rgb": [
+        52,
+        80,
+        209
+      ],
+      "assistant_active_captured_rgb": [
+        51,
+        79,
+        208
+      ],
+      "assistant_active_paint_bounds_inclusive": [
+        1370,
+        42,
+        1398,
+        69
+      ]
+    },
+    "selection": {
+      "a": [
+        [
+          14,
+          14,
+          27,
+          27
+        ],
+        [
+          261,
+          14,
+          274,
+          27
+        ],
+        [
+          508,
+          14,
+          521,
+          27
+        ],
+        [
+          755,
+          14,
+          768,
+          27
+        ]
+      ],
+      "b": [
+        [
+          14,
+          14,
+          27,
+          27
+        ],
+        [
+          261,
+          14,
+          274,
+          27
+        ],
+        [
+          508,
+          14,
+          521,
+          27
+        ],
+        [
+          755,
+          14,
+          768,
+          27
+        ]
+      ],
+      "passed": true,
+      "horizontal_displacement": 0
+    },
+    "preserved_parent_patches": [
+      "page-color-fade",
+      "window-corners",
+      "newtab-button",
+      "split-tab"
+    ],
+    "preserved_tab_width": 240,
+    "limitations": [
+      "conversation distante conservée ; le transcript HTML est un mock",
+      "bouton + et pied du mock absents",
+      "tracking CSS non reproduit par les Labels natifs",
+      "reconstruction de la série sur Helium vierge non validée"
+    ],
+    "claude_code": {
+      "native_ping": "pong (test antérieur conservé ; réessai final expiré)",
+      "cli_auth": "claude.ai / firstParty",
+      "slash_chrome_verification": "reportée à la fin, à la demande utilisateur"
+    },
+    "codex": {
+      "manifest_present": false,
+      "full_connection_verified": false
+    },
+    "before_final_layout": {
+      "capture": "assistant-after.png",
+      "split_location": "before_address",
+      "profile_visible": true,
+      "assistant_open_fill": "muted"
+    }
+  }
+}

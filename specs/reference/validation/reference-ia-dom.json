@@ -1,0 +1,338 @@
+[
+  {
+    "tag": "BUTTON",
+    "label": "Nouvel onglet",
+    "rect": {
+      "x": 730,
+      "y": 5.5,
+      "width": 30,
+      "height": 30,
+      "top": 5.5,
+      "right": 760,
+      "bottom": 35.5,
+      "left": 730
+    },
+    "background": "rgba(0, 0, 0, 0)",
+    "font": "13.3333px Arial"
+  },
+  {
+    "tag": "BUTTON",
+    "label": "Réduire",
+    "rect": {
+      "x": 1338,
+      "y": 5.5,
+      "width": 30,
+      "height": 30,
+      "top": 5.5,
+      "right": 1368,
+      "bottom": 35.5,
+      "left": 1338
+    },
+    "background": "rgba(0, 0, 0, 0)",
+    "font": "13.3333px Arial"
+  },
+  {
+    "tag": "BUTTON",
+    "label": "Agrandir",
+    "rect": {
+      "x": 1370,
+      "y": 5.5,
+      "width": 30,
+      "height": 30,
+      "top": 5.5,
+      "right": 1400,
+      "bottom": 35.5,
+      "left": 1370
+    },
+    "background": "rgba(0, 0, 0, 0)",
+    "font": "13.3333px Arial"
+  },
+  {
+    "tag": "BUTTON",
+    "label": "Fermer",
+    "rect": {
+      "x": 1402,
+      "y": 5.5,
+      "width": 30,
+      "height": 30,
+      "top": 5.5,
+      "right": 1432,
+      "bottom": 35.5,
+      "left": 1402
+    },
+    "background": "rgba(0, 0, 0, 0)",
+    "font": "13.3333px Arial"
+  },
+  {
+    "tag": "BUTTON",
+    "label": "Précédent",
+    "rect": {
+      "x": 8,
+      "y": 41,
+      "width": 30,
+      "height": 30,
+      "top": 41,
+      "right": 38,
+      "bottom": 71,
+      "left": 8
+    },
+    "background": "rgba(0, 0, 0, 0)",
+    "font": "13.3333px Arial"
+  },
+  {
+    "tag": "BUTTON",
+    "label": "Suivant",
+    "rect": {
+      "x": 40,
+      "y": 41,
+      "width": 30,
+      "height": 30,
+      "top": 41,
+      "right": 70,
+      "bottom": 71,
+      "left": 40
+    },
+    "background": "rgba(0, 0, 0, 0)",
+    "font": "13.3333px Arial"
+  },
+  {
+    "tag": "BUTTON",
+    "label": "Recharger",
+    "rect": {
+      "x": 72,
+      "y": 41,
+      "width": 30,
+      "height": 30,
+      "top": 41,
+      "right": 102,
+      "bottom": 71,
+      "left": 72
+    },
+    "background": "rgba(0, 0, 0, 0)",
+    "font": "13.3333px Arial"
+  },
+  {
+    "tag": "LABEL",
+    "label": "lock\n      glyphe.studio/journal/gris-typographique\n      bookmark",
+    "rect": {
+      "x": 108,
+      "y": 41,
+      "width": 1120.59375,
+      "height": 30,
+      "top": 41,
+      "right": 1228.59375,
+      "bottom": 71,
+      "left": 108
+    },
+    "background": "rgba(52, 80, 209, 0.07)",
+    "font": "500 13px \"Instrument Sans\", system-ui, Helvetica, Arial, sans-serif"
+  },
+  {
+    "tag": "BUTTON",
+    "label": "Bloqueur : 14 éléments bloqués",
+    "rect": {
+      "x": 1238.59375,
+      "y": 41,
+      "width": 52.40625,
+      "height": 30,
+      "top": 41,
+      "right": 1291,
+      "bottom": 71,
+      "left": 1238.59375
+    },
+    "background": "rgba(0, 0, 0, 0)",
+    "font": ""
+  },
+  {
+    "tag": "BUTTON",
+    "label": "Diviser la vue",
+    "rect": {
+      "x": 1293,
+      "y": 41,
+      "width": 30,
+      "height": 30,
+      "top": 41,
+      "right": 1323,
+      "bottom": 71,
+      "left": 1293
+    },
+    "background": "rgba(0, 0, 0, 0)",
+    "font": "13.3333px Arial"
+  },
+  {
+    "tag": "BUTTON",
+    "label": "Extensions",
+    "rect": {
+      "x": 1325,
+      "y": 41,
+      "width": 30,
+      "height": 30,
+      "top": 41,
+      "right": 1355,
+      "bottom": 71,
+      "left": 1325
+    },
+    "background": "rgba(0, 0, 0, 0)",
+    "font": "13.3333px Arial"
+  },
+  {
+    "tag": "BUTTON",
+    "label": "Fermer l’onglet IA",
+    "rect": {
+      "x": 1368,
+      "y": 41,
+      "width": 30,
+      "height": 30,
+      "top": 41,
+      "right": 1398,
+      "bottom": 71,
+      "left": 1368
+    },
+    "background": "rgb(52, 80, 209)",
+    "font": "13.3333px Arial"
+  },
+  {
+    "tag": "BUTTON",
+    "label": "Menu",
+    "rect": {
+      "x": 1402,
+      "y": 41,
+      "width": 30,
+      "height": 30,
+      "top": 41,
+      "right": 1432,
+      "bottom": 71,
+      "left": 1402
+    },
+    "background": "rgba(0, 0, 0, 0)",
+    "font": "13.3333px Arial"
+  },
+  {
+    "tag": "ASIDE",
+    "label": "Onglet IA",
+    "rect": {
+      "x": 994,
+      "y": 78,
+      "width": 440,
+      "height": 816,
+      "top": 78,
+      "right": 1434,
+      "bottom": 894,
+      "left": 994
+    },
+    "background": "rgb(251, 252, 255)",
+    "font": "500 16px \"Instrument Sans\", system-ui, Helvetica, Arial, sans-serif"
+  },
+  {
+    "tag": "DIV",
+    "label": "Claude\n          ChatGPT\n          Gemini\n          Le Chat\n          add\n        \n        \n                close",
+    "rect": {
+      "x": 994,
+      "y": 78,
+      "width": 440,
+      "height": 48,
+      "top": 78,
+      "right": 1434,
+      "bottom": 126,
+      "left": 994
+    },
+    "background": "rgba(0, 0, 0, 0)",
+    "font": "500 16px \"Instrument Sans\", system-ui, Helvetica, Arial, sans-serif"
+  },
+  {
+    "tag": "BUTTON",
+    "label": "Claude",
+    "rect": {
+      "x": 1007,
+      "y": 88,
+      "width": 66.953125,
+      "height": 28,
+      "top": 88,
+      "right": 1073.953125,
+      "bottom": 116,
+      "left": 1007
+    },
+    "background": "rgb(251, 252, 255)",
+    "font": "500 13px \"Instrument Sans\", system-ui, Helvetica, Arial, sans-serif"
+  },
+  {
+    "tag": "BUTTON",
+    "label": "ChatGPT",
+    "rect": {
+      "x": 1075.953125,
+      "y": 88,
+      "width": 80.109375,
+      "height": 28,
+      "top": 88,
+      "right": 1156.0625,
+      "bottom": 116,
+      "left": 1075.953125
+    },
+    "background": "rgba(0, 0, 0, 0)",
+    "font": "500 13px \"Instrument Sans\", system-ui, Helvetica, Arial, sans-serif"
+  },
+  {
+    "tag": "BUTTON",
+    "label": "Gemini",
+    "rect": {
+      "x": 1158.0625,
+      "y": 88,
+      "width": 67.75,
+      "height": 28,
+      "top": 88,
+      "right": 1225.8125,
+      "bottom": 116,
+      "left": 1158.0625
+    },
+    "background": "rgba(0, 0, 0, 0)",
+    "font": "500 13px \"Instrument Sans\", system-ui, Helvetica, Arial, sans-serif"
+  },
+  {
+    "tag": "BUTTON",
+    "label": "Le Chat",
+    "rect": {
+      "x": 1227.8125,
+      "y": 88,
+      "width": 70.40625,
+      "height": 28,
+      "top": 88,
+      "right": 1298.21875,
+      "bottom": 116,
+      "left": 1227.8125
+    },
+    "background": "rgba(0, 0, 0, 0)",
+    "font": "500 13px \"Instrument Sans\", system-ui, Helvetica, Arial, sans-serif"
+  },
+  {
+    "tag": "BUTTON",
+    "label": "Ajouter un assistant",
+    "rect": {
+      "x": 1300.21875,
+      "y": 88,
+      "width": 30,
+      "height": 28,
+      "top": 88,
+      "right": 1330.21875,
+      "bottom": 116,
+      "left": 1300.21875
+    },
+    "background": "rgba(0, 0, 0, 0)",
+    "font": "500 13px \"Instrument Sans\", system-ui, Helvetica, Arial, sans-serif"
+  },
+  {
+    "tag": "BUTTON",
+    "label": "Fermer le panneau",
+    "rect": {
+      "x": 1395,
+      "y": 87,
+      "width": 30,
+      "height": 30,
+      "top": 87,
+      "right": 1425,
+      "bottom": 117,
+      "left": 1395
+    },
+    "background": "rgba(0, 0, 0, 0)",
+    "font": "13.3333px Arial"
+  }
+]

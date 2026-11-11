@@ -1,0 +1,15 @@
+--- a/chrome/browser/ui/browser_shortcuts/browser_shortcut_metadata.cc
++++ b/chrome/browser/ui/browser_shortcuts/browser_shortcut_metadata.cc
+@@ -250,6 +250,12 @@
+       return Label(IDS_SHORTCUT_COMMAND_SHOW_APP_MENU);
+     case IDC_TOGGLE_ZEN_MODE_TOP_CHROME_PIN:
+       return Label(IDS_SHORTCUT_COMMAND_TOGGLE_ZEN_MODE_TOP_CHROME_PIN);
++    case IDC_GLYPHE_TOGGLE_RED_NIGHT:
++      return Label(IDS_WILDCARD, u"Mode nuit rouge");
++    case IDC_GLYPHE_ASSISTANT_CLAUDE:
++      return Label(IDS_WILDCARD, u"Ouvrir Claude dans le panneau latéral");
++    case IDC_GLYPHE_ASSISTANT_CHATGPT:
++      return Label(IDS_WILDCARD, u"Ouvrir ChatGPT dans le panneau latéral");
+     case IDC_CARET_BROWSING_TOGGLE:
+       return Label(IDS_SETTINGS_ENABLE_CARET_BROWSING_TITLE);
+     case IDC_CLEAR_BROWSING_DATA:

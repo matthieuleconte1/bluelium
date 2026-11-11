@@ -1,0 +1,10 @@
+[Unit]
+Description=Bluelium — vérifie chaque nuit s'il faut reconstruire
+
+[Timer]
+OnCalendar=*-*-* 03:30
+RandomizedDelaySec=15min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

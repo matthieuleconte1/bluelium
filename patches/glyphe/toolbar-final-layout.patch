@@ -1,0 +1,46 @@
+--- a/chrome/browser/ui/views/toolbar/toolbar_view.cc
++++ b/chrome/browser/ui/views/toolbar/toolbar_view.cc
+@@ -660,6 +660,14 @@
+     extensions_container_ = AddChildView(std::move(extensions_container));
+     extensions_toolbar_coordinator_ =
+         std::make_unique<ExtensionsToolbarCoordinator>(extensions_container_);
++    // Glyphe : bloqueur, Diviser, Extensions ; conserver le contrôleur
++    // natif et placer Diviser avant le bouton principal du conteneur.
++    if (split_tabs_) {
++      auto glyphe_split = RemoveChildViewT(split_tabs_.get());
++      const size_t index = extensions_container_->GetIndexOf(
++          extensions_container_->main_item()).value();
++      extensions_container_->AddChildViewAt(std::move(glyphe_split), index);
++    }
+   }
+ 
+   // Glyphe: séparateur de 18px entre extensions et assistant.
+@@ -879,7 +887,7 @@
+   if (browser_->GetProfile()->IsRegularProfile() &&
+       !base::CommandLine::ForCurrentProcess()->HasSwitch(
+           "show-avatar-button")) {
+-    avatar_->SetVisible(show_avatar_button_.GetValue());
++    avatar_->SetVisible(false);  // Glyphe : profil normal absent du HTML
+   }
+ 
+   if (extensions_container_) {
+@@ -2641,7 +2649,7 @@
+ }
+ 
+ void ToolbarView::OnShowAvatarButtonChanged() {
+-  avatar_->SetVisible(show_avatar_button_.GetValue());
++  avatar_->SetVisible(!browser_->GetProfile()->IsRegularProfile());
+ }
+ 
+ void ToolbarView::OnShowExtensionsButtonChanged() {
+--- a/chrome/browser/ui/views/side_panel/side_panel.cc
++++ b/chrome/browser/ui/views/side_panel/side_panel.cc
+@@ -126,7 +126,7 @@
+   const int resize_area_thickness = GetBorderThickness(kResizeAreaMargin);
+   const bool resize_area_on_left = IsResizeAreaOnLeft(side_panel);
+   return gfx::Insets::TLBR(
+-      -kOverlapFromToolbar,
++      1 - kOverlapFromToolbar,  // Glyphe : même y que la page
+       resize_area_on_left ? resize_area_thickness : content_thickness,
+       content_thickness,
+       resize_area_on_left ? content_thickness : resize_area_thickness);

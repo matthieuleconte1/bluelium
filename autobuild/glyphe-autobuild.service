@@ -1,0 +1,11 @@
+[Unit]
+Description=Bluelium — auto-build (nouvelle version de Helium ou patchs Glyphe modifiés)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/root/glyphe/autobuild/autobuild.sh
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=6h

@@ -1,0 +1,40 @@
+Done. Made 36425 targets from 5066 files in 3200ms
+depot_tools/siso.py: Using Siso binary from SISO_PATH: third_party/siso/cipd/siso.
+offline mode
+ninja: Entering directory `out/Default'
+
+
+disable fast local for non-interactive: fastlocal=1->0
+ use `--fast_local` to enable fast local with non-interactive mode
+schedule pending:1+ready:0 (node:86166 edge:2)
+build start: Ready 1 Pending 1
+rebuild manifest finished
+
+loading build.ninja... done 677.17381ms
+load siso config done 774.093579ms
+schedule pending:1+ready:0 (node:437215 edge:2)
+build start: Ready 1 Pending 1
+rebuild manifest finished
+schedule pending:1+ready:0 (node:437215 edge:5)
+build start: Ready 8600 Pending 87387
+[0/42838] 4.07s S ACTION //components/resources:about_credits(//build/toolchain/linux:clang_x64)
+[0/11116] 7.60s F ACTION //components/resources:about_credits(//build/toolchain/linux:clang_x64)
+[1/5753] 7.65s S CXX obj/chrome/browser/ui/views/side_panel/side_panel/side_panel.o
+[1/436] 7.71s S CXX obj/chrome/browser/ui/views/toolbar/impl/toolbar_view.o
+[1/428] 17.79s F CXX obj/chrome/browser/ui/views/side_panel/side_panel/side_panel.o
+[2/10] 40.14s F CXX obj/chrome/browser/ui/views/toolbar/impl/toolbar_view.o
+[3/6] 40.26s S LINK ./helium
+[3/6] 4m10.54s F LINK ./helium
+build finished
+
+	
+noexec:0 local:4 remote:0 cache:0 skip:95983
+  cache-write:0(err:0) fallback:0 retry:0
+fs: ops: 1212(err:5) / r:772(err:0) 1.59GiB / w:1(err:0) 1.55MiB
+
+
+ resource/capa used(err)  wait-avg |   s m |  serv-avg |   s m |
+   pool=link/1      1(0)     0.00s |▅      |  3m28.19s |     ▅ |
+shutdown cloud logging/monitoring done 22.344µs
+
+4m11.35s Build Succeeded: 4 steps - 0.02/s

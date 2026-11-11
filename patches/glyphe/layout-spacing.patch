@@ -1,0 +1,358 @@
+--- a/chrome/browser/ui/tabs/tab_style.cc
++++ b/chrome/browser/ui/tabs/tab_style.cc
+@@ -20,7 +20,7 @@
+ // Thickness in DIPs of the separator painted on the left and right edges of
+ // the tab.
+ constexpr int kSeparatorThickness = 1;
+-constexpr int kSeparatorHorizontalMargin = 5;
++constexpr int kSeparatorHorizontalMargin = 3;  // Glyphe: 7px between inactive tabs
+ constexpr int kSeparatorHeight = 14;  // Glyphe
+ 
+ 
+@@ -30,7 +30,7 @@
+ // Split tabs need more space to be readable.
+ constexpr int kSplitTabWidth = 250;
+ 
+-constexpr int kTabHorizontalPadding = 2;
++constexpr int kTabHorizontalPadding = 10;  // Glyphe: 10px inside painted edge
+ 
+ }  // namespace
+ 
+@@ -104,7 +104,7 @@
+ }
+ 
+ int TabStyle::GetBottomCornerRadius() const {
+-  return 8;
++  return 4;  // Glyphe: invisible extension, not the painted 8px radius
+ }
+ 
+ int TabStyle::GetTabOverlap() const {
+--- a/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc
++++ b/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc
+@@ -125,11 +125,11 @@
+     float top_right_corner_radius = content_corner_radius;
+     float bottom_left_corner_radius = content_corner_radius;
+     float bottom_right_corner_radius = content_corner_radius;
+-    float tab_height = GetLayoutConstant(LayoutConstant::kTabHeight) * scale;
++    float tab_height = 33 * scale;  // Glyphe : onglet tracé de 33 px (centre y=20,5)
+ 
+     // The hit test extends the full height to make it easier to select tabs.
+     if (path_type != TabStyle::PathType::kHitTest) {
+-      tab_height -= GetLayoutConstant(LayoutConstant::kTabStripPadding) * scale;
++      // Glyphe: 30px painted height; top padding is outside this height.
+       tab_height -=
+           GetLayoutConstant(LayoutConstant::kTabstripToolbarOverlap) * scale;
+     }
+@@ -141,8 +141,7 @@
+     }
+ 
+     float left = aligned_bounds.x() + extension_corner_radius;
+-    float top = aligned_bounds.y() +
+-                GetLayoutConstant(LayoutConstant::kTabStripPadding) * scale;
++    float top = aligned_bounds.y() + 4.0f * scale;  // Glyphe : 4 px au-dessus, 4 px avant l’adresse
+ 
+     float right = aligned_bounds.right() - extension_corner_radius;
+     const int bottom = top + tab_height;
+@@ -408,7 +407,7 @@
+ 
+   gfx::Insets insets =
+       gfx::Insets::TLBR(
+-          0, 0, GetLayoutConstant(LayoutConstant::kTabstripToolbarOverlap), 0) +
++          3, 0, GetLayoutConstant(LayoutConstant::kTabstripToolbarOverlap), 0) +
+       base_style_insets + split_insets;
+ 
+   return insets;
+@@ -477,7 +476,8 @@
+   separator_bounds.leading = gfx::RectF(
+       aligned_bounds.x() + corner_radius - separator_margin.right() -
+           separator_size.width(),
+-      aligned_bounds.y() + extra_vertical_space / 2 + separator_margin.top(),
++      aligned_bounds.y() + extra_vertical_space / 2 + separator_margin.top() +
++          2 * scale,  // Glyphe: center on the painted tab row
+       separator_size.width(), separator_size.height());
+ 
+   separator_bounds.trailing = separator_bounds.leading;
+@@ -544,6 +544,9 @@
+   // Check the adjacent tab/group header to see if there's a visible shapes.
+   const TabStyleViewDelegate* const adjacent_tab =
+       delegate_->GetAdjacentTab(leading);
++  if (!adjacent_tab) {
++    return 0.0f;  // Glyphe: no separator at the ends of the strip.
++  }
+ 
+   const TabStyleViewDelegate* const left_tab =
+       leading ? adjacent_tab : delegate_.get();
+--- a/chrome/browser/ui/layout_constants.cc
++++ b/chrome/browser/ui/layout_constants.cc
+@@ -113,7 +113,7 @@
+     case LayoutConstant::kTabCloseButtonSize:
+       return touch_ui ? 24 : (features::IsRoundedIconsEnabled() ? 14 : 16);
+     case LayoutConstant::kTabHeight:
+-      return 30;  // Glyphe
++      return 35;  // Glyphe IA: 38px strip including 3px padding
+     case LayoutConstant::kTabStripHeight:
+       return GetLayoutConstant(LayoutConstant::kTabHeight) +
+              GetLayoutConstant(LayoutConstant::kTabStripPadding);
+@@ -246,8 +246,8 @@
+ 
+     case TOOLBAR_INTERIOR_MARGIN: {
+       const int base = GetLayoutConstant(LayoutConstant::kHeliumBasePadding);
+-      // Glyphe : rangée de 36 px, 1 px au-dessus, 5 px avant la page.
+-      return gfx::Insets::TLBR(base - 2, base - 1, base + 2, base - 1);
++      // Glyphe Onglet IA: URL y=41, h=30; page y=78.
++      return gfx::Insets::TLBR(base + 3, base + 5, base + 3, base + 5);
+     }
+ 
+     case WEBUI_TAB_STRIP_TOOLBAR_INTERIOR_MARGIN:
+--- a/chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.cc
++++ b/chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.cc
+@@ -667,7 +667,7 @@
+       GetLayoutConstant(LayoutConstant::kTabStripHeight) -
+       GetLayoutConstant(LayoutConstant::kTabstripToolbarOverlap) -
+       NewTabButton::kButtonSize.height();
+-  const int top_inset = extra_vertical_space / 2;
++  const int top_inset = extra_vertical_space / 2 + 1;  // Glyphe : centré sur les onglets (y=20)
+   const int bottom_inset =
+       extra_vertical_space - top_inset +
+       GetLayoutConstant(LayoutConstant::kTabstripToolbarOverlap);
+@@ -779,7 +779,7 @@
+ 
+   tab_strip_->SetProperty(
+       views::kMarginsKey,
+-      gfx::Insets::TLBR(0, tab_strip_left_margin.value_or(0), 0,
++      gfx::Insets::TLBR(0, tab_strip_left_margin.value_or(0) - 1, 0,  // Glyphe : 1er onglet à 4 px du bord
+                         tab_strip_right_margin.value_or(0)));
+ }
+ 
+@@ -1105,7 +1105,7 @@
+       GetLayoutConstant(LayoutConstant::kTabStripHeight) -
+       GetLayoutConstant(LayoutConstant::kTabstripToolbarOverlap) -
+       TabStripControlButton::kButtonSize.height();
+-  const int top_inset = extra_vertical_space / 2;
++  const int top_inset = extra_vertical_space / 2 + 1;  // Glyphe : centré sur les onglets (y=20)
+   const int bottom_inset =
+       extra_vertical_space - top_inset +
+       GetLayoutConstant(LayoutConstant::kTabstripToolbarOverlap);
+--- a/chrome/browser/ui/views/chrome_typography.cc
++++ b/chrome/browser/ui/views/chrome_typography.cc
+@@ -58,7 +58,7 @@
+     case CONTEXT_OMNIBOX_POPUP_ROW_CHIP:
+     case CONTEXT_OMNIBOX_TOOLBELT_BUTTON: {
+       const bool is_touch_ui = ui::TouchUiController::Get()->touch_ui();
+-      int desired_font_size = is_touch_ui ? 15 : 14;
++      int desired_font_size = is_touch_ui ? 15 : 13;  // Glyphe HTML
+       const int omnibox_primary_delta =
+           GetFontSizeDeltaBoundedByAvailableHeight(
+               LocationBarView::GetAvailableTextHeight(), desired_font_size);
+--- a/chrome/browser/ui/views/tabs/tab.cc
++++ b/chrome/browser/ui/views/tabs/tab.cc
+@@ -511,15 +511,15 @@
+   // indicator, but visually it will be smaller at kFaviconSize wide.
+   gfx::Rect favicon_bounds(
+       start,
+-      contents_rect.y() + Center(contents_rect.height(), gfx::kFaviconSize),
++      contents_rect.y() + Center(contents_rect.height(), 14 /* Glyphe favicon */),
+       0, 0);
+   if (showing_icon_) {
+     if (center_icon_) {
+       // When centering the favicon, the favicon is allowed to escape the normal
+       // contents rect.
+-      favicon_bounds.set_x(Center(width(), gfx::kFaviconSize));
++      favicon_bounds.set_x(Center(width(), 14 /* Glyphe favicon */));
+     } else {
+-      MaybeAdjustLeftForPinnedTab(&favicon_bounds, gfx::kFaviconSize);
++      MaybeAdjustLeftForPinnedTab(&favicon_bounds, 14 /* Glyphe favicon */);
+     }
+     icon_->ResizeDiscardIndicatorRadiusForWidth(
+         width() - 2 * tab_style()->GetBottomCornerRadius());
+@@ -610,7 +610,7 @@
+       // indicator), but rather the normal favicon width which is what it will
+       // look like.
+       const int after_favicon =
+-          favicon_bounds.x() + icon_->GetInsets().left() + gfx::kFaviconSize +
++          favicon_bounds.x() + icon_->GetInsets().left() + 14 /* Glyphe favicon */ +
+           GetLayoutConstant(LayoutConstant::kTabPreTitlePadding);
+       title_left = std::max(title_left, after_favicon);
+     }
+@@ -622,8 +622,8 @@
+     const int title_width = std::max(title_right - title_left, 0);
+     // The Label will automatically center the font's cap height within the
+     // provided vertical space.
+-    const gfx::Rect title_bounds(title_left, GetLocalBounds().y(), title_width,
+-                                 GetLocalBounds().height());
++    const gfx::Rect title_bounds(title_left, GetLocalBounds().y() + 3, title_width,
++                                 GetLocalBounds().height() - 3);
+     show_title = title_width > 0;
+ 
+     if (title_bounds != target_title_bounds_) {
+@@ -1353,7 +1353,7 @@
+   int available_width = GetContentsBounds().width();
+ 
+   const bool touch_ui = ui::TouchUiController::Get()->touch_ui();
+-  const int favicon_width = gfx::kFaviconSize;
++  const int favicon_width = 14 /* Glyphe favicon */;
+   const int alert_icon_width =
+       alert_indicator_button_->GetPreferredSize().width();
+   // In case of touch optimized UI, the close button has an extra padding on the
+--- a/chrome/browser/ui/views/tabs/tab/tab_icon.cc
++++ b/chrome/browser/ui/views/tabs/tab/tab_icon.cc
+@@ -103,7 +103,7 @@
+   // elements will anchor to the center of the favicon.
+   SetBorder(views::CreateEmptyBorder(kAttentionIndicatorRadius));
+ 
+-  const int preferred_width = gfx::kFaviconSize + GetInsets().width();
++  const int preferred_width = 14 /* Glyphe favicon */ + GetInsets().width();
+   SetPreferredSize(gfx::Size(preferred_width, preferred_width));
+ 
+   // Initial state (before any data) should not be animating.
+@@ -225,11 +225,11 @@
+   }
+ 
+   gfx::Rect icon_bounds(
+-      GetMirroredXWithWidthInView(contents_bounds.x(), gfx::kFaviconSize),
++      GetMirroredXWithWidthInView(contents_bounds.x(), 14 /* Glyphe favicon */),
+       contents_bounds.y() +
+           static_cast<int>(contents_bounds.height() * hiding_fraction_),
+-      std::min(gfx::kFaviconSize, contents_bounds.width()),
+-      std::min(gfx::kFaviconSize, contents_bounds.height()));
++      std::min(14 /* Glyphe favicon */, contents_bounds.width()),
++      std::min(14 /* Glyphe favicon */, contents_bounds.height()));
+ 
+   // Don't paint the attention indicator during the loading animation.
+   if (!GetShowingLoadingAnimation() && GetShowingAttentionIndicator() &&
+@@ -276,8 +276,8 @@
+   TRACE_EVENT0("views", "TabIcon::PaintAttentionIndicatorAndIcon");
+ 
+   gfx::Point circle_center(
+-      bounds.x() + (base::i18n::IsRTL() ? 0 : gfx::kFaviconSize),
+-      bounds.y() + gfx::kFaviconSize);
++      bounds.x() + (base::i18n::IsRTL() ? 0 : 14 /* Glyphe favicon */),
++      bounds.y() + 14 /* Glyphe favicon */);
+ 
+   // The attention indicator consists of two parts:
+   // . a clear (totally transparent) part over the bottom right (or left in rtl)
+@@ -286,7 +286,7 @@
+   // . a circle in the bottom right (or left in rtl) of the favicon.
+   if (!icon.isNull()) {
+     canvas->SaveLayerAlpha(0xff);
+-    canvas->DrawImageInt(icon, 0, 0, bounds.width(), bounds.height(),
++    canvas->DrawImageInt(icon, 0, 0, icon.width(), icon.height(),
+                          bounds.x(), bounds.y(), bounds.width(),
+                          bounds.height(), false);
+     cc::PaintFlags clear_flags;
+@@ -336,7 +336,7 @@
+   color_matrix.getRowMajor(matrix_data);
+   flags.setColorFilter(cc::ColorFilter::MakeMatrix(matrix_data));
+ 
+-  canvas->DrawImageInt(icon, 0, 0, bounds.width(), bounds.height(), bounds.x(),
++  canvas->DrawImageInt(icon, 0, 0, icon.width(), icon.height(), bounds.x(),
+                        bounds.y(), bounds.width(), bounds.height(),
+                        /*filter=*/true, flags);
+ 
+@@ -405,12 +405,12 @@
+     // stroke + an additional dp to create some visual separation.
+     const float kInitialFaviconInsetDp = 1 + kLoadingAnimationStrokeWidthDp;
+     const float kInitialFaviconDiameterDp =
+-        gfx::kFaviconSize - 2 * kInitialFaviconInsetDp +
++        14 /* Glyphe favicon */ - 2 * kInitialFaviconInsetDp +
+         (was_discard_indicator_shown_ ? 2 * increased_discard_indicator_radius_
+                                       : 0);
+     // This a full outset circle of the favicon square. The animation ends with
+     // the entire favicon shown.
+-    const float kFinalFaviconDiameterDp = sqrt(2) * gfx::kFaviconSize;
++    const float kFinalFaviconDiameterDp = sqrt(2) * 14 /* Glyphe favicon */;
+ 
+     SkScalar diameter = kInitialFaviconDiameterDp;
+     if (was_discard_indicator_shown_ ||
+@@ -427,11 +427,11 @@
+     // This scales and offsets painting so that the drawn favicon is downscaled
+     // to fit in the cropping area.
+     const float offset =
+-        (gfx::kFaviconSize -
+-         std::min(diameter, SkFloatToScalar(gfx::kFaviconSize))) /
++        (14 /* Glyphe favicon */ -
++         std::min(diameter, SkFloatToScalar(14 /* Glyphe favicon */))) /
+         2;
+-    const float scale = std::min(diameter, SkFloatToScalar(gfx::kFaviconSize)) /
+-                        gfx::kFaviconSize;
++    const float scale = std::min(diameter, SkFloatToScalar(14 /* Glyphe favicon */)) /
++                        14 /* Glyphe favicon */;
+     // Translating to/from bounds offset is done to scale around the center
+     // point. This fixes RTL issues where bounds.x() is non-zero. See
+     // https://crbug.com/40730696
+@@ -441,7 +441,7 @@
+     canvas->Translate(gfx::Vector2d(-bounds.x(), -bounds.y()));
+   }
+ 
+-  canvas->DrawImageInt(icon, 0, 0, bounds.width(), bounds.height(), bounds.x(),
++  canvas->DrawImageInt(icon, 0, 0, icon.width(), icon.height(), bounds.x(),
+                        bounds.y(), bounds.width(), bounds.height(),
+                        /*filter=*/true);
+ }
+--- a/chrome/browser/ui/views/frame/opaque_browser_frame_view_layout.cc
++++ b/chrome/browser/ui/views/frame/opaque_browser_frame_view_layout.cc
+@@ -448,7 +448,8 @@
+   // to the screen left, for left-aligned buttons) to obey Fitts' Law.
+   const bool is_frame_condensed = delegate_->IsFrameCondensed();
+ 
+-  const int button_width = views::GetCaptionButtonWidth();
++  const int button_width = delegate_->IsTabStripVisible()
++                               ? 30 : views::GetCaptionButtonWidth();
+ 
+   gfx::Size button_size = button->GetPreferredSize();
+   if (delegate_->GetFrameButtonStyle() ==
+@@ -457,8 +458,9 @@
+               button->GetClassName());
+     const int caption_button_center_size =
+         button_width - 2 * views::kCaptionButtonInkDropDefaultCornerRadius;
+-    const int height =
+-        delegate_->GetTopAreaHeight() - FrameEdgeInsets(false).top();
++    const int height = delegate_->IsTabStripVisible()
++                           ? 30
++                           : delegate_->GetTopAreaHeight() - FrameEdgeInsets(false).top();
+     const int corner_radius =
+         std::clamp((height - caption_button_center_size) / 2, 0,
+                    views::kCaptionButtonInkDropDefaultCornerRadius);
+@@ -512,7 +514,8 @@
+     case ButtonAlignment::kAlignTrailing: {
+       int extra_width = top_area_padding.trailing;
+       int button_start_spacing =
+-          GetWindowCaptionSpacing(button_id, true, !placed_trailing_button_);
++          GetWindowCaptionSpacing(button_id, true, !placed_trailing_button_) +
++          (delegate_->IsTabStripVisible() && placed_trailing_button_ ? 2 : 0);
+ 
+       available_space_trailing_x_ -= button_start_spacing;
+       minimum_size_for_buttons_ += button_start_spacing;
+@@ -600,7 +603,8 @@
+   // Reset all our data so that everything is invisible.
+   TopAreaPadding top_area_padding = GetTopAreaPadding();
+   available_space_leading_x_ = top_area_padding.leading;
+-  available_space_trailing_x_ = host->width() - top_area_padding.trailing;
++  available_space_trailing_x_ = host->width() - top_area_padding.trailing -
++                                (delegate_->IsTabStripVisible() ? 8 : 0);
+   minimum_size_for_buttons_ =
+       available_space_leading_x_ + host->width() - available_space_trailing_x_;
+   placed_leading_button_ = false;
+--- a/chrome/browser/ui/views/frame/browser_frame_view_layout_linux.cc
++++ b/chrome/browser/ui/views/frame/browser_frame_view_layout_linux.cc
+@@ -42,7 +42,8 @@
+ 
+ int BrowserFrameViewLayoutLinux::CaptionButtonY(views::FrameButton button_id,
+                                                 bool restored) const {
+-  return FrameEdgeInsets(restored).top();
++  return FrameEdgeInsets(restored).top() +
++         (delegate_->IsTabStripVisible() ? 3 : 0);
+ }
+ 
+ gfx::Insets BrowserFrameViewLayoutLinux::RestoredFrameBorderInsets() const {
+--- a/chrome/browser/ui/views/frame/multi_contents_view.h
++++ b/chrome/browser/ui/views/frame/multi_contents_view.h
+@@ -62,7 +62,7 @@
+     int end = 0;
+   };
+ 
+-  static constexpr int kSplitViewContentInset = 6;  // Glyphe : page en retrait
++  static constexpr int kSplitViewContentInset = 5;  // Glyphe: 1px native border + 5px = 6px
+ 
+   MultiContentsView(BrowserView* browser_view,
+                     std::unique_ptr<MultiContentsViewDelegate> delegate);

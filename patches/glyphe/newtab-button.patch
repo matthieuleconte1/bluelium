@@ -1,0 +1,93 @@
+--- /dev/null
++++ b/components/vector_icons/glyphe_add_bold.icon
+@@ -0,0 +1,6 @@
++// Helium Glyphe : « + » épais du nouvel onglet.
++
++CANVAS_DIMENSIONS, 24,
++FILL_RULE_NONZERO,
++ROUND_RECT, 4.5f, 10.3f, 15, 3.4f, 1.7f,
++ROUND_RECT, 10.3f, 4.5f, 3.4f, 15, 1.7f
+--- a/components/vector_icons/BUILD.gn
++++ b/components/vector_icons/BUILD.gn
+@@ -29,6 +29,7 @@
+       "add_link_old.icon",
+       "add_old.icon",
+       "add_weight500_custom.icon",
++      "glyphe_add_bold.icon",
+       "ads_chrome_refresh_old.icon",
+       "ads_click.icon",
+       "ads_click_old.icon",
+--- a/chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.cc
++++ b/chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.cc
+@@ -271,9 +271,7 @@
+         std::make_unique<NewTabButton>(
+             base::BindRepeating(&TabStrip::NewTabButtonPressed,
+                                 base::Unretained(tab_strip_)),
+-            features::IsRoundedIconsEnabled()
+-                ? vector_icons::kAddWeight500CustomIcon
+-                : vector_icons::kAddOldIcon,
++            vector_icons::kGlypheAddBoldIcon,  // Glyphe : « + » épais
+             Edge::kNone, Edge::kNone, browser);
+ 
+     new_tab_button_ = AddChildView(std::move(tab_strip_control_button));
+--- a/chrome/browser/ui/views/tabs/tab_strip_control_button.cc
++++ b/chrome/browser/ui/views/tabs/tab_strip_control_button.cc
+@@ -60,7 +60,7 @@
+ };
+ }  // namespace
+ 
+-const int TabStripControlButton::kIconSize = 16;
++const int TabStripControlButton::kIconSize = 18;  // Glyphe
+ const gfx::Size TabStripControlButton::kButtonSize{28, 28};
+ 
+ TabStripControlButton::TabStripControlButton(
+@@ -241,6 +241,27 @@
+   const auto insets = GetInsets();
+   size.Enlarge(insets.width(), insets.height());
+   return size;
++}
++
++views::ProposedLayout TabStripControlButton::CalculateProposedLayout(
++    const views::SizeBounds& size_bounds) const {
++  views::ProposedLayout layout =
++      views::LabelButton::CalculateProposedLayout(size_bounds);
++  // Glyphe : LabelButton centre l'icône sur toute la hauteur, marges
++  // comprises ; le survol (GetContentsBounds) les exclut.
++  if (!size_bounds.height().is_bounded()) {
++    return layout;
++  }
++  const gfx::Insets insets = GetInsets();
++  const int content_height = size_bounds.height().value() - insets.height();
++  const views::View* const image = image_container_view();
++  for (auto& child : layout.child_layouts) {
++    if (child.child_view.get() == image) {
++      child.bounds.set_y(insets.top() +
++                         (content_height - child.bounds.height()) / 2);
++    }
++  }
++  return layout;
+ }
+ 
+ void TabStripControlButton::AddedToWidget() {
+--- a/chrome/browser/ui/views/tabs/new_tab_button.cc
++++ b/chrome/browser/ui/views/tabs/new_tab_button.cc
+@@ -30,6 +30,7 @@
+   set_context_menu_controller(this);
+   SetProperty(views::kElementIdentifierKey, kNewTabButtonElementId);
+   set_paint_transparent_for_glass(true);
++  SetImageCentered(false);  // Glyphe : icône centrée sur la zone de survol
+ }
+ 
+ NewTabButton::~NewTabButton() = default;
+--- a/chrome/browser/ui/views/tabs/tab_strip_control_button.h
++++ b/chrome/browser/ui/views/tabs/tab_strip_control_button.h
+@@ -103,6 +103,9 @@
+   // views::View
+   gfx::Size CalculatePreferredSize(
+       const views::SizeBounds& available_size) const override;
++  // Glyphe : icône centrée sur la zone de survol (marges exclues).
++  views::ProposedLayout CalculateProposedLayout(
++      const views::SizeBounds& size_bounds) const override;
+   void AddedToWidget() override;
+   void RemovedFromWidget() override;
+   void OnThemeChanged() override;
