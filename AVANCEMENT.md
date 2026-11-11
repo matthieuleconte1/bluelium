@@ -161,19 +161,27 @@ Règles de l'Atelier Glyphe appliquées au DOM et au CSS :
       segment actif teinté, icône `vertical_split` à la jonction.
 - [ ] `prism-ui.patch` ne contient pas `kTabWidth` (176 puis 240) : à régénérer.
 
-### Auto-build : série de patchs à reconstruire (prioritaire)
-- [ ] Le premier auto-build (11 nov.) a montré que la série ne s'applique pas
-      sur un Helium neuf : un patch régénéré alors que des patchs suivants
-      étaient appliqués embarque leurs changements dans son contexte
-      (`reference-finishing`, et `prism-ui` ne se régénère plus :
-      `kSplitViewContentInset` modifié plus loin). Minuteur nocturne coupé.
-- [ ] Outil à écrire : arbre propre (patchs Helium seuls) → specs Glyphe dans
-      l'ordre de `patches/series` → `.patch` régénérés ; puis réactiver
-      `glyphe-autobuild.timer` (`tools/sync-builder.sh --now`).
-- [ ] `prism-ui.patch` n'inclut pas encore les 5 thèmes ajoutés (Azur,
-      Émeraude, Carmin, Mandarine, Améthyste) : ils sont dans la spec et
-      l'arbre de dev, pas dans le .patch.
-- Outils ajoutés : `tools/respec.py` (met à jour l'arbre quand une spec déjà
+### Auto-build et releases GitHub (Bluelium)
+- [x] Dépôt public https://github.com/matthieuleconte1/bluelium (GPL-3.0,
+      NOTICE pour les marques, adresses de build hors dépôt dans
+      `~/.config/bluelium/builder.env`).
+- [x] Cause de l'échec du 11 nov. : la série était appliquée avant la
+      substitution des domaines et des noms de Helium, alors que les specs sont
+      écrites sur l'arbre final. Désormais `tools/apply-series.py` applique
+      `specs/SERIES` après toutes les étapes de Helium et régénère les patchs
+      (dans `/root/glyphe/releases/patches-<version>/`).
+- [x] La machine de build prend la série sur GitHub (main) : un commit qui
+      touche `specs/`, `patches/` ou `downloads.ini` déclenche un build la nuit
+      suivante, comme une nouvelle version de Helium. Release `v<helium>-g<commit>`
+      publiée avec le jeton de `/root/glyphe/github.env`.
+- [x] `glyphe-update` (PC) lit la dernière release GitHub, vérifie le SHA-256,
+      installe quand Bluelium est fermé.
+- [ ] Vérifier que la série s'applique sur un Helium neuf
+      (`tools/sync-builder.sh --patch-only`), puis premier build complet PGO
+      et première release.
+- [ ] Recopier les patchs régénérés dans `patches/glyphe/` (ils remplaceront
+      les .patch décalés, dont `prism-ui.patch`).
+- Outils : `tools/respec.py` (met à jour l'arbre quand une spec déjà
   appliquée change) ; `apply_spec.py` refuse les remplacements vides ou
   contenus dans leur motif.
 

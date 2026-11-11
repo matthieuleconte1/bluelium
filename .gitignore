@@ -1,9 +1,8 @@
 __pycache__/
 *.pyc
-# Logos d'origine des assistants (marques) : non redistribués.
-assets/icons/claude*
-assets/icons/chatgpt*
-assets/icons/gemini*
-assets/icons/mistral*
+# Logos d'origine des assistants (marques) : seules les favicons 16/32 px,
+# embarquées par les patchs assistant-*, sont versionnées.
+assets/icons/*.svg
+assets/icons/claude.png
 # Configuration locale du PC (hôtes de build, connecteurs).
 specs/reference/validation/native-hosts.json
