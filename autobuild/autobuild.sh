@@ -22,6 +22,11 @@
 # PATCH_ONLY=1 s'arrête après la série Bluelium (vérifie qu'elle s'applique).
 set -Eeuo pipefail  # -E : le piège ERR vaut aussi dans les fonctions de Helium
 
+# Lancé par systemd, le service n'a pas de HOME : les outils Go de Chromium
+# (générateur de Dawn/Tint) en ont besoin pour leur cache.
+export HOME=${HOME:-/root}
+export XDG_CACHE_HOME=${XDG_CACHE_HOME:-$HOME/.cache}
+
 G=/root/glyphe
 W=/root/helium-auto
 B=/root/bluelium
