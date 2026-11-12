@@ -57,7 +57,7 @@ if [ ! -d "$W/.git" ]; then
   git clone https://github.com/imputnet/helium-linux.git "$W"
 fi
 cd "$W"
-git fetch --quiet --tags --force origin
+git fetch --quiet --tags --force --no-recurse-submodules origin
 TAG=$(git tag -l '[0-9]*' | sort -V | tail -1)
 [ -n "$TAG" ] || fail "aucune version trouvée sur imputnet/helium-linux"
 
