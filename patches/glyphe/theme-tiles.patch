@@ -1,0 +1,48 @@
+--- a/ui/webui/resources/cr_components/theme_color_picker/theme_color.html.ts
++++ b/ui/webui/resources/cr_components/theme_color_picker/theme_color.html.ts
+@@ -11,9 +11,15 @@
+ <cr-theme-color-check-mark-wrapper .checked="${this.checked}">
+   <svg viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg"
+       xlink="http://www.w3.org/1999/xlink">
++    <!-- Bluelium : mini-fenêtre ; aplat seul pour la couleur libre. -->
+     <rect id="foreground" x="0" y="0" width="50" height="50"></rect>
+-    <rect id="background" x="0" y="25" width="50" height="25"></rect>
+-    <rect id="base" x="25" y="25" width="25" height="25"></rect>
++    <g class="mini">
++      <rect id="background" x="0" y="0" width="50" height="50"></rect>
++      <rect id="base" x="14" y="6" width="21" height="9" rx="3"></rect>
++      <rect class="field" x="5" y="19" width="40" height="6" rx="3"></rect>
++      <rect class="page" x="3" y="29" width="44" height="18" rx="4"></rect>
++      <circle class="accent" cx="8.5" cy="10.5" r="3"></circle>
++    </g>
+   </svg>
+   <slot></slot>
+ </cr-theme-color-check-mark-wrapper>`;
+--- a/ui/webui/resources/cr_components/theme_color_picker/theme_color.css
++++ b/ui/webui/resources/cr_components/theme_color_picker/theme_color.css
+@@ -44,6 +44,25 @@
+   fill: var(--cr-theme-color-base-color);
+ }
+ 
++/* Bluelium : champ, page et accent de la mini-fenêtre. */
++.field {
++  fill: var(--cr-theme-color-base-color);
++  opacity: .75;
++}
++
++.page {
++  fill: var(--cr-theme-color-base-color);
++  opacity: .55;
++}
++
++.accent {
++  fill: var(--cr-theme-color-foreground-color);
++}
++
++:host([background-color-hidden]) .mini {
++  display: none;
++}
++
+ :host([background-color-hidden]) #background {
+   display: none;
+ }

@@ -29,3 +29,7 @@ glyphe/window-corners.patch
 glyphe/newtab-button.patch
 glyphe/split-tab.patch
 glyphe/toolbar-final-layout.patch
+glyphe/assistant-pin.patch
+glyphe/toolbar-customize.patch
+glyphe/theme-tiles.patch
+glyphe/shimmer-sessions.patch

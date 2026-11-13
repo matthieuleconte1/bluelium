@@ -1,0 +1,67 @@
+--- a/chrome/common/pref_names.h
++++ b/chrome/common/pref_names.h
+@@ -342,6 +342,8 @@
+ // Helium Glyphe : assistant affiché dans l’onglet IA (0 Claude, 1 ChatGPT,
+ // 2 Gemini, 3 Le Chat).
+ inline constexpr char kGlypheAssistantCurrent[] = "glyphe.assistant.current";
++// Bluelium : vrai si l'utilisateur a désépinglé le bouton IA.
++inline constexpr char kGlypheAssistantUnpinned[] = "glyphe.assistant.unpinned";
+ 
+ inline constexpr char kWebKitCommonScript[] = "Zyyy";
+ inline constexpr char kWebKitStandardFontFamily[] =
+--- a/chrome/browser/ui/prefs/prefs_tab_helper.cc
++++ b/chrome/browser/ui/prefs/prefs_tab_helper.cc
+@@ -415,6 +415,7 @@
+   registry->RegisterBooleanPref(prefs::kGlypheOledEnabled, false);
+   registry->RegisterBooleanPref(prefs::kGlypheFollowPageColor, false);
+   registry->RegisterIntegerPref(prefs::kGlypheAssistantCurrent, 0);
++  registry->RegisterBooleanPref(prefs::kGlypheAssistantUnpinned, false);
+   registry->RegisterStringPref(prefs::kDefaultCharset,
+                                l10n_util::GetStringUTF8(IDS_DEFAULT_ENCODING),
+                                user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
+--- a/chrome/browser/ui/toolbar/pinned_toolbar/pinned_toolbar_actions_model.cc
++++ b/chrome/browser/ui/toolbar/pinned_toolbar/pinned_toolbar_actions_model.cc
+@@ -4,6 +4,7 @@
+ 
+ #include "chrome/browser/ui/toolbar/pinned_toolbar/pinned_toolbar_actions_model.h"
+ 
++#include <algorithm>
+ #include <iterator>
+ #include <string>
+ #include <vector>
+@@ -152,6 +153,9 @@
+ }
+ 
+ void PinnedToolbarActionsModel::PinAction(actions::ActionId action_id) {
++  if (action_id == kActionSidePanelShowGlypheAssistant) {
++    pref_service_->SetBoolean(prefs::kGlypheAssistantUnpinned, false);
++  }
+   std::vector<actions::ActionId> updated_pinned_action_ids = pinned_action_ids_;
+ 
+   updated_pinned_action_ids.push_back(action_id);
+@@ -166,6 +170,10 @@
+ }
+ 
+ void PinnedToolbarActionsModel::UnpinAction(actions::ActionId action_id) {
++  if (action_id == kActionSidePanelShowGlypheAssistant) {
++    // Avant UpdatePref : UpdatePinnedActionIds() ne doit pas la rajouter.
++    pref_service_->SetBoolean(prefs::kGlypheAssistantUnpinned, true);
++  }
+   std::vector<actions::ActionId> updated_pinned_action_ids = pinned_action_ids_;
+   std::erase(updated_pinned_action_ids, action_id);
+ 
+@@ -208,6 +216,14 @@
+     }
+   }
+ 
++  // Bluelium : bouton IA toujours épinglé (un import peut remplacer la
++  // liste), sauf si l'utilisateur l'a retiré lui-même.
++  if (!pref_service_->GetBoolean(prefs::kGlypheAssistantUnpinned) &&
++      !std::ranges::contains(pinned_action_ids_,
++                             kActionSidePanelShowGlypheAssistant)) {
++    pinned_action_ids_.push_back(kActionSidePanelShowGlypheAssistant);
++  }
++
+   for (Observer& observer : observers_) {
+     observer.OnActionsChanged();
+   }

@@ -1,0 +1,53 @@
+--- a/chrome/browser/ui/browser_ui_prefs.cc
++++ b/chrome/browser/ui/browser_ui_prefs.cc
+@@ -164,7 +164,8 @@
+ 
+   registry->RegisterBooleanPref(prefs::kShowBackButton, true);
+   registry->RegisterBooleanPref(prefs::kShowReloadButton, true);
+-  registry->RegisterBooleanPref(prefs::kShowAvatarButton, true);
++  // Bluelium : bouton de profil caché par défaut (réglable).
++  registry->RegisterBooleanPref(prefs::kShowAvatarButton, false);
+   registry->RegisterBooleanPref(prefs::kShowExtensionsButton, true);
+   registry->RegisterBooleanPref(prefs::kShowMenuButton, true);
+   registry->RegisterBooleanPref(prefs::kShowMediaButton, true);
+--- a/chrome/browser/ui/webui/side_panel/customize_chrome/customize_toolbar/customize_toolbar.mojom
++++ b/chrome/browser/ui/webui/side_panel/customize_chrome/customize_toolbar/customize_toolbar.mojom
+@@ -42,6 +42,8 @@
+   kTabSearch,
+   kSplitTab,
+   kContextualTasks,
++  // Bluelium : onglet IA.
++  kGlypheAssistant,
+ };
+ 
+ // Unique identifiers for categories the actions can belong to.
+--- a/chrome/browser/ui/webui/side_panel/customize_chrome/customize_toolbar/customize_toolbar_handler.cc
++++ b/chrome/browser/ui/webui/side_panel/customize_chrome/customize_toolbar/customize_toolbar_handler.cc
+@@ -97,6 +97,8 @@
+       return side_panel::customize_chrome::mojom::ActionId::kSplitTab;
+     case kActionSidePanelShowContextualTasks:
+       return side_panel::customize_chrome::mojom::ActionId::kContextualTasks;
++    case kActionSidePanelShowGlypheAssistant:  // Bluelium
++      return side_panel::customize_chrome::mojom::ActionId::kGlypheAssistant;
+     default:
+       return std::nullopt;
+   }
+@@ -159,6 +161,8 @@
+       return kActionSplitTab;
+     case side_panel::customize_chrome::mojom::ActionId::kContextualTasks:
+       return kActionSidePanelShowContextualTasks;
++    case side_panel::customize_chrome::mojom::ActionId::kGlypheAssistant:
++      return kActionSidePanelShowGlypheAssistant;  // Bluelium
+     default:
+       return std::nullopt;
+   }
+@@ -475,6 +479,9 @@
+         actions.push_back(std::move(mojo_action));
+       };
+ 
++  // Bluelium : onglet IA, avec les boutons du navigateur.
++  add_action(kActionSidePanelShowGlypheAssistant,
++             side_panel::customize_chrome::mojom::CategoryId::kYourChrome);
+   add_action(kActionTabSearch,
+              side_panel::customize_chrome::mojom::CategoryId::kTools);
+   add_action(kActionSidePanelShowBookmarks,

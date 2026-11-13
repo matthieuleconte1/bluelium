@@ -210,10 +210,14 @@ bool IsGlypheOled() {
 }
 
 GlyphePrismPalette GlyphePageColorPalette(SkColor page) {
-  const SkColor bg = SkColorSetA(page, SK_AlphaOPAQUE);
-  const bool dark = color_utils::IsDark(bg);
+  const SkColor page_bg = SkColorSetA(page, SK_AlphaOPAQUE);
+  const bool dark = color_utils::IsDark(page_bg);
   const SkColor fg = dark ? SkColorSetRGB(0xf4, 0xf5, 0xf7)
                           : SkColorSetRGB(0x15, 0x16, 0x1a);
+  // Bluelium : barre un peu décalée de la page (plus sombre sur une page
+  // claire, plus claire sur une page sombre), même teinte : à la couleur
+  // exacte, le bord de la page se confondait avec la barre.
+  const SkColor bg = Mix(fg, page_bg, 0x14);
   return {.frame = bg,
           .card = bg,
           .tab = Mix(fg, bg, 0x1c),

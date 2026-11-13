@@ -11,7 +11,7 @@
  
 @@ -30,7 +30,7 @@
  // Split tabs need more space to be readable.
- constexpr int kSplitTabWidth = 250;
+ constexpr int kSplitTabWidth = 400;  // Glyphe
  
 -constexpr int kTabHorizontalPadding = 2;
 +constexpr int kTabHorizontalPadding = 10;  // Glyphe: 10px inside painted edge
@@ -34,7 +34,7 @@
      float bottom_left_corner_radius = content_corner_radius;
      float bottom_right_corner_radius = content_corner_radius;
 -    float tab_height = GetLayoutConstant(LayoutConstant::kTabHeight) * scale;
-+    float tab_height = 33 * scale;  // Glyphe : onglet tracé de 33 px (centre y=20,5)
++    float tab_height = 32 * scale;  // Bluelium : 32 px, le trait de groupe passe dessous
  
      // The hit test extends the full height to make it easier to select tabs.
      if (path_type != TabStyle::PathType::kHitTest) {
@@ -53,7 +53,7 @@
  
      float right = aligned_bounds.right() - extension_corner_radius;
      const int bottom = top + tab_height;
-@@ -408,7 +407,7 @@
+@@ -425,7 +424,7 @@
  
    gfx::Insets insets =
        gfx::Insets::TLBR(
@@ -62,7 +62,7 @@
        base_style_insets + split_insets;
  
    return insets;
-@@ -477,7 +476,8 @@
+@@ -494,7 +493,8 @@
    separator_bounds.leading = gfx::RectF(
        aligned_bounds.x() + corner_radius - separator_margin.right() -
            separator_size.width(),
@@ -72,7 +72,7 @@
        separator_size.width(), separator_size.height());
  
    separator_bounds.trailing = separator_bounds.leading;
-@@ -544,6 +544,9 @@
+@@ -561,6 +561,9 @@
    // Check the adjacent tab/group header to see if there's a visible shapes.
    const TabStyleViewDelegate* const adjacent_tab =
        delegate_->GetAdjacentTab(leading);
@@ -106,7 +106,7 @@
      case WEBUI_TAB_STRIP_TOOLBAR_INTERIOR_MARGIN:
 --- a/chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.cc
 +++ b/chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.cc
-@@ -669,7 +669,7 @@
+@@ -667,7 +667,7 @@
        GetLayoutConstant(LayoutConstant::kTabStripHeight) -
        GetLayoutConstant(LayoutConstant::kTabstripToolbarOverlap) -
        NewTabButton::kButtonSize.height();
@@ -115,7 +115,7 @@
    const int bottom_inset =
        extra_vertical_space - top_inset +
        GetLayoutConstant(LayoutConstant::kTabstripToolbarOverlap);
-@@ -781,7 +781,7 @@
+@@ -779,7 +779,7 @@
  
    tab_strip_->SetProperty(
        views::kMarginsKey,
@@ -124,7 +124,7 @@
                          tab_strip_right_margin.value_or(0)));
  }
  
-@@ -1107,7 +1107,7 @@
+@@ -1105,7 +1105,7 @@
        GetLayoutConstant(LayoutConstant::kTabStripHeight) -
        GetLayoutConstant(LayoutConstant::kTabstripToolbarOverlap) -
        TabStripControlButton::kButtonSize.height();
@@ -146,35 +146,35 @@
                LocationBarView::GetAvailableTextHeight(), desired_font_size);
 --- a/chrome/browser/ui/views/tabs/tab.cc
 +++ b/chrome/browser/ui/views/tabs/tab.cc
-@@ -511,15 +511,15 @@
+@@ -515,15 +515,15 @@
    // indicator, but visually it will be smaller at kFaviconSize wide.
    gfx::Rect favicon_bounds(
        start,
 -      contents_rect.y() + Center(contents_rect.height(), gfx::kFaviconSize),
-+      contents_rect.y() + Center(contents_rect.height(), 14 /* Glyphe favicon */),
++      contents_rect.y() + Center(contents_rect.height(), 16 /* Glyphe favicon */),
        0, 0);
    if (showing_icon_) {
      if (center_icon_) {
        // When centering the favicon, the favicon is allowed to escape the normal
        // contents rect.
 -      favicon_bounds.set_x(Center(width(), gfx::kFaviconSize));
-+      favicon_bounds.set_x(Center(width(), 14 /* Glyphe favicon */));
++      favicon_bounds.set_x(Center(width(), 16 /* Glyphe favicon */));
      } else {
 -      MaybeAdjustLeftForPinnedTab(&favicon_bounds, gfx::kFaviconSize);
-+      MaybeAdjustLeftForPinnedTab(&favicon_bounds, 14 /* Glyphe favicon */);
++      MaybeAdjustLeftForPinnedTab(&favicon_bounds, 16 /* Glyphe favicon */);
      }
      icon_->ResizeDiscardIndicatorRadiusForWidth(
          width() - 2 * tab_style()->GetBottomCornerRadius());
-@@ -610,7 +610,7 @@
+@@ -614,7 +614,7 @@
        // indicator), but rather the normal favicon width which is what it will
        // look like.
        const int after_favicon =
 -          favicon_bounds.x() + icon_->GetInsets().left() + gfx::kFaviconSize +
-+          favicon_bounds.x() + icon_->GetInsets().left() + 14 /* Glyphe favicon */ +
++          favicon_bounds.x() + icon_->GetInsets().left() + 16 /* Glyphe favicon */ +
            GetLayoutConstant(LayoutConstant::kTabPreTitlePadding);
        title_left = std::max(title_left, after_favicon);
      }
-@@ -622,8 +622,8 @@
+@@ -626,8 +626,8 @@
      const int title_width = std::max(title_right - title_left, 0);
      // The Label will automatically center the font's cap height within the
      // provided vertical space.
@@ -185,12 +185,12 @@
      show_title = title_width > 0;
  
      if (title_bounds != target_title_bounds_) {
-@@ -1353,7 +1353,7 @@
+@@ -1411,7 +1411,7 @@
    int available_width = GetContentsBounds().width();
  
    const bool touch_ui = ui::TouchUiController::Get()->touch_ui();
 -  const int favicon_width = gfx::kFaviconSize;
-+  const int favicon_width = 14 /* Glyphe favicon */;
++  const int favicon_width = 16 /* Glyphe favicon */;
    const int alert_icon_width =
        alert_indicator_button_->GetPreferredSize().width();
    // In case of touch optimized UI, the close button has an extra padding on the
@@ -201,7 +201,7 @@
    SetBorder(views::CreateEmptyBorder(kAttentionIndicatorRadius));
  
 -  const int preferred_width = gfx::kFaviconSize + GetInsets().width();
-+  const int preferred_width = 14 /* Glyphe favicon */ + GetInsets().width();
++  const int preferred_width = 16 /* Glyphe favicon */ + GetInsets().width();
    SetPreferredSize(gfx::Size(preferred_width, preferred_width));
  
    // Initial state (before any data) should not be animating.
@@ -210,13 +210,13 @@
  
    gfx::Rect icon_bounds(
 -      GetMirroredXWithWidthInView(contents_bounds.x(), gfx::kFaviconSize),
-+      GetMirroredXWithWidthInView(contents_bounds.x(), 14 /* Glyphe favicon */),
++      GetMirroredXWithWidthInView(contents_bounds.x(), 16 /* Glyphe favicon */),
        contents_bounds.y() +
            static_cast<int>(contents_bounds.height() * hiding_fraction_),
 -      std::min(gfx::kFaviconSize, contents_bounds.width()),
 -      std::min(gfx::kFaviconSize, contents_bounds.height()));
-+      std::min(14 /* Glyphe favicon */, contents_bounds.width()),
-+      std::min(14 /* Glyphe favicon */, contents_bounds.height()));
++      std::min(16 /* Glyphe favicon */, contents_bounds.width()),
++      std::min(16 /* Glyphe favicon */, contents_bounds.height()));
  
    // Don't paint the attention indicator during the loading animation.
    if (!GetShowingLoadingAnimation() && GetShowingAttentionIndicator() &&
@@ -226,8 +226,8 @@
    gfx::Point circle_center(
 -      bounds.x() + (base::i18n::IsRTL() ? 0 : gfx::kFaviconSize),
 -      bounds.y() + gfx::kFaviconSize);
-+      bounds.x() + (base::i18n::IsRTL() ? 0 : 14 /* Glyphe favicon */),
-+      bounds.y() + 14 /* Glyphe favicon */);
++      bounds.x() + (base::i18n::IsRTL() ? 0 : 16 /* Glyphe favicon */),
++      bounds.y() + 16 /* Glyphe favicon */);
  
    // The attention indicator consists of two parts:
    // . a clear (totally transparent) part over the bottom right (or left in rtl)
@@ -254,13 +254,13 @@
      const float kInitialFaviconInsetDp = 1 + kLoadingAnimationStrokeWidthDp;
      const float kInitialFaviconDiameterDp =
 -        gfx::kFaviconSize - 2 * kInitialFaviconInsetDp +
-+        14 /* Glyphe favicon */ - 2 * kInitialFaviconInsetDp +
++        16 /* Glyphe favicon */ - 2 * kInitialFaviconInsetDp +
          (was_discard_indicator_shown_ ? 2 * increased_discard_indicator_radius_
                                        : 0);
      // This a full outset circle of the favicon square. The animation ends with
      // the entire favicon shown.
 -    const float kFinalFaviconDiameterDp = sqrt(2) * gfx::kFaviconSize;
-+    const float kFinalFaviconDiameterDp = sqrt(2) * 14 /* Glyphe favicon */;
++    const float kFinalFaviconDiameterDp = sqrt(2) * 16 /* Glyphe favicon */;
  
      SkScalar diameter = kInitialFaviconDiameterDp;
      if (was_discard_indicator_shown_ ||
@@ -270,13 +270,13 @@
      const float offset =
 -        (gfx::kFaviconSize -
 -         std::min(diameter, SkFloatToScalar(gfx::kFaviconSize))) /
-+        (14 /* Glyphe favicon */ -
-+         std::min(diameter, SkFloatToScalar(14 /* Glyphe favicon */))) /
++        (16 /* Glyphe favicon */ -
++         std::min(diameter, SkFloatToScalar(16 /* Glyphe favicon */))) /
          2;
 -    const float scale = std::min(diameter, SkFloatToScalar(gfx::kFaviconSize)) /
 -                        gfx::kFaviconSize;
-+    const float scale = std::min(diameter, SkFloatToScalar(14 /* Glyphe favicon */)) /
-+                        14 /* Glyphe favicon */;
++    const float scale = std::min(diameter, SkFloatToScalar(16 /* Glyphe favicon */)) /
++                        16 /* Glyphe favicon */;
      // Translating to/from bounds offset is done to scale around the center
      // point. This fixes RTL issues where bounds.x() is non-zero. See
      // https://crbug.com/40730696

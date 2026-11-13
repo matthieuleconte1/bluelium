@@ -115,6 +115,36 @@ Règles de l'Atelier Glyphe appliquées au DOM et au CSS :
 
 ## À faire
 
+### Retours du 13 nov. (vus sur macOS)
+- [x] Bouton IA épinglé absent après l'import des données (liste des actions
+      épinglées remplacée par celle du profil importé).
+- [ ] Écran de bienvenue : proposer l'import depuis Helium.
+- [x] Favicons trop petites (réduites à 14 px par `layout-spacing`).
+- [ ] macOS : boutons de fenêtre (feux) mal centrés verticalement par rapport
+      aux applis natives, donc par rapport aux onglets.
+- [x] Personnaliser la barre d'outils : la liste ne reflète pas les boutons
+      Bluelium (bouclier, IA, Diviser…).
+- [x] Aperçus des thèmes (Personnaliser) à mettre à jour avec les couleurs Prism.
+- [x] Shimmer : « Les plus visités » et « Fermés récemment » ne marchent pas
+      et ne récupèrent pas les icônes.
+- [x] Groupes d'onglets : la barre de couleur du groupe déborde dans l'onglet.
+- [x] « Couleur de la page dans la barre » : prendre une teinte dérivée de la
+      couleur de la page, pas la couleur exacte. Sinon la barre et la page se
+      confondent (pas de contraste au bord de la page). Décaler la luminosité
+      (plus sombre sur fond clair, plus clair sur fond sombre) en gardant la teinte.
+- Lot 1-2 (13 nov.) : specs `assistant_pin`, `toolbar_customize`,
+  `theme_tiles` (mini-fenêtres), `shimmer_sessions` (TopSites, onglets
+  fermés, réouverture, icônes via chrome://favicon2), favicons 16 px,
+  pastille 32 px, barre décalée de 8 % de la page. Vérifié sans fenêtre
+  (Ozone headless) sauf la couleur de page et « Les plus visités » (profil neuf
+  sans historique). `prism-ui.patch` à recopier depuis la sortie de l'auto-build.
+- Constat (13 nov.) : la pastille de l'onglet actif est dessinée jusqu'à la
+  ligne 36 et le trait de groupe (2 px) occupe 36–37 : il la recouvre et passe
+  sous ses coins. Correctif prévu : pastille de 32 px au lieu de 33.
+- Constat : le bouton IA disparaît quand un import remplace la liste
+  `kPinnedActions` (la valeur par défaut n'ajoute l'IA qu'aux profils neufs).
+
+
 ### Corrections et finitions
 - [ ] Nuit rouge : filtre rouge de secours sur ce que le convertisseur DOM ne
       touche pas (contenu dessiné en JS : `<canvas>`, WebGL, sous-cadres, etc.).

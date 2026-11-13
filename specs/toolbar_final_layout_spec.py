@@ -3,9 +3,9 @@ NEW_FILES = {}
 P = 'chrome/browser/ui/views/toolbar/toolbar_view.cc'
 EDITS = [
  (P, '    avatar_->SetVisible(show_avatar_button_.GetValue());',
-  '    avatar_->SetVisible(false);  // Glyphe : profil normal absent du HTML'),
+  '    avatar_->SetVisible(show_avatar_button_.GetValue());  // Bluelium : caché par défaut (pref)'),
  (P, 'void ToolbarView::OnShowAvatarButtonChanged() {\n  avatar_->SetVisible(show_avatar_button_.GetValue());\n}',
-  'void ToolbarView::OnShowAvatarButtonChanged() {\n  avatar_->SetVisible(!browser_->GetProfile()->IsRegularProfile());\n}'),
+  'void ToolbarView::OnShowAvatarButtonChanged() {\n  // Bluelium : réglable dans Personnaliser > Barre d\'outils.\n  avatar_->SetVisible(!browser_->GetProfile()->IsRegularProfile() ||\n                     show_avatar_button_.GetValue());\n}'),
  (P, '    extensions_toolbar_coordinator_ =\n        std::make_unique<ExtensionsToolbarCoordinator>(extensions_container_);',
   '    extensions_toolbar_coordinator_ =\n        std::make_unique<ExtensionsToolbarCoordinator>(extensions_container_);\n'
   '    // Glyphe : bloqueur, Diviser, Extensions ; conserver le contrôleur\n'

@@ -20,16 +20,18 @@
        !base::CommandLine::ForCurrentProcess()->HasSwitch(
            "show-avatar-button")) {
 -    avatar_->SetVisible(show_avatar_button_.GetValue());
-+    avatar_->SetVisible(false);  // Glyphe : profil normal absent du HTML
++    avatar_->SetVisible(show_avatar_button_.GetValue());  // Bluelium : caché par défaut (pref)
    }
  
    if (extensions_container_) {
-@@ -2641,7 +2649,7 @@
+@@ -2641,7 +2649,9 @@
  }
  
  void ToolbarView::OnShowAvatarButtonChanged() {
 -  avatar_->SetVisible(show_avatar_button_.GetValue());
-+  avatar_->SetVisible(!browser_->GetProfile()->IsRegularProfile());
++  // Bluelium : réglable dans Personnaliser > Barre d'outils.
++  avatar_->SetVisible(!browser_->GetProfile()->IsRegularProfile() ||
++                     show_avatar_button_.GetValue());
  }
  
  void ToolbarView::OnShowExtensionsButtonChanged() {

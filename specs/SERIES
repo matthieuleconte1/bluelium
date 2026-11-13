@@ -25,3 +25,7 @@ window-corners.patch           window_corners_spec.py
 newtab-button.patch            newtab_button_spec.py
 split-tab.patch                split_tab_spec.py
 toolbar-final-layout.patch     toolbar_final_layout_spec.py
+assistant-pin.patch            assistant_pin_spec.py
+toolbar-customize.patch        toolbar_customize_spec.py
+theme-tiles.patch              theme_tiles_spec.py
+shimmer-sessions.patch         shimmer_sessions_spec.py
