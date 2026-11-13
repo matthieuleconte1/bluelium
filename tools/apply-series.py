@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Applique toute la série Bluelium sur un arbre Helium et régénère les patchs.
 
-Usage : apply-series.py <src> <dépôt bluelium> <dossier des .patch générés>
+Usage : apply-series.py <src> <dépôt bluelium> <dossier des .patch générés> [linux|mac]
+
+La plateforme (linux par défaut) écarte les lignes de specs/SERIES réservées
+à une autre plateforme (troisième colonne facultative).
 
 Lit specs/SERIES : chaque spec passe par apply_spec.py (qui écrit le .patch
 correspondant) ; une ligne « - » applique le .patch figé de patches/glyphe/
@@ -14,6 +17,9 @@ import sys
 from pathlib import Path
 
 src, repo, out = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3])
+platform = sys.argv[4] if len(sys.argv) > 4 else 'linux'
+if platform not in ('linux', 'mac'):
+  sys.exit(f'plateforme inconnue : {platform} (linux ou mac)')
 out.mkdir(parents=True, exist_ok=True)
 apply_spec = repo / 'tools' / 'apply_spec.py'
 
@@ -21,8 +27,10 @@ entries = []
 for line in (repo / 'specs' / 'SERIES').read_text().splitlines():
   line = line.split('#', 1)[0].strip()
   if line:
-    patch, spec = line.split()
-    entries.append((patch, spec))
+    patch, spec, *rest = line.split()
+    platforms = rest[0].split(',') if rest else ['linux', 'mac']
+    if platform in platforms:
+      entries.append((patch, spec))
 
 for index, (patch, spec) in enumerate(entries, 1):
   label = f'[{index}/{len(entries)}] {patch}'
@@ -41,4 +49,4 @@ for index, (patch, spec) in enumerate(entries, 1):
     if result.returncode != 0:
       sys.exit(f'{label} : ÉCHEC de {spec}\n{result.stdout}{result.stderr}')
   print(label, 'OK')
-print('Série complète :', len(entries), 'patchs')
+print(f'Série complète ({platform}) :', len(entries), 'patchs')

@@ -4,6 +4,18 @@ Mis à jour le 11 novembre 2026.
 
 ## Fait
 
+### Mode nuit à lumière chaude (13 novembre, specs préparées)
+- Remplace le convertisseur DOM/CSS et la palette rouge par une matrice RGB
+  sur le calque de `ContentsWebView` : R × 1, G × 0,85, B × 0,65. Les fonds
+  clairs restent clairs ; la barre conserve son thème et sa couleur de page.
+- Pref, sélecteur Nuit et raccourci Alt+Maj+N conservés. Injection et helper
+  supprimés de la série ; seule leur dépendance est retirée de Shimmer.
+- Vérification en mémoire depuis l'arbre macOS : ancienne série inversée,
+  nouvelle série rejouée, chaque ancre unique sur les variantes Linux/macOS.
+  Specs Python compilées ; **aucune compilation C++ ni validation visuelle**.
+- Les entrées historiques « nuit rouge » ci-dessous décrivent l'ancien mode.
+  Détails et consignes d'intégration : [rapport](docs/rapport-mode-nuit.md).
+
 ### Barre d’outils, panneau IA et connecteurs (11 novembre, soirée)
 - **Livraison installée et mesurée** : SHA `845d76da96c7…`, dernier build
   incrémental **4 min 11**. Rapport : `docs/rapport-barre-ia.md` ; sauvegarde
@@ -252,5 +264,31 @@ Règles de l'Atelier Glyphe appliquées au DOM et au CSS :
 
 ### Build et diffusion
 - [ ] Build complet PGO avec tous les patchs, puis `scripts/package.sh` (AppImage + tarball).
-- [ ] Version macOS sur le M3 Pro (disque NVMe externe, Xcode sur le disque, `-j 8`).
+- [ ] Version macOS sur le M3 Pro (`-j 8`). **Préparée le 12 nov.** :
+      - `scripts/build-macos.sh` (helium-macos, dernière version) → étapes de
+        Helium → `specs/SERIES` plateforme `mac` → build PGO →
+        `scripts/package-macos.sh` (Bluelium.app signée ad hoc, `.dmg` +
+        `.sha256`, `PUBLISH=1` pour GitHub).
+      - `specs/SERIES` : 3ᵉ colonne facultative `linux`/`mac` ;
+        `apply-series.py` prend la plateforme (l'auto-build Linux passe `linux`).
+      - `macos-identity` (mac seulement) : bundle
+        `io.github.matthieuleconte1.bluelium`, profil
+        `~/Library/Application Support/Bluelium`, trousseau « Bluelium Storage
+        Key » — Helium est installé sur le Mac, il ne faut rien partager.
+        Vérifiée sur les fichiers Chromium 157.0.8103.78 + patchs Helium.
+      - `native-messaging` : includes XDG sous `#if BUILDFLAG(IS_LINUX)`
+        (sur Mac, Helium lit déjà `~/Library/Application Support/Google/Chrome/NativeMessagingHosts`).
+        Arbre de dev Linux déjà patché : passer par `tools/respec.py`.
+      - `red_night_dom_spec.py` lisait `/root/glyphe/glyphe_night.js` : lit
+        maintenant `specs/glyphe_night.js`.
+      - Mise à jour : `autobuild/bluelium-update-macos` + agent launchd
+        (`autobuild/install-updater-macos.sh`).
+      - Bloquant : 15 Go libres sur le disque interne ; les disques externes
+        (Medock 86 Go, FAT254 57 Go) sont en exFAT → image APFS sparsebundle,
+        et sans doute PGO=false / ménage pour tenir dans ~90 Go.
+      - Sans effet sur Mac (code Linux) : `window-corners` (coins natifs de
+        macOS), boutons de fenêtre de `layout-spacing`, Instrument Sans et le
+        lissage de `prism-ui` (police système SF ; à porter dans
+        `platform_font_mac.mm` si voulu). Raccourcis Alt+Maj+N/C/G = ⌥⇧N/C/G.
+      - À valider à l'écran : espacement des onglets à côté des feux tricolores.
 - [ ] Commit initial de ce dépôt.

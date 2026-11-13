@@ -142,15 +142,6 @@ EDITS = [
   ('third_party/shimmer/index.html',
    '<link rel="icon" type="image/svg+xml" href="./favicon.svg" />',
    '<!-- Helium Glyphe : pas de favicon Shimmer (icône du nouvel onglet) -->'),
-
-  # Le convertisseur nuit rouge s'applique aussi au nouvel onglet.
-  ('chrome/browser/ui/glyphe_night_tab_helper.cc',
-   '  if (!url.SchemeIsHTTPOrHTTPS() && !url.SchemeIsFile() &&\n'
-   '      !url.IsAboutBlank()) {\n',
-   '  const bool is_new_tab_page = url.SchemeIs("chrome") &&\n'
-   '                               url.host() == "new-tab-page";\n'
-   '  if (!url.SchemeIsHTTPOrHTTPS() && !url.SchemeIsFile() &&\n'
-   '      !url.IsAboutBlank() && !is_new_tab_page) {\n'),
 ]
 
 # Shimmer suit le thème Glyphe : la « stratégie BrowserThemeColor » qu'il

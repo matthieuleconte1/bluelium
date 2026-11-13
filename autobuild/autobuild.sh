@@ -68,7 +68,8 @@ fi
 git -C "$B" fetch --quiet origin main
 git -C "$B" checkout --quiet --force origin/main
 PATCH_ID=$(git -C "$B" log -1 --format=%h -- specs patches downloads.ini \
-           autobuild/helium-wrapper tools/apply_spec.py tools/apply-series.py)
+           autobuild/helium-wrapper tools/apply_spec.py tools/apply-series.py \
+           ':!specs/macos_*' ':!patches/glyphe/macos-*')
 VERSION="$TAG-g$PATCH_ID"
 if [ "${FORCE:-0}" != 1 ] && [ "$(cat "$STATE" 2>/dev/null)" = "$VERSION" ]; then
   echo "À jour : $VERSION"; exit 0
@@ -108,7 +109,7 @@ helium_apply_translations
 helium_version
 helium_resources
 rm -rf "$REL/patches-$VERSION"
-if ! python3 "$B/tools/apply-series.py" "$W/build/src" "$B" "$REL/patches-$VERSION" \
+if ! python3 "$B/tools/apply-series.py" "$W/build/src" "$B" "$REL/patches-$VERSION" linux \
      > "$G/autobuild-series.log" 2>&1; then
   tail -20 "$G/autobuild-series.log"
   fail "un patch Bluelium ne s'applique plus sur Helium $TAG : $(grep -m1 'ÉCHEC' "$G/autobuild-series.log" | cut -c1-120)"

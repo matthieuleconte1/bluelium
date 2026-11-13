@@ -1,5 +1,7 @@
 # Ordre d'application des patchs Bluelium et la source de chacun.
-# Format : <patch dans patches/glyphe/>  <spec dans specs/ | - (patch figé)>
+# Format : <patch dans patches/glyphe/>  <spec dans specs/ | - (patch figé)>  [plateformes]
+# Plateformes (facultatif, séparées par des virgules) : linux, mac. Sans
+# colonne, le patch vaut pour toutes. apply-series.py reçoit la plateforme.
 # Appliqué par tools/apply-series.py APRÈS toutes les étapes de Helium
 # (patchs, substitution des domaines et des noms, traductions, ressources) :
 # les specs sont écrites sur cet état de l'arbre.
@@ -9,7 +11,6 @@ red-night-ui-palette.patch     red_night_ui_spec.py
 assistant-side-panel.patch     assistant_spec.py
 tab-strip-fade.patch           tab_fade_spec.py
 shortcut-labels.patch          shortcut_labels_spec.py
-red-night-dom-converter.patch  red_night_dom_spec.py
 shimmer-native-ntp.patch       shimmer_native_spec.py
 prism-ui.patch                 prism_ui_spec.py
 assistant-tabs.patch           assistant_tabs_spec.py
@@ -29,3 +30,10 @@ assistant-pin.patch            assistant_pin_spec.py
 toolbar-customize.patch        toolbar_customize_spec.py
 theme-tiles.patch              theme_tiles_spec.py
 shimmer-sessions.patch         shimmer_sessions_spec.py
+page-color-contrast.patch      page_color_contrast_spec.py
+shimmer-appearance.patch      shimmer_appearance_spec.py
+customize-panel.patch         customize_panel_spec.py
+quit-hud.patch                 quit_hud_spec.py               mac
+motion.patch                  motion_spec.py
+motion-tuning.patch           motion_tuning_spec.py          mac
+macos-identity.patch           macos_identity_spec.py         mac

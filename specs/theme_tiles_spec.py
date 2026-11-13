@@ -47,3 +47,23 @@ EDITS = [
    '\n'
    ':host([background-color-hidden]) .mini {\n  display: none;\n}\n'),
 ]
+
+# Bluelium : le fond neutre du conteneur transparaissait sous le SVG arrondi.
+# Bluelium : la coche et son wrapper gardent leurs couleurs, dimensions et position.
+EDITS += [
+  (D + 'theme_color_picker.css',
+   'cr-theme-color {\n',
+   '/* Bluelium : aucun fond clair sous les coins des mini-fenêtres. */\n'
+   'cr-theme-color:not([background-color-hidden]) {\n'
+   '  background-color: transparent;\n'
+   '}\n\n'
+   'cr-theme-color {\n'),
+  (D + 'theme_color.css',
+   '#foreground {\n  fill: var(--cr-theme-color-foreground-color);\n}\n',
+   '#foreground {\n  fill: var(--cr-theme-color-foreground-color);\n}\n'
+   '\n'
+   '/* Bluelium : pas d’aplat d’accent sous le cadre ; seule la pastille l’utilise. */\n'
+   ':host(:not([background-color-hidden])) #foreground {\n'
+   '  display: none;\n'
+   '}\n'),
+]

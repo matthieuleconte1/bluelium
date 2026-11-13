@@ -1,4 +1,7 @@
-# Helium Glyphe — palette « nuit rouge » de l'interface (noir pur, rouge seul).
+# Helium Glyphe — palette « nuit rouge » de l'interface (noir pur, rouge seul),
+# DA « Atelier Glyphe » version nuit : une seule teinte, rempli = choisi.
+# Bluelium : le mode Nuit combine cette palette (interface) et le filtre de
+# lumière chaude des pages (red_night_spec.py), sur la même pref.
 # Les jetons système (kColorSys*) sont réécrits juste après le mixer système,
 # donc toutes les couleurs dérivées suivent ; un dernier mixer Chrome force
 # le cadre, les onglets et la barre d'outils. Suit la pref glyphe.red_night.
@@ -160,6 +163,7 @@ EDITS = [
   ('chrome/browser/ui/color/chrome_color_mixers.cc',
    '  if (key.custom_theme) {\n    key.custom_theme->AddColorMixers(provider, key);\n  }\n',
    '  if (key.custom_theme) {\n    key.custom_theme->AddColorMixers(provider, key);\n  }\n\n'
+   '  // Bluelium : point d’intégration des thèmes, sans palette nuit rouge.\n'
    '  // Helium Glyphe : cadre, onglets et barre d’outils en nuit rouge.\n'
    '  if (ui::IsGlypheRedNight()) {\n'
    '    const SkColor red = ui::GlypheRedNightColor();\n'
@@ -189,7 +193,7 @@ EDITS = [
    '#include <initializer_list>\n\n#include "ui/color/color_mixer.h"\n#include "ui/color/color_provider.h"\n#include "ui/color/color_recipe.h"\n#include "ui/color/glyphe_red_night.h"\n'),
 
   ('chrome/browser/ui/views/frame/contents_web_view.cc',
-   'void ContentsWebView::UpdateGlypheRedNight() {\n#if defined(USE_AURA)\n',
+   'void ContentsWebView::UpdateGlypheRedNight() {\n',
    'void ContentsWebView::UpdateGlypheRedNight() {\n'
    '  // Palette de l’interface : globale, rafraîchie seulement si elle change.\n'
    '  if (glyphe_pref_registrar_.prefs()) {\n'
@@ -200,8 +204,7 @@ EDITS = [
    '      ui::ColorProviderManager::Get().ResetColorProviderCache();\n'
    '      ui::NativeTheme::GetInstanceForNativeUi()->NotifyOnNativeThemeUpdated();\n'
    '    }\n'
-   '  }\n'
-   '#if defined(USE_AURA)\n'),
+   '  }\n'),
   ('chrome/browser/ui/views/frame/contents_web_view.cc',
    '#include "ui/compositor/layer.h"\n',
    '#include "ui/color/color_provider_manager.h"\n#include "ui/color/glyphe_red_night.h"\n'

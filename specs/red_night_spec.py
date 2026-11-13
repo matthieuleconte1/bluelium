@@ -1,7 +1,41 @@
-# Helium Glyphe — convertisseur « nuit rouge » des pages web.
-# Pages assombries par le mode sombre automatique de Blink, puis une matrice
-# de couleur sur le calque de la page ne garde que la luminance, en rouge.
-# Bascule : Alt+Maj+N (pref de profil glyphe.red_night.enabled).
+# Bluelium : filtre de lumière chaude sur le contenu web, sans conversion.
+# Bluelium : Alt+Maj+N et la pref historique restent compatibles.
+
+WARM_FILTER = """void ContentsWebView::UpdateGlypheRedNight() {
+  // Bluelium : point d'intégration OLED, indépendant du filtre des pages.
+  ui::Layer* page_layer = layer();
+#if defined(USE_AURA)
+  // Bluelium : secours Linux si le flag de gestion des calques est désactivé.
+  if (!holder()->layer_managed_by_views()) {
+    content::WebContents* contents = web_contents();
+    gfx::NativeView native_view = contents ? contents->GetNativeView() : nullptr;
+    page_layer = native_view ? native_view->layer() : nullptr;
+  }
+#endif
+  if (!page_layer) {
+    return;
+  }
+  const bool enabled = glyphe_pref_registrar_.prefs() &&
+      glyphe_pref_registrar_.prefs()->GetBoolean(prefs::kGlypheRedNightEnabled);
+  if (!enabled) {
+    if (page_layer->LayerHasCustomColorMatrix()) {
+      page_layer->ClearLayerCustomColorMatrix();
+    }
+    return;
+  }
+  // Bluelium : ce calque contient le NativeViewHost et la surface de la page,
+  // Bluelium : y compris RenderWidgetHostViewMac via SetParentUiLayer().
+  // Bluelium : R reste intact, G à 85 %, B à 65 % ; noir et alpha préservés.
+  // Bluelium : ni désaturation, ni inversion, ni mode sombre forcé de Blink.
+  const cc::FilterOperation::Matrix matrix = {
+      1.0f, 0.0f,  0.0f,  0.0f, 0.0f,
+      0.0f, 0.85f, 0.0f,  0.0f, 0.0f,
+      0.0f, 0.0f,  0.65f, 0.0f, 0.0f,
+      0.0f, 0.0f,  0.0f,  1.0f, 0.0f};
+  page_layer->SetLayerCustomColorMatrix(matrix);
+  // Bluelium : filtre de lumière chaude appliqué au calque de contenu.
+}
+"""
 
 EDITS = [
   ('chrome/common/pref_names.h',
@@ -9,7 +43,7 @@ EDITS = [
    '    "webkit.webprefs.force_dark_mode_enabled";\n',
    'inline constexpr char kWebKitForceDarkModeEnabled[] =\n'
    '    "webkit.webprefs.force_dark_mode_enabled";\n'
-   '// Helium Glyphe : pages web converties en rouge sur noir.\n'
+   '// Bluelium : filtre de lumière chaude des pages (nom de pref conservé).\n'
    'inline constexpr char kGlypheRedNightEnabled[] = "glyphe.red_night.enabled";\n'),
 
   ('chrome/browser/ui/prefs/prefs_tab_helper.cc',
@@ -18,18 +52,6 @@ EDITS = [
    '  registry->RegisterBooleanPref(prefs::kWebKitForceDarkModeEnabled,\n'
    '                                force_dark_mode_enabled);\n'
    '  registry->RegisterBooleanPref(prefs::kGlypheRedNightEnabled, false);\n'),
-
-  ('chrome/browser/ui/prefs/pref_watcher.cc',
-   '    prefs::kWebKitForceDarkModeEnabled,\n    prefs::kWebKitJavascriptEnabled,\n',
-   '    prefs::kWebKitForceDarkModeEnabled,\n    prefs::kGlypheRedNightEnabled,\n'
-   '    prefs::kWebKitJavascriptEnabled,\n'),
-
-  ('chrome/browser/chrome_content_browser_client.cc',
-   '  web_prefs->force_dark_mode_enabled =\n'
-   '      prefs->GetBoolean(prefs::kWebKitForceDarkModeEnabled);\n',
-   '  web_prefs->force_dark_mode_enabled =\n'
-   '      prefs->GetBoolean(prefs::kWebKitForceDarkModeEnabled) ||\n'
-   '      prefs->GetBoolean(prefs::kGlypheRedNightEnabled);\n'),
 
   ('chrome/app/chrome_command_ids.h',
    '#define IDC_TOGGLE_ZEN_MODE_TOP_CHROME_PIN 34091\n',
@@ -63,7 +85,7 @@ EDITS = [
    '#include "components/prefs/pref_change_registrar.h"\n'),
   ('chrome/browser/ui/views/frame/contents_web_view.h',
    '  std::unique_ptr<StatusBubbleViews> status_bubble_;\n',
-   '  // Helium Glyphe : applique ou retire le filtre « nuit rouge ».\n'
+   '  // Bluelium : applique ou retire le filtre de lumière chaude des pages.\n'
    '  void UpdateGlypheRedNight();\n'
    '  PrefChangeRegistrar glyphe_pref_registrar_;\n\n'
    '  std::unique_ptr<StatusBubbleViews> status_bubble_;\n'),
@@ -88,34 +110,7 @@ EDITS = [
    '                            base::Unretained(this)));\n'
    '  }\n'
    '}\n\n'
-   'void ContentsWebView::UpdateGlypheRedNight() {\n'
-   '#if defined(USE_AURA)\n'
-   '  content::WebContents* contents = web_contents();\n'
-   '  if (!contents || !glyphe_pref_registrar_.prefs()) {\n'
-   '    return;\n'
-   '  }\n'
-   '  gfx::NativeView native_view = contents->GetNativeView();\n'
-   '  if (!native_view || !native_view->layer()) {\n'
-   '    return;\n'
-   '  }\n'
-   '  ui::Layer* page_layer = native_view->layer();\n'
-   '  if (!glyphe_pref_registrar_.prefs()->GetBoolean(\n'
-   '          prefs::kGlypheRedNightEnabled)) {\n'
-   '    if (page_layer->LayerHasCustomColorMatrix()) {\n'
-   '      page_layer->ClearLayerCustomColorMatrix();\n'
-   '    }\n'
-   '    return;\n'
-   '  }\n'
-   '  // Luminance (Rec. 709) envoyée sur le seul canal rouge, à 85 %.\n'
-   '  // La page a déjà été assombrie par Blink (force_dark_mode_enabled).\n'
-   '  cc::FilterOperation::Matrix matrix = {\n'
-   '      0.18f, 0.61f, 0.06f, 0.0f, 0.0f,\n'
-   '      0.0f,  0.0f,  0.0f,  0.0f, 0.0f,\n'
-   '      0.0f,  0.0f,  0.0f,  0.0f, 0.0f,\n'
-   '      0.0f,  0.0f,  0.0f,  1.0f, 0.0f};\n'
-   '  page_layer->SetLayerCustomColorMatrix(matrix);\n'
-   '#endif  // defined(USE_AURA)\n'
-   '}\n'),
+   + WARM_FILTER),
   ('chrome/browser/ui/views/frame/contents_web_view.cc',
    'void ContentsWebView::SetWebContents(content::WebContents* web_contents) {\n'
    '  views::WebView::SetWebContents(web_contents);\n',

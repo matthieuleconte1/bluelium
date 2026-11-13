@@ -8,7 +8,7 @@ couleur dans la barre.
 
 Après : la fenêtre garde la couleur affichée et ne la change qu’avec
 ThemeChanged(), qui redessine tout. Le passage d’une couleur à l’autre se fait
-en fondu (240 ms, ease-in-out, ~30 i/s). Les changements de couleur pendant un
+en fondu (180 ms, ease-out, ~30 i/s). Les changements de couleur pendant un
 chargement (fond blanc puis couleur du site) sont regroupés : 120 ms de calme
 avant le fondu. Changement d’onglet : fondu immédiat. Les fournisseurs de
 couleurs créés pour les teintes intermédiaires sont libérés à la fin du fondu
@@ -188,7 +188,7 @@ EDITS = [
    '  StepGlyphePageColorFade();\n'
    '}\n\n'
    'void BrowserWidget::StepGlyphePageColorFade() {\n'
-   '  constexpr base::TimeDelta kDuration = base::Milliseconds(240);\n'
+   '  constexpr base::TimeDelta kDuration = base::Milliseconds(180);  // Bluelium : même durée que les onglets\n'
    '  const double t = std::clamp(\n'
    '      (base::TimeTicks::Now() - glyphe_fade_start_) / kDuration, 0.0, 1.0);\n'
    '  if (t >= 1.0 || !glyphe_target_page_color_) {\n'
@@ -197,7 +197,7 @@ EDITS = [
    '    return;\n'
    '  }\n'
    '  const float eased = static_cast<float>(\n'
-   '      gfx::Tween::CalculateValue(gfx::Tween::EASE_IN_OUT, t));\n'
+   '      gfx::Tween::CalculateValue(gfx::Tween::EASE_OUT, t));\n'
    '  const SkColor color = color_utils::AlphaBlend(\n'
    '      *glyphe_target_page_color_, glyphe_fade_from_, eased);\n'
    '  if (glyphe_shown_page_color_ == color) {\n'

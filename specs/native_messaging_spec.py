@@ -2,8 +2,10 @@
 NEW_FILES = {}
 EDITS = [
  ('chrome/browser/extensions/api/messaging/launch_context_posix.cc',
-  '#include "base/process/launch.h"',
-  '#include "base/process/launch.h"\n#include "base/environment.h"\n#include "base/nix/xdg_util.h"'),
+  '#include "build/chromeos_buildflags.h"\n',
+  '#include "build/chromeos_buildflags.h"\n'
+  '#if BUILDFLAG(IS_LINUX)  // Glyphe : dossier Chromium XDG\n'
+  '#include "base/environment.h"\n#include "base/nix/xdg_util.h"\n#endif\n'),
  ('chrome/browser/extensions/api/messaging/launch_context_posix.cc',
   '  if (result.empty()) {\n    result = FindManifestInDir(chrome::DIR_NATIVE_MESSAGING, host_name);\n  }',
   '\n'.join([

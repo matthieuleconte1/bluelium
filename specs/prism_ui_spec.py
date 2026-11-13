@@ -7,13 +7,13 @@
 #    (la pipette de couleur libre reste) ;
 #  - Prism est appliqué aux nouveaux profils, aux profils restés sur le gris de
 #    Helium et après « Réinitialiser » ;
-#  - le sélecteur de mode : Clair, Sombre, OLED (noir pur), Nuit (nuit rouge),
+# Bluelium : modes Clair, Sombre, OLED (noir pur), Nuit (lumière chaude),
 #    Appareil ;
 #  - interrupteur « Couleur de la page dans la barre » : le cadre, les onglets et
 #    la barre d'outils prennent la couleur de la page active (theme-color, sinon
 #    fond de la page), texte noir ou blanc selon le contraste.
 # Désactivé avec un thème d'extension, un thème GTK/Qt, le contraste élevé et
-# les couleurs forcées ; la nuit rouge passe par-dessus.
+# Bluelium : les couleurs forcées sont conservées ; Nuit filtre les pages.
 #
 # Mise en page alignée sur la maquette : onglets de 30 × 176 px, 8 px entre
 # favicon et titre, séparateurs de 14 px ; boutons et champ d'adresse de 30 px,
@@ -392,7 +392,7 @@ CHROME_MIXER = '''
   }
 '''
 
-RED_NIGHT_ANCHOR = '\n  // Helium Glyphe : cadre, onglets et barre d’outils en nuit rouge.\n'
+RED_NIGHT_ANCHOR = '\n  // Bluelium : point d’intégration des thèmes, sans palette nuit rouge.\n'
 
 LC = 'chrome/browser/ui/layout_constants.cc'
 CSM = 'ui/webui/resources/cr_components/customize_color_scheme_mode/'
@@ -517,20 +517,19 @@ EDITS = [
    '  registry->RegisterBooleanPref(prefs::kGlypheOledEnabled, false);\n'
    '  registry->RegisterBooleanPref(prefs::kGlypheFollowPageColor, false);\n'),
 
-  # Application à chaud (OLED), suivi de la couleur de la page.
+  # Bluelium : OLED garde son effet sur l'interface, le filtre reste local.
   (CWV + '.cc',
-   '    const bool glyphe_on = glyphe_pref_registrar_.prefs()->GetBoolean(\n'
-   '        prefs::kGlypheRedNightEnabled);\n'
-   '    if (ui::IsGlypheRedNight() != glyphe_on) {\n'
-   '      ui::SetGlypheRedNight(glyphe_on);\n',
-   '    const bool glyphe_on = glyphe_pref_registrar_.prefs()->GetBoolean(\n'
-   '        prefs::kGlypheRedNightEnabled);\n'
+   "  // Bluelium : point d'intégration OLED, indépendant du filtre des pages.\n",
+   "  // Bluelium : point d'intégration OLED, indépendant du filtre des pages.\n"
+   '  if (glyphe_pref_registrar_.prefs()) {\n'
    '    const bool glyphe_oled = glyphe_pref_registrar_.prefs()->GetBoolean(\n'
    '        prefs::kGlypheOledEnabled);\n'
-   '    if (ui::IsGlypheRedNight() != glyphe_on ||\n'
-   '        ui::IsGlypheOled() != glyphe_oled) {\n'
-   '      ui::SetGlypheRedNight(glyphe_on);\n'
-   '      ui::SetGlypheOled(glyphe_oled);\n'),
+   '    if (ui::IsGlypheOled() != glyphe_oled) {\n'
+   '      ui::SetGlypheOled(glyphe_oled);\n'
+   '      ui::ColorProviderManager::Get().ResetColorProviderCache();\n'
+   '      ui::NativeTheme::GetInstanceForNativeUi()->NotifyOnNativeThemeUpdated();\n'
+   '    }\n'
+   '  }\n'),
   (CWV + '.cc',
    '    glyphe_pref_registrar_.Add(\n'
    '        prefs::kGlypheRedNightEnabled,\n'
@@ -549,8 +548,8 @@ EDITS = [
    '        base::BindRepeating(&ContentsWebView::UpdateGlyphePageColor,\n'
    '                            base::Unretained(this)));\n'),
   (CWV + '.cc',
-   '  // Les pages sont converties par GlypheNightTabHelper.\n}\n',
-   '  // Les pages sont converties par GlypheNightTabHelper.\n}\n\n'
+   '  // Bluelium : filtre de lumière chaude appliqué au calque de contenu.\n}\n',
+   '  // Bluelium : filtre de lumière chaude appliqué au calque de contenu.\n}\n\n'
    'void ContentsWebView::UpdateGlyphePageColor() {\n'
    '  // La clé de couleurs de la fenêtre lit la couleur de la page active\n'
    '  // (BrowserWidget::GetColorProviderKey) : il suffit de la recalculer\n'
@@ -588,8 +587,9 @@ EDITS = [
    '#include "ui/color/glyphe_red_night.h"\n',
    '#include "ui/color/glyphe_prism.h"\n#include "ui/color/glyphe_red_night.h"\n'),
   (CWV + '.h',
-   '  void DidGetUserInteraction(const blink::WebInputEvent& event) override;\n',
-   '  void DidGetUserInteraction(const blink::WebInputEvent& event) override;\n'
+   '  void DidGetUserInteraction(const blink::WebInputEvent& event) override;\n#endif\n',
+   '  void DidGetUserInteraction(const blink::WebInputEvent& event) override;\n#endif\n'
+   '  // Hors du bloc Linux de Helium : aussi utilisés sur macOS.\n'
    '  void DidChangeThemeColor() override;\n'
    '  void OnBackgroundColorChanged() override;\n'),
   (CWV + '.h',
@@ -769,7 +769,7 @@ EDITS = [
    '    customize_color_scheme_mode::mojom::ColorSchemeMode colorMode) {\n'
    '  using Mode = customize_color_scheme_mode::mojom::ColorSchemeMode;\n'
    '  PrefService* prefs = glyphe_prefs_.prefs();\n'
-   '  // Nuit : le mode nuit rouge, par-dessus le reste.\n'
+   '  // Bluelium : Nuit active seulement le filtre de lumière chaude.\n'
    '  if (colorMode == Mode::kRedNight) {\n'
    '    prefs->SetBoolean(prefs::kGlypheRedNightEnabled, true);\n'
    '    return;\n'
