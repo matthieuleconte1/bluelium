@@ -150,11 +150,20 @@ json.dump({'version': version, 'file': name, 'sha256': sha,
            'time': datetime.datetime.now().astimezone().isoformat(timespec='seconds')},
           open(path, 'w'), indent=1)
 PY
+# 5 bis. AppImage (même contenu, un seul fichier exécutable).
+ASSETS=("$PKG.tar.zst" "$PKG.tar.zst.sha256")
+if bash "$B/autobuild/make-appimage.sh" "$PKG.tar.zst" "$REL"; then
+  ASSETS+=("$REL/Bluelium-$VERSION-x86_64.AppImage"
+           "$REL/Bluelium-$VERSION-x86_64.AppImage.sha256"
+           "$REL/Bluelium-$VERSION-x86_64.AppImage.zsync")
+else
+  echo "AppImage non produite (le paquet tar.zst reste publié)."
+fi
 # 6. Release GitHub (le PC se met à jour depuis là).
 if [ -f "$G/github.env" ]; then . "$G/github.env"; fi
 if [ -n "${GH_TOKEN:-}" ]; then
   export GH_TOKEN
-  gh release create "v$VERSION" "$PKG.tar.zst" "$PKG.tar.zst.sha256" \
+  gh release create "v$VERSION" "${ASSETS[@]}" \
      --repo "${BLUELIUM_REPO:-matthieuleconte1/bluelium}" \
      --title "Bluelium $VERSION" \
      --notes "Construit automatiquement sur Helium $TAG (Chromium $(cat "$W/chromium_version.txt" 2>/dev/null || echo '?')), patchs Bluelium $PATCH_ID. Linux x86_64.
@@ -167,6 +176,7 @@ fi
 echo "$VERSION" > "$STATE"
 # On garde les trois derniers paquets.
 ls -1t "$REL"/bluelium-*.tar.zst | tail -n +4 | while read -r old; do rm -f "$old" "$old.sha256"; done
+ls -1t "$REL"/Bluelium-*.AppImage 2>/dev/null | tail -n +4 | while read -r old; do rm -f "$old" "$old.sha256" "$old.zsync"; done
 trap - ERR
 status idle "$VERSION prêt"
 echo "=== $(date -Is) terminé : $VERSION"

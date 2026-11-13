@@ -1,0 +1,22 @@
+[Desktop Entry]
+Version=1.0
+Name=Bluelium
+GenericName=Navigateur web
+Comment=Navigateur basé sur Helium
+Exec=bluelium %U
+Terminal=false
+Icon=bluelium
+Type=Application
+Categories=Network;WebBrowser;
+MimeType=application/pdf;application/xhtml+xml;text/html;text/xml;x-scheme-handler/http;x-scheme-handler/https;
+StartupNotify=true
+StartupWMClass=helium
+Actions=new-window;new-private-window;
+
+[Desktop Action new-window]
+Name=Nouvelle fenêtre
+Exec=bluelium --new-window
+
+[Desktop Action new-private-window]
+Name=Nouvelle fenêtre de navigation privée
+Exec=bluelium --incognito

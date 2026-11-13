@@ -1,0 +1,65 @@
+#!/bin/sh
+# Bluelium : lanceur de l'AppImage (repris du lanceur AppImage de Helium,
+# GPL-3.0, The Helium Authors).
+THIS="$(readlink -f "${0}")"
+HERE="$(dirname "${THIS}")"
+export LD_LIBRARY_PATH="${HERE}/opt/bluelium:${HERE}/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export CHROME_WRAPPER="${APPIMAGE:-$THIS}"
+export CHROME_VERSION_EXTRA=appimage
+
+AA_PROFILE_PATH=/etc/apparmor.d/bluelium-appimage
+AA_SYSFS_USERNS_PATH=/proc/sys/kernel/apparmor_restrict_unprivileged_userns
+
+has_command() {
+    [ -x "$(command -v "$1")" ]
+}
+
+sudo_shim() {
+    if [ "$(id -u)" = 0 ]; then
+        (set -x; "$@")
+    elif has_command pkexec; then
+        (set -x; exec pkexec "$@")
+    elif has_command sudo; then
+        (set -x; exec sudo "$@")
+    elif has_command su; then
+        (set -x; exec su -c "$*")
+    else
+        return 1
+    fi
+}
+
+print_apparmor_profile() {
+    APPIMAGE_ESC=$(echo "$APPIMAGE" | sed 's/"/\\"/g' | tr -d '\n')
+    echo 'abi <abi/4.0>,'
+    echo 'include <tunables/global>'
+    echo
+    echo 'profile bluelium-appimage "'"$APPIMAGE_ESC"'" flags=(default_allow) {'
+    echo '  userns,'
+    echo '  include if exists <local/bluelium-appimage>'
+    echo '}'
+}
+
+needs_apparmor_bootstrap() {
+    [ "$APPARMOR_BOOTSTRAPPED" != 1 ] \
+        && [ -n "$APPIMAGE" ] \
+        && [ -f $AA_SYSFS_USERNS_PATH ] \
+        && [ 0 != "$(cat $AA_SYSFS_USERNS_PATH)" ] \
+        && has_command aa-enabled \
+        && has_command apparmor_parser \
+        && [ "$(aa-enabled)" = Yes ] \
+        && [ -d /etc/apparmor.d ] \
+        && {
+            ! [ -f "$AA_PROFILE_PATH" ] \
+            || [ "$(print_apparmor_profile)" != "$(cat $AA_PROFILE_PATH)" ]
+        }
+}
+
+if needs_apparmor_bootstrap; then
+    echo "Bluelium : AppArmor détecté, création d'un profil (droits root demandés)." >&2
+    print_apparmor_profile | sudo_shim tee "$AA_PROFILE_PATH" >/dev/null && \
+        sudo_shim chmod 644 "$AA_PROFILE_PATH" && \
+        sudo_shim apparmor_parser -r "$AA_PROFILE_PATH" && \
+        APPARMOR_BOOTSTRAPPED=1 exec "$APPIMAGE" "$@"
+fi
+
+exec "${HERE}/opt/bluelium/helium" "$@"
