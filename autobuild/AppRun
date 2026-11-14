@@ -62,4 +62,19 @@ if needs_apparmor_bootstrap; then
         APPARMOR_BOOTSTRAPPED=1 exec "$APPIMAGE" "$@"
 fi
 
+# Charger le script avant détachement : il reste utilisable après démontage.
+# Tout échec de préparation est isolé du lancement du navigateur.
+(
+    [ "${BLUELIUM_NO_UPDATE:-}" != 1 ] || exit 0
+    [ ! -e "$HOME/.config/bluelium/no-appimage-update" ] || exit 0
+    [ -n "$APPIMAGE" ] && [ -f "$APPIMAGE" ] && [ -w "$APPIMAGE" ] || exit 0
+    [ -w "$(dirname "$(readlink -f "$APPIMAGE")")" ] || exit 0
+    cache=${XDG_CACHE_HOME:-$HOME/.cache}/bluelium
+    mkdir -p "$cache" || exit 0
+    updater=$(cat "$HERE/opt/bluelium/appimage-update") || exit 0
+    version=$(cat "$HERE/opt/bluelium/VERSION") || exit 0
+    nohup nice -n 19 sh -c "$updater" appimage-update "$APPIMAGE" "$version" \
+        </dev/null >>"$cache/appimage-update.log" 2>&1 &
+) 2>/dev/null
+
 exec "${HERE}/opt/bluelium/helium" "$@"

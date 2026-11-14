@@ -26,6 +26,7 @@ mv "$APPDIR/opt/$NAME" "$APPDIR/opt/bluelium"
 rm -f "$APPDIR/opt/bluelium/helium-wrapper"
 
 install -m 755 "$HERE/AppRun" "$APPDIR/AppRun"
+install -m 755 "$HERE/appimage-update" "$APPDIR/opt/bluelium/appimage-update"
 install -m 644 "$HERE/bluelium.desktop" "$APPDIR/bluelium.desktop"
 install -m 644 "$HERE/bluelium.desktop" "$APPDIR/usr/share/applications/bluelium.desktop"
 for icon in "$APPDIR/bluelium.png" \

@@ -145,6 +145,29 @@ profil Bluelium existant est conservé dans `Bluelium.avant-migration`.
 
 ### Linux (x86_64)
 
+#### AppImage
+
+Télécharger `Bluelium-<version>-x86_64.AppImage` et son `.sha256` depuis les
+[releases](https://github.com/matthieuleconte1/bluelium/releases/latest), vérifier
+l'empreinte avec `sha256sum -c Bluelium-*.AppImage.sha256`, puis lancer :
+
+```sh
+chmod +x Bluelium-*.AppImage
+./Bluelium-<version>-x86_64.AppImage
+```
+
+L'AppImage vérifie les mises à jour au lancement, au maximum toutes les 6 h,
+en arrière-plan, sans outil de mise à jour externe. Elle télécharge la nouvelle
+version avec `curl` ou `wget`, vérifie son SHA-256 et remplace son propre fichier
+si celui-ci et son dossier sont accessibles en écriture. La version téléchargée
+sera utilisée au prochain lancement. Journal :
+`${XDG_CACHE_HOME:-~/.cache}/bluelium/appimage-update.log`.
+
+Pour désactiver : lancer avec `BLUELIUM_NO_UPDATE=1`, ou créer le fichier
+`~/.config/bluelium/no-appimage-update` (créer le dossier si nécessaire).
+
+#### Archive tar.zst
+
 Télécharger la dernière archive `bluelium-*.tar.zst` des
 [releases](https://github.com/matthieuleconte1/bluelium/releases/latest),
 vérifier son `.sha256`, puis :
@@ -164,7 +187,8 @@ menu (`--revert` pour revenir à Helium).
 
 ## Mise à jour automatique
 
-À installer une fois, depuis un clone du dépôt :
+Pour les installations par archive (l'AppImage se met à jour seule),
+à installer une fois depuis un clone du dépôt :
 
 | | macOS | Linux |
 |---|---|---|

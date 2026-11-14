@@ -1,0 +1,86 @@
+#!/bin/sh
+# Exécuté en arrière-plan par AppRun ; arguments : AppImage, VERSION embarquée.
+set -eu
+umask 077
+
+appimage=${1:-${APPIMAGE:-}}
+current=${2:-}
+[ "${BLUELIUM_NO_UPDATE:-}" != 1 ] || exit 0
+[ ! -e "$HOME/.config/bluelium/no-appimage-update" ] || exit 0
+[ -n "$appimage" ] && [ -f "$appimage" ] && [ -w "$appimage" ] || exit 0
+appimage=$(readlink -f "$appimage")
+directory=$(dirname "$appimage")
+[ -w "$directory" ] && [ -n "$current" ] || exit 0
+cache=${XDG_CACHE_HOME:-$HOME/.cache}/bluelium
+mkdir -p "$cache"
+work=
+lockdir=
+cleanup() {
+    [ -z "$work" ] || rm -rf -- "$work"
+    [ -z "$lockdir" ] || rmdir "$lockdir"
+    :
+}
+trap cleanup EXIT
+trap 'exit 1' HUP INT TERM
+if command -v flock >/dev/null 2>&1; then
+    exec 9>"$cache/appimage-update.lock"
+    flock -n 9 || exit 0
+else
+    # Verrou conservateur : après un SIGKILL, supprimer ce dossier manuellement.
+    mkdir "$cache/appimage-update.lock.d" 2>/dev/null || exit 0
+    lockdir=$cache/appimage-update.lock.d
+fi
+
+now=$(date +%s)
+last=$(cat "$cache/appimage-update.timestamp" 2>/dev/null || :)
+case $last in ''|*[!0-9]*) last=0 ;; esac
+[ "$((now - last))" -ge 21600 ] || exit 0
+printf '%s\n' "$now" > "$cache/appimage-update.timestamp"
+printf '%s Vérification AppImage (%s)\n' "$(date -u +%FT%TZ)" "$current"
+
+fetch() {
+    if command -v curl >/dev/null 2>&1; then
+        curl --fail --location --silent --show-error --connect-timeout 20 \
+            --max-time 1800 --proto '=https' --proto-redir '=https' \
+            --user-agent bluelium-appimage-update --output "$2" "$1" </dev/null
+    elif command -v wget >/dev/null 2>&1; then
+        wget -q --timeout=60 --tries=2 --user-agent=bluelium-appimage-update \
+            -O "$2" "$1" </dev/null
+    else
+        echo 'Mise à jour impossible : curl ou wget requis.' >&2
+        return 1
+    fi
+}
+command -v sha256sum >/dev/null 2>&1 || exit 0
+repo=${BLUELIUM_REPO:-matthieuleconte1/bluelium}
+work=$(mktemp -d "$directory/.bluelium-update.XXXXXXXX")
+fetch "https://api.github.com/repos/$repo/releases/latest" "$work/release.json"
+# Propriétés scalaires uniquement : aucune dépendance à Python ni à l'indentation.
+version=$(grep -o '"tag_name"[[:space:]]*:[[:space:]]*"[^"\\]*"' "$work/release.json" |
+    head -n 1 | sed 's/^[^:]*:[[:space:]]*"v\{0,1\}//; s/"$//')
+case $version in ''|*[!a-zA-Z0-9._-]*) echo 'Tag de release invalide.' >&2; exit 1 ;; esac
+[ "$version" != "$current" ] || exit 0
+asset=Bluelium-$version-x86_64.AppImage
+urls=$(grep -o '"browser_download_url"[[:space:]]*:[[:space:]]*"[^"\\]*"' "$work/release.json" |
+    sed 's/^[^:]*:[[:space:]]*"//; s/"$//')
+image_url=
+sha_url=
+for url in $urls; do
+    case $url in
+        https://*/"$asset") image_url=$url ;;
+        https://*/"$asset.sha256") sha_url=$url ;;
+    esac
+done
+[ -n "$image_url" ] && [ -n "$sha_url" ] || {
+    echo 'Release sans AppImage et empreinte correspondante.' >&2; exit 1;
+}
+fetch "$sha_url" "$work/checksum"
+expected=$(awk 'NR == 1 {print $1}' "$work/checksum")
+case $expected in ''|*[!a-fA-F0-9]*) echo 'SHA-256 invalide.' >&2; exit 1 ;; esac
+[ "${#expected}" -eq 64 ] || exit 1
+fetch "$image_url" "$work/$asset"
+(cd "$work"; printf '%s  %s\n' "$expected" "$asset" | sha256sum -c -)
+chmod 755 "$work/$asset"
+# Même système de fichiers : remplacement atomique, instance ouverte conservée.
+mv -f -- "$work/$asset" "$appimage"
+printf 'AppImage mise à jour : %s → %s (prochain lancement).\n' "$current" "$version"
