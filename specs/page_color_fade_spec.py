@@ -283,8 +283,12 @@ EDITS = [
    '  UpdateGlyphePageColorFor(/*immediate=*/false);\n'
    '}\n'),
   (CWV + '.cc',
+   '      ui::SetGlypheRedNight(glyphe_on);\n'
+   '      ui::ColorProviderManager::Get().ResetColorProviderCache();\n'
    '      ui::NativeTheme::GetInstanceForNativeUi()->NotifyOnNativeThemeUpdated();\n'
    '    }\n',
+   '      ui::SetGlypheRedNight(glyphe_on);\n'
+   '      ui::ColorProviderManager::Get().ResetColorProviderCache();\n'
    '      ui::NativeTheme::GetInstanceForNativeUi()->NotifyOnNativeThemeUpdated();\n'
    '      UpdateGlyphePageColor();\n'
    '    }\n'),
