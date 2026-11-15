@@ -10,6 +10,7 @@ Lit specs/SERIES : chaque spec passe par apply_spec.py (qui écrit le .patch
 correspondant) ; une ligne « - » applique le .patch figé de patches/glyphe/
 avec `patch -p1` et le recopie tel quel. À lancer après toutes les étapes de
 Helium. S'arrête au premier échec en indiquant le patch fautif.
+Remplace ensuite le nom affiché « Helium » par « Bluelium » (tools/rename-product.py).
 """
 import shutil
 import subprocess
@@ -50,3 +51,10 @@ for index, (patch, spec) in enumerate(entries, 1):
       sys.exit(f'{label} : ÉCHEC de {spec}\n{result.stdout}{result.stderr}')
   print(label, 'OK')
 print(f'Série complète ({platform}) :', len(entries), 'patchs')
+
+# Bluelium : le nom affiché devient « Bluelium » (le logo de Helium reste).
+result = subprocess.run([sys.executable, str(repo / 'tools' / 'rename-product.py'), str(src)],
+                        capture_output=True, text=True)
+if result.returncode != 0:
+  sys.exit(f'nom Bluelium : ÉCHEC\n{result.stdout}{result.stderr}')
+print(result.stdout.strip())

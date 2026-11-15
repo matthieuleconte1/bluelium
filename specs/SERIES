@@ -32,6 +32,7 @@ theme-tiles.patch              theme_tiles_spec.py
 shimmer-sessions.patch         shimmer_sessions_spec.py
 page-color-contrast.patch      page_color_contrast_spec.py
 shimmer-appearance.patch      shimmer_appearance_spec.py
+shimmer-name.patch            shimmer_name_spec.py
 customize-panel.patch         customize_panel_spec.py
 quit-hud.patch                 quit_hud_spec.py               mac
 motion.patch                  motion_spec.py

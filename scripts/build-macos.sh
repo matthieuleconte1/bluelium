@@ -73,7 +73,8 @@ git -C "$W" fetch --quiet --tags --force origin
 TAG=${HELIUM_TAG:-$(git -C "$W" tag -l '[0-9]*' | sort -V | tail -1)}
 [ -n "$TAG" ] || die "aucune version trouvée sur imputnet/helium-macos"
 PATCH_ID=$(git -C "$B" log -1 --format=%h -- specs patches downloads.ini \
-           tools/apply_spec.py tools/apply-series.py scripts/package-macos.sh)
+           tools/apply_spec.py tools/apply-series.py tools/rename-product.py \
+           scripts/package-macos.sh scripts/dmg-settings.py assets/dmg)
 VERSION="$TAG-g$PATCH_ID"
 echo "Bluelium $VERSION (helium-macos $TAG)"
 

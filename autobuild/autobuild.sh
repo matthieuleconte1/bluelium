@@ -69,6 +69,7 @@ git -C "$B" fetch --quiet origin main
 git -C "$B" checkout --quiet --force origin/main
 PATCH_ID=$(git -C "$B" log -1 --format=%h -- specs patches downloads.ini \
            autobuild/helium-wrapper tools/apply_spec.py tools/apply-series.py \
+           tools/rename-product.py \
            ':!specs/macos_*' ':!patches/glyphe/macos-*')
 VERSION="$TAG-g$PATCH_ID"
 if [ "${FORCE:-0}" != 1 ] && [ "$(cat "$STATE" 2>/dev/null)" = "$VERSION" ]; then

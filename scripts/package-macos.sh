@@ -52,11 +52,27 @@ else
 fi
 codesign --verify --deep --strict "$APP"
 
-# Image disque : l'appli et un raccourci vers Applications.
-ln -s /Applications "$STAGE/Applications"
+# Image disque : fenêtre mise en page (fond dessiné, appli → Applications)
+# par dmgbuild, installé une fois dans un venv en cache. En cas d'échec, .dmg
+# simple sans mise en page.
 DMG=$DEST/$NAME.dmg
 rm -f "$DMG"
-hdiutil create -quiet -volname Bluelium -srcfolder "$STAGE" -ov -format ULMO "$DMG"
+REPO_DIR=$(cd "$(dirname "$0")/.." && pwd)
+VENV=${XDG_CACHE_HOME:-$HOME/.cache}/bluelium/dmgbuild-venv
+if [ ! -x "$VENV/bin/dmgbuild" ]; then
+  python3 -m venv "$VENV" && "$VENV/bin/pip" install -q 'dmgbuild==1.6.7' \
+    || echo "ATTENTION : dmgbuild indisponible, .dmg sans mise en page" >&2
+fi
+if [ -x "$VENV/bin/dmgbuild" ] && "$VENV/bin/dmgbuild" \
+    -s "$REPO_DIR/scripts/dmg-settings.py" \
+    -D app="$APP" -D background="$REPO_DIR/assets/dmg/background.tiff" \
+    -D icon="$APP/Contents/Resources/app.icns" \
+    Bluelium "$DMG"; then
+  :
+else
+  ln -s /Applications "$STAGE/Applications"
+  hdiutil create -quiet -volname Bluelium -srcfolder "$STAGE" -ov -format ULMO "$DMG"
+fi
 rm -rf "$STAGE"
 ( cd "$DEST" && shasum -a 256 "$NAME.dmg" > "$NAME.dmg.sha256" )
 echo "Paquet : $DMG"
