@@ -38,16 +38,29 @@ pb "Delete :CFBundleDisplayName" 2>/dev/null || true
 pb "Add :CFBundleDisplayName string Bluelium"
 pb "Delete :BlueliumVersion" 2>/dev/null || true
 pb "Add :BlueliumVersion string $VERSION"
+# Numéro de build croissant pour Sparkle (il compare CFBundleVersion) :
+# version Helium + date de l'emballage. Deux builds Bluelium sur la même
+# version de Helium restent ainsi ordonnés.
+HELIUM_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$PLIST")
+BUILD_NUMBER="$HELIUM_VERSION.$(date -u +%Y%m%d%H%M)"
+pb "Set :CFBundleVersion $BUILD_NUMBER"
 bundle_id=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$PLIST")
 if [ "$bundle_id" = net.imput.helium ]; then
   echo "ATTENTION : identifiant net.imput.helium (spec macos-identity absente ?)" >&2
 fi
 
-# Signature : Developer ID si MACOS_CERTIFICATE_NAME est défini, sinon ad hoc.
+# Signature : Developer ID si MACOS_CERTIFICATE_NAME est défini ; sinon le
+# certificat auto-signé « Bluelium Code Signing » du trousseau (identité
+# stable d'une version à l'autre : Sparkle et les autorisations macOS la
+# reconnaissent) ; à défaut, ad hoc.
+SIGN_IDENTITY=${BLUELIUM_SIGN_IDENTITY:-Bluelium Code Signing}
 if [ -n "${MACOS_CERTIFICATE_NAME:-}" ]; then
   codesign --force --deep --options runtime --timestamp \
     --sign "$MACOS_CERTIFICATE_NAME" "$APP"
+elif security find-identity -p codesigning | grep -q "\"$SIGN_IDENTITY\""; then
+  codesign --force --deep --sign "$SIGN_IDENTITY" "$APP"
 else
+  echo "ATTENTION : certificat « $SIGN_IDENTITY » absent, signature ad hoc" >&2
   codesign --force --deep --sign - "$APP"
 fi
 codesign --verify --deep --strict "$APP"
@@ -78,17 +91,77 @@ rm -rf "$STAGE"
 echo "Paquet : $DMG"
 echo "SHA-256 : $(cut -d' ' -f1 "$DMG.sha256")"
 
+# Appcast Sparkle : signature EdDSA du .dmg avec la clé du trousseau
+# (compte « bluelium »), outils Sparkle téléchargés une fois et vérifiés.
+REPO=${BLUELIUM_REPO:-matthieuleconte1/bluelium}
+if gh release view "v$VERSION" --repo "$REPO" >/dev/null 2>&1; then
+  TAG="v$VERSION"
+else
+  TAG="v$VERSION-macos"
+fi
+SPARKLE_VERSION=2.10.1
+SPARKLE_SHA=1a856d2a9edb8e628de88121d7be04cf0e2167f8641650b78fca00b14244cf27
+SPARKLE_DIR=${XDG_CACHE_HOME:-$HOME/.cache}/bluelium/sparkle-$SPARKLE_VERSION
+if [ ! -x "$SPARKLE_DIR/bin/sign_update" ]; then
+  mkdir -p "$SPARKLE_DIR"
+  curl -sfL -o "$SPARKLE_DIR/s.tar.xz" \
+    "https://github.com/sparkle-project/Sparkle/releases/download/$SPARKLE_VERSION/Sparkle-$SPARKLE_VERSION.tar.xz"
+  echo "$SPARKLE_SHA  $SPARKLE_DIR/s.tar.xz" | shasum -a 256 -c - >/dev/null \
+    || { echo "Outils Sparkle : empreinte invalide" >&2; exit 1; }
+  tar -xf "$SPARKLE_DIR/s.tar.xz" -C "$SPARKLE_DIR"
+fi
+APPCAST=$DEST/appcast-$ARCH.xml
+# Clé privée : fichier ~/.config/bluelium/sparkle-private-key (lisible sans
+# fenêtre de confirmation), sinon le trousseau (compte « bluelium »).
+SPARKLE_KEY=${BLUELIUM_SPARKLE_KEY:-$HOME/.config/bluelium/sparkle-private-key}
+if [ -f "$SPARKLE_KEY" ]; then
+  SIGN_ARGS=(--ed-key-file "$SPARKLE_KEY")
+else
+  SIGN_ARGS=(--account bluelium)
+fi
+if SIG=$("$SPARKLE_DIR/bin/sign_update" "${SIGN_ARGS[@]}" "$DMG"); then
+  cat > "$APPCAST" <<XML
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+  <channel>
+    <title>Bluelium</title>
+    <item>
+      <title>Bluelium $VERSION</title>
+      <pubDate>$(LC_ALL=C date -u '+%a, %d %b %Y %H:%M:%S +0000')</pubDate>
+      <sparkle:version>$BUILD_NUMBER</sparkle:version>
+      <sparkle:shortVersionString>$VERSION</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <enclosure url="https://github.com/$REPO/releases/download/$TAG/$NAME.dmg"
+                 type="application/octet-stream" $SIG />
+    </item>
+  </channel>
+</rss>
+XML
+  echo "Appcast : $APPCAST"
+else
+  APPCAST=
+  echo "ATTENTION : signature Sparkle impossible (clé « bluelium » absente du trousseau ?)" >&2
+fi
+
 if [ "${PUBLISH:-0}" = 1 ]; then
-  REPO=${BLUELIUM_REPO:-matthieuleconte1/bluelium}
-  if gh release view "v$VERSION" --repo "$REPO" >/dev/null 2>&1; then
+  [ -n "$APPCAST" ] || { echo "Pas d'appcast : publication annulée" >&2; exit 1; }
+  if [ "$TAG" = "v$VERSION" ]; then
     gh release upload "v$VERSION" "$DMG" "$DMG.sha256" --repo "$REPO" --clobber
     echo "Ajouté à la release v$VERSION"
   else
     gh release create "v$VERSION-macos" "$DMG" "$DMG.sha256" --repo "$REPO" \
       --latest=false --title "Bluelium $VERSION (macOS)" \
-      --notes "Construit sur Helium macOS $(echo "$VERSION" | cut -d- -f1), patchs Bluelium $(echo "$VERSION" | sed 's/.*-g//'). macOS $ARCH, signé ad hoc.
+      --notes "Construit sur Helium macOS $(echo "$VERSION" | cut -d- -f1), patchs Bluelium $(echo "$VERSION" | sed 's/.*-g//'). macOS $ARCH, signé avec le certificat auto-signé Bluelium.
 
-Installation et mise à jour automatique : voir le README."
+Installation : voir le README. Les versions suivantes s'installent ensuite toutes seules (Sparkle)."
     echo "Release v$VERSION-macos publiée"
   fi
+  # L'appcast vit dans une release fixe « appcast », jamais « latest ».
+  if ! gh release view appcast --repo "$REPO" >/dev/null 2>&1; then
+    gh release create appcast --repo "$REPO" --latest=false --prerelease \
+      --title "Appcast (mises à jour macOS)" \
+      --notes "Fichiers lus par la mise à jour intégrée de Bluelium. Ne pas supprimer."
+  fi
+  gh release upload appcast "$APPCAST" --repo "$REPO" --clobber
+  echo "Appcast publié : $TAG"
 fi

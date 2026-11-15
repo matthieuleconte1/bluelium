@@ -74,6 +74,7 @@ TAG=${HELIUM_TAG:-$(git -C "$W" tag -l '[0-9]*' | sort -V | tail -1)}
 [ -n "$TAG" ] || die "aucune version trouvée sur imputnet/helium-macos"
 PATCH_ID=$(git -C "$B" log -1 --format=%h -- specs patches downloads.ini \
            tools/apply_spec.py tools/apply-series.py tools/rename-product.py \
+           autobuild/sparkle-public-key \
            scripts/package-macos.sh scripts/dmg-settings.py assets/dmg)
 VERSION="$TAG-g$PATCH_ID"
 echo "Bluelium $VERSION (helium-macos $TAG)"
@@ -132,6 +133,15 @@ if [ "${PGO:-true}" = false ]; then
   sed -i '' '/^chrome_pgo_phase=/d' "$_out_dir/args.gn"
   echo 'chrome_pgo_phase=0' >> "$_out_dir/args.gn"
 fi
+# Mises à jour intégrées (Sparkle) : clé publique Bluelium, vérification
+# automatique toutes les 6 h. La clé privée reste dans le trousseau.
+sed -i '' '/^enable_sparkle=/d; /^sparkle_/d' "$_out_dir/args.gn"
+cat >> "$_out_dir/args.gn" <<GN
+enable_sparkle=true
+sparkle_ed_key="$(cat "$B/autobuild/sparkle-public-key")"
+sparkle_automatic_checks=true
+sparkle_check_interval=21600
+GN
 gn_gen
 helium_build -j "$JOBS" ${KEEP_GOING:+-k 0} || die "la compilation a échoué pour $VERSION"
 

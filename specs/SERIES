@@ -31,11 +31,16 @@ toolbar-customize.patch        toolbar_customize_spec.py
 theme-tiles.patch              theme_tiles_spec.py
 shimmer-sessions.patch         shimmer_sessions_spec.py
 page-color-contrast.patch      page_color_contrast_spec.py
+assistant-tabs-contrast.patch  assistant_tabs_contrast_spec.py
 shimmer-appearance.patch      shimmer_appearance_spec.py
 shimmer-name.patch            shimmer_name_spec.py
+bluelium-scheme.patch         bluelium_scheme_spec.py
 customize-panel.patch         customize_panel_spec.py
 quit-hud.patch                 quit_hud_spec.py               mac
 motion.patch                  motion_spec.py
+page-color-blend.patch        page_color_blend_spec.py
 motion-tuning.patch           motion_tuning_spec.py          mac
 motion-pill.patch             motion_pill_spec.py            mac
 macos-identity.patch           macos_identity_spec.py         mac
+sparkle-bluelium.patch        sparkle_bluelium_spec.py       mac
+pdfjs.patch                   pdfjs_spec.py

@@ -1,0 +1,430 @@
+<title>Nouveautés Bluelium</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Mise en page : notes de version sobres. Une colonne ; chaque nouveauté
+   majeure a sa démo interactive à côté du texte, le reste tient en une ligne. */
+:root {
+  --bg: #f6f7fa;
+  --surface: #ffffff;
+  --ink: #171b2e;
+  --muted: #5f6579;
+  --line: #e3e6ee;
+  --accent: #4c5fe8;
+  --accent-soft: #eceeff;
+  --stage: #eef0f6;
+  --mini-ink: #d3d8e5;
+  --page-a: #fbf1e6;
+  --page-b: #eef1fb;
+  --on-accent: #ffffff;
+  --font-body: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --spring: cubic-bezier(.2, .8, .2, 1);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f111a; --surface: #171a26; --ink: #e8eaf3; --muted: #9a9fb5; --line: #262a3a;
+    --accent: #8f9cff; --accent-soft: #1f2447; --stage: #12141f; --mini-ink: #343a52;
+    --page-a: #2a2430; --page-b: #1f2436; --on-accent: #0f111a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f111a; --surface: #171a26; --ink: #e8eaf3; --muted: #9a9fb5; --line: #262a3a;
+  --accent: #8f9cff; --accent-soft: #1f2447; --stage: #12141f; --mini-ink: #343a52;
+  --page-a: #2a2430; --page-b: #1f2436; --on-accent: #0f111a;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 16px/1.6 var(--font-body); -webkit-font-smoothing: antialiased; }
+p { margin: 0; }
+a { color: var(--accent); }
+button { font: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 8px; }
+.wrap {
+  max-width: 920px; margin: 0 auto; display: grid; gap: 64px;
+  padding-block: 64px 80px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+/* En-tête */
+header { display: grid; gap: 14px; max-width: 640px; }
+.brand { display: flex; align-items: center; gap: 9px; font-weight: 600; font-size: 15px; }
+.brand svg { width: 20px; height: 20px; color: var(--accent); }
+h1 { margin: 0; font: 600 clamp(34px, 6vw, 48px)/1.08 var(--font-body); letter-spacing: -0.025em; text-wrap: balance; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; color: var(--muted); font-size: 14px; }
+.ver { font: 500 12.5px/1 var(--font-mono); padding: 6px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
+.lede { font-size: 18px; color: var(--muted); }
+
+/* Nouveautés */
+.feature {
+  display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 40px; align-items: center;
+}
+.feature.flip .demo { order: 2; }
+.feature-text { display: grid; gap: 12px; align-content: center; min-width: 0; }
+.label { font: 500 12px/1 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+h2 { margin: 0; font: 600 26px/1.2 var(--font-body); letter-spacing: -0.015em; text-wrap: balance; }
+h3 { margin: 0; font: 600 18px/1.3 var(--font-body); }
+.feature-text p { color: var(--muted); }
+.hint { font-size: 13.5px; color: var(--muted); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.kbd { font: 500 12px/1 var(--font-mono); padding: 5px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+
+.demo {
+  background: var(--stage); border: 1px solid var(--line); border-radius: 22px;
+  padding: 28px; display: grid; gap: 18px; justify-items: center; min-width: 0;
+}
+
+/* Démo 1 : geste retour */
+.win {
+  width: 100%; max-width: 460px; aspect-ratio: 16 / 10;
+  border-radius: 14px; background: var(--surface); border: 1px solid var(--line);
+  box-shadow: 0 30px 60px -34px rgba(20, 30, 80, .45), 0 2px 6px -2px rgba(20, 30, 80, .12);
+  overflow: hidden; display: grid; grid-template-rows: 34px 1fr; position: relative;
+}
+.bar { display: flex; align-items: center; gap: 6px; padding: 0 12px; border-bottom: 1px solid var(--line); }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--mini-ink); }
+.url {
+  margin-left: 10px; flex: 1; min-width: 0; height: 20px; border-radius: 10px; background: var(--stage);
+  font: 500 11px/20px var(--font-mono); color: var(--muted); padding: 0 10px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  transition: color .2s;
+}
+.page { position: relative; touch-action: pan-y; cursor: grab; user-select: none; -webkit-user-select: none; outline: none; }
+.page.dragging { cursor: grabbing; }
+.page:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); }
+.layer { position: absolute; inset: 0; padding: 20px 22px; display: grid; gap: 10px; align-content: start; }
+.layer.top { transition: opacity .2s cubic-bezier(.4, 0, .2, 1); }
+.layer .img { height: 62px; border-radius: 10px; }
+.skin-a { background: var(--page-a); }
+.skin-a .img { background: linear-gradient(120deg, #ffb37a, #ff7aa8); }
+.skin-b { background: var(--page-b); }
+.skin-b .img { background: linear-gradient(120deg, #6f86ff, #a77bff); }
+.line { height: 9px; border-radius: 5px; background: var(--mini-ink); }
+.line.t { height: 15px; width: 52%; }
+.pill {
+  position: absolute; top: 50%; left: 0; width: 50px; height: 50px; margin-top: -25px;
+  border-radius: 50%; display: grid; place-items: center; overflow: hidden; pointer-events: none;
+  background: var(--surface); color: var(--accent);
+  box-shadow: 0 10px 26px -8px rgba(20, 30, 80, .5), inset 0 0 0 1.5px var(--line);
+  transform: translateX(-62px); will-change: transform;
+}
+.pill .fill { position: absolute; inset: 0; border-radius: 50%; background: var(--accent); transform: scale(0); }
+.pill svg { width: 22px; height: 22px; position: relative; transition: color .12s; }
+.pill.armed svg { color: var(--on-accent); }
+.pill.pop { animation: pop .2s var(--spring) forwards; }
+@keyframes pop { from { opacity: 1; scale: 1.05; } to { opacity: 0; scale: 1.2; } }
+.ring {
+  position: absolute; top: 50%; left: 0; width: 50px; height: 50px; margin-top: -25px; border-radius: 50%;
+  border: 2px solid var(--accent); opacity: 0; pointer-events: none;
+}
+.ring.go { animation: ring .45s var(--spring); }
+@keyframes ring { from { opacity: .7; scale: 1; } to { opacity: 0; scale: 1.9; } }
+
+/* Trackpad sous la fenêtre */
+.pad {
+  width: 168px; height: 104px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line);
+  position: relative; box-shadow: inset 0 1px 0 rgba(255,255,255,.4);
+}
+.finger {
+  position: absolute; top: 34px; width: 22px; height: 22px; border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 22%, transparent); border: 1.5px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  transform: translateX(var(--fx, 0px)); opacity: var(--fo, .35); transition: opacity .2s;
+}
+.finger:nth-child(1) { left: 40px; top: 30px; }
+.finger:nth-child(2) { left: 70px; top: 44px; }
+.pad-row { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; justify-content: center; }
+.pad-meta { display: grid; gap: 6px; font-size: 13px; color: var(--muted); min-width: 150px; }
+.meter { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.meter i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 3px; }
+.state { font: 500 12px/1 var(--font-mono); color: var(--ink); }
+
+/* Démo 2 : icônes lisibles */
+.omni-wrap { width: 100%; max-width: 420px; display: grid; gap: 16px; }
+.omni {
+  height: 44px; border-radius: 22px; display: flex; align-items: center; gap: 12px; padding: 0 16px;
+  background: var(--c, #6b7f9e); transition: background .5s var(--spring);
+  box-shadow: 0 16px 34px -22px rgba(20, 30, 80, .55);
+}
+.omni svg { width: 18px; height: 18px; flex: none; color: var(--ic, #fff); transition: color .35s; }
+.omni .addr { flex: 1; min-width: 0; font: 500 13px/1 var(--font-body); color: var(--ic, #fff); opacity: .92; transition: color .35s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ratio { justify-self: center; font: 500 12px/1 var(--font-mono); color: var(--muted); }
+.ratio b { color: var(--ink); font-weight: 500; }
+.ratio .ok { color: #1f9d5c; } .ratio .ko { color: #d0503f; }
+.swatches { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.swatches button {
+  width: 28px; height: 28px; border-radius: 50%; border: 0; cursor: pointer; background: var(--c);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); transition: transform .25s var(--spring);
+}
+.swatches button:hover { transform: scale(1.12); }
+.swatches button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--stage), 0 0 0 4px var(--accent); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; gap: 2px; justify-self: center; background: var(--surface); }
+.seg button { border: 0; background: transparent; color: var(--muted); font-size: 13px; font-weight: 500; padding: 6px 14px; border-radius: 999px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
+
+/* Également */
+.also { display: grid; gap: 18px; }
+.also-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 14px; }
+.also-list li { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px; display: grid; gap: 6px; align-content: start; }
+.also-list h3 { font-size: 16px; }
+.also-list p { color: var(--muted); font-size: 14.5px; }
+.plat { font: 500 11px/1 var(--font-mono); color: var(--muted); }
+
+/* Historique */
+.history { display: grid; gap: 14px; }
+details { border-top: 1px solid var(--line); }
+details:last-of-type { border-bottom: 1px solid var(--line); }
+summary { list-style: none; cursor: pointer; padding: 14px 2px; display: flex; gap: 14px; align-items: baseline; flex-wrap: wrap; }
+summary::-webkit-details-marker { display: none; }
+summary .v { font: 500 13px/1 var(--font-mono); }
+summary .d { color: var(--muted); font-size: 14px; }
+summary .w { flex: 1 1 200px; min-width: 0; }
+summary::after { content: "+"; color: var(--muted); margin-left: auto; font-size: 20px; line-height: 1; transition: transform .25s var(--spring); }
+details[open] summary::after { transform: rotate(45deg); }
+details ul { margin: 0 0 16px; padding-left: 20px; color: var(--muted); display: grid; gap: 4px; font-size: 15px; }
+
+footer { display: flex; flex-wrap: wrap; gap: 12px 20px; justify-content: space-between; align-items: center; color: var(--muted); font-size: 14px; border-top: 1px solid var(--line); padding-top: 22px; }
+.btn { font-weight: 600; font-size: 14.5px; color: var(--on-accent); background: var(--accent); border-radius: 999px; padding: 11px 18px; text-decoration: none; }
+
+@media (max-width: 760px) {
+  .feature { grid-template-columns: 1fr; gap: 22px; }
+  .feature.flip .demo { order: 0; }
+  .demo { padding: 18px; }
+  .wrap { gap: 52px; padding-block: 40px 64px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <svg viewBox="0 0 256 256" aria-hidden="true"><path fill="currentColor" d="M152.62 237.85L128 256L103.38 237.85L114.568 151.248L45.05 204.22L17 192L20.425 161.635L101.128 128L20.425 94.365L17 64L45.05 51.78L114.568 104.752L103.38 18.15L128 0L152.62 18.15L141.432 104.752L210.95 51.78L239 64L235.575 94.365L154.872 128L235.575 161.635L239 192L210.95 204.22L141.432 151.248L152.62 237.85Z"/></svg>
+      Bluelium
+    </div>
+    <h1>Quoi de neuf dans Bluelium</h1>
+    <div class="meta">
+      <span class="ver">0.21.2.1-g655a096</span>
+      <span>15 novembre 2026</span>
+      <span>Basé sur Helium 0.21.2.1 · Chromium 157</span>
+    </div>
+    <p class="lede">Un geste retour plus calme sur Mac et une barre d’adresse lisible sur toutes les couleurs de page.</p>
+  </header>
+
+  <!-- Nouveauté 1 : geste retour -->
+  <section class="feature" aria-labelledby="f1">
+    <div class="demo">
+      <div class="win">
+        <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url" id="url">bluelium://history</span></div>
+        <div class="page" id="page" tabindex="0" role="application" aria-label="Démo du geste retour : faites glisser la page vers la droite, ou appuyez sur la flèche gauche">
+          <div class="layer skin-b" id="under"><span class="img"></span><span class="line t" style="width:38%"></span><span class="line" style="width:90%"></span><span class="line" style="width:62%"></span></div>
+          <div class="layer top skin-a" id="over"><span class="img"></span><span class="line t"></span><span class="line" style="width:86%"></span><span class="line" style="width:70%"></span></div>
+          <span class="ring" id="ring"></span>
+          <span class="pill" id="pill"><span class="fill" id="fill"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></span>
+        </div>
+      </div>
+      <div class="pad-row" aria-hidden="true">
+        <div class="pad" id="pad"><span class="finger"></span><span class="finger"></span></div>
+        <div class="pad-meta">
+          <span class="state" id="state">Au repos</span>
+          <div class="meter"><i id="meter"></i></div>
+          <span>Seuil de validation</span>
+        </div>
+      </div>
+    </div>
+    <div class="feature-text">
+      <span class="label">macOS</span>
+      <h2 id="f1">Un geste retour plus calme</h2>
+      <p>La page ne glisse plus sous vos doigts. Une pastille sort du bord et se remplit ; au seuil, le trackpad donne un léger retour. Relâchez : la page précédente apparaît en fondu.</p>
+      <p class="hint">Essayez : faites glisser la page vers la droite, ou <span class="kbd">←</span></p>
+    </div>
+  </section>
+
+  <!-- Nouveauté 2 : icônes lisibles -->
+  <section class="feature flip" aria-labelledby="f2">
+    <div class="demo">
+      <div class="omni-wrap">
+        <div class="omni" id="omni">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+          <span class="addr">bluelium://journal</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.5 6 .7-4.4 4.1 1.2 5.9L12 16.3 6.6 19.2l1.2-5.9L3.4 9.2l6-.7z"/></svg>
+        </div>
+        <div class="ratio" id="ratio"></div>
+        <div class="swatches" id="swatches" role="group" aria-label="Couleur de la page"></div>
+        <div class="seg" role="group" aria-label="Comparer avec l’ancienne version">
+          <button type="button" id="bBefore" aria-pressed="false">Avant</button>
+          <button type="button" id="bAfter" aria-pressed="true">Maintenant</button>
+        </div>
+      </div>
+    </div>
+    <div class="feature-text">
+      <span class="label">macOS · Linux</span>
+      <h2 id="f2">Des icônes lisibles sur toutes les couleurs</h2>
+      <p>La barre d’adresse prend la couleur de la page. Sur les teintes moyennes, les icônes passent désormais en blanc ou en noir, selon ce qui contraste le mieux.</p>
+      <p class="hint">Essayez : choisissez une couleur de page.</p>
+    </div>
+  </section>
+
+  <section class="also" aria-labelledby="also">
+    <h2 id="also">Également</h2>
+    <ul class="also-list">
+      <li><span class="plat">macOS · Linux</span><h3>Le nom Bluelium partout</h3><p>Menus, page « À propos », réglages et nouvel onglet affichent Bluelium, dans toutes les langues.</p></li>
+      <li><span class="plat">macOS</span><h3>Installation soignée</h3><p>Le .dmg s’ouvre sur une fenêtre mise en page : il suffit de glisser Bluelium dans Applications.</p></li>
+      <li><span class="plat">macOS · Linux</span><h3>Corrections</h3><p>Page d’accueil du premier lancement et réglages de Shimmer Tab.</p></li>
+    </ul>
+  </section>
+
+  <section class="history" aria-labelledby="hist">
+    <h2 id="hist">Versions précédentes</h2>
+    <div>
+      <details>
+        <summary><span class="v">0.21.3.1-gc9c926d</span><span class="d">14 nov.</span><span class="w">Mise à jour automatique sous Linux</span></summary>
+        <ul><li>L’AppImage se met à jour d’elle-même depuis GitHub.</li><li>Fondu de couleur de page sans scintillement.</li></ul>
+      </details>
+      <details>
+        <summary><span class="v">0.21.2.1-g6fc51da</span><span class="d">13 nov.</span><span class="w">Première version macOS, mode Nuit rouge</span></summary>
+        <ul><li>Version macOS pour Apple Silicon.</li><li>Mode Nuit rouge et filtre chaud.</li><li>Barre d’outils, bouton IA, vignettes et groupes d’onglets revus.</li></ul>
+      </details>
+      <details>
+        <summary><span class="v">0.21.2.1-gde96848</span><span class="d">12 nov.</span><span class="w">Première version</span></summary>
+        <ul><li>Interface Bluelium sur Helium : thèmes, espacements, panneau IA.</li></ul>
+      </details>
+    </div>
+  </section>
+
+  <footer>
+    <span>Bluelium est un projet personnel basé sur Helium.</span>
+    <a class="btn" href="https://github.com/matthieuleconte1/bluelium/releases" target="_blank" rel="noopener">Toutes les versions</a>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- Démo 1 : geste retour ---------- */
+  var page = document.getElementById('page'), pill = document.getElementById('pill'),
+      fill = document.getElementById('fill'), ring = document.getElementById('ring'),
+      over = document.getElementById('over'), under = document.getElementById('under'),
+      url = document.getElementById('url'), pad = document.getElementById('pad'),
+      meter = document.getElementById('meter'), state = document.getElementById('state');
+  var URLS = ['bluelium://history', 'bluelium://bookmarks', 'bluelium://downloads', 'bluelium://settings'];
+  var THRESH = 120, ui = 0, armed = false, busy = false, touched = false, drag = null;
+
+  // Ressort critique : la pastille rattrape la cible sans dépasser.
+  var cur = 0, vel = 0, target = 0, raf = 0, last = 0;
+  function frame(ts) {
+    var dt = Math.min(.032, (ts - (last || ts)) / 1000 || .016); last = ts;
+    var k = 520, c = 2 * Math.sqrt(k);
+    vel += (k * (target - cur) - c * vel) * dt; cur += vel * dt;
+    draw(cur);
+    if (Math.abs(target - cur) > .2 || Math.abs(vel) > .2) raf = requestAnimationFrame(frame);
+    else { cur = target; draw(cur); raf = 0; last = 0; }
+  }
+  function go(t, instant) {
+    target = t;
+    if (instant || reduce) { cur = t; vel = 0; draw(t); return; }
+    if (!raf) raf = requestAnimationFrame(frame);
+  }
+  function draw(d) {
+    var p = Math.max(0, Math.min(1, d / THRESH));
+    // Résistance au-delà du seuil, comme sur le trackpad.
+    var x = -62 + Math.min(d, THRESH) * .74 + Math.max(0, d - THRESH) * .15;
+    pill.style.transform = 'translateX(' + x + 'px)';
+    ring.style.transform = 'translateX(' + x + 'px)';
+    fill.style.transform = 'scale(' + (p * p * (3 - 2 * p)) + ')';
+    meter.style.width = (p * 100) + '%';
+    pad.style.setProperty('--fx', Math.min(d, THRESH + 30) * .45 + 'px');
+    pad.style.setProperty('--fo', d > 2 ? '.95' : '.35');
+    var nowArmed = p >= 1;
+    if (nowArmed && !armed) { ring.classList.remove('go'); void ring.offsetWidth; ring.classList.add('go'); }
+    armed = nowArmed; pill.classList.toggle('armed', armed);
+    if (!busy) state.textContent = armed ? 'Relâchez pour revenir' : d > 2 ? 'Glissement…' : 'Au repos';
+  }
+  function commit() {
+    busy = true; state.textContent = 'Retour';
+    pill.classList.add('pop');
+    over.style.opacity = '0';
+    ui = (ui + 1) % URLS.length; url.textContent = URLS[ui];
+    pad.style.setProperty('--fo', '.35');
+    setTimeout(function () {
+      // La page révélée devient la page courante ; la suivante se prépare dessous.
+      var a = over.classList.contains('skin-a');
+      over.classList.toggle('skin-a', !a); over.classList.toggle('skin-b', a);
+      under.classList.toggle('skin-a', a); under.classList.toggle('skin-b', !a);
+      over.style.transition = 'none'; over.style.opacity = '1'; void over.offsetWidth; over.style.transition = '';
+      pill.classList.remove('pop'); go(0, true); armed = false; pill.classList.remove('armed');
+      busy = false; draw(0);
+    }, 420);
+  }
+  page.addEventListener('pointerdown', function (e) {
+    if (busy) return; touched = true; drag = { x: e.clientX };
+    page.classList.add('dragging'); page.setPointerCapture(e.pointerId);
+  });
+  page.addEventListener('pointermove', function (e) {
+    if (!drag) return; go(Math.max(0, e.clientX - drag.x));
+  });
+  function release() {
+    if (!drag) return; drag = null; page.classList.remove('dragging');
+    if (armed) commit(); else go(0);
+  }
+  page.addEventListener('pointerup', release);
+  page.addEventListener('pointercancel', release);
+  function play() {
+    if (busy) return;
+    go(THRESH + 24);
+    setTimeout(function () { if (armed) commit(); else go(0); }, 650);
+  }
+  page.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowLeft') { e.preventDefault(); touched = true; play(); }
+  });
+  // Démonstration automatique tant que personne n'a essayé.
+  if (!reduce) setTimeout(function loop() { if (touched) return; play(); setTimeout(loop, 3800); }, 1200);
+  draw(0);
+
+  /* ---------- Démo 2 : icônes lisibles ---------- */
+  var omni = document.getElementById('omni'), sw = document.getElementById('swatches'),
+      ratio = document.getElementById('ratio'),
+      bBefore = document.getElementById('bBefore'), bAfter = document.getElementById('bAfter');
+  var COLORS = [['Ardoise', '#6b7f9e'], ['Sauge', '#7f9a83'], ['Terracotta', '#c27a5c'],
+                ['Lavande', '#9a8cc4'], ['Moutarde', '#c9a54a'], ['Nuit', '#2b3048'], ['Papier', '#efece4']];
+  var mode = 'after', ci = 0;
+  function lum(hex) {
+    var n = parseInt(hex.slice(1), 16), c = [n >> 16 & 255, n >> 8 & 255, n & 255].map(function (v) {
+      v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4);
+    });
+    return .2126 * c[0] + .7152 * c[1] + .0722 * c[2];
+  }
+  function contrast(a, b) { var x = lum(a), y = lum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); }
+  function mix(hex, toward, t) {
+    var a = parseInt(hex.slice(1), 16), b = parseInt(toward.slice(1), 16), out = 0;
+    for (var s = 16; s >= 0; s -= 8) out = out << 8 | Math.round((a >> s & 255) * (1 - t) + (b >> s & 255) * t);
+    return '#' + (out | 0x1000000).toString(16).slice(1);
+  }
+  function paint() {
+    var bg = COLORS[ci][1], ic;
+    if (mode === 'after') ic = contrast(bg, '#ffffff') >= contrast(bg, '#141826') ? '#ffffff' : '#141826';
+    else ic = mix(bg, lum(bg) > .3 ? '#141826' : '#ffffff', .32); // ancienne teinte, trop proche du fond
+    omni.style.setProperty('--c', bg); omni.style.setProperty('--ic', ic);
+    var r = contrast(bg, ic), ok = r >= 4.5;
+    ratio.innerHTML = 'Contraste <b>' + r.toFixed(1) + ':1</b> · <span class="' + (ok ? 'ok' : 'ko') + '">' + (ok ? 'lisible' : 'peu lisible') + '</span>';
+    Array.prototype.forEach.call(sw.children, function (b, i) { b.setAttribute('aria-pressed', String(i === ci)); });
+  }
+  COLORS.forEach(function (c, i) {
+    var b = document.createElement('button'); b.type = 'button'; b.style.setProperty('--c', c[1]);
+    b.setAttribute('aria-label', c[0]); b.title = c[0];
+    b.addEventListener('click', function () { ci = i; paint(); });
+    sw.appendChild(b);
+  });
+  function setMode(m) {
+    mode = m; bAfter.setAttribute('aria-pressed', String(m === 'after')); bBefore.setAttribute('aria-pressed', String(m !== 'after')); paint();
+  }
+  bBefore.addEventListener('click', function () { setMode('before'); });
+  bAfter.addEventListener('click', function () { setMode('after'); });
+  paint();
+})();
+</script>

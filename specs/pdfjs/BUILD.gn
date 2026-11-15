@@ -1,0 +1,33 @@
+# Bluelium : distribution Mozilla figée par downloads.ini, ressources locales.
+import("//ui/webui/resources/tools/generate_grd.gni")
+import("//tools/grit/grit_rule.gni")
+
+# Inventaire figé avec la distribution : chaque ressource est une entrée GN.
+pdfjs_files = read_file("files.txt", "list lines")
+file_list = "$target_gen_dir/files.json"
+action("generate_file_list") {
+  script = "generate_file_list.py"
+  args = [ rebase_path("."), rebase_path(file_list) ]
+  inputs = pdfjs_files
+  outputs = [ file_list ]
+}
+generate_grd("pdfjs_grd") {
+  out_grd = "$target_gen_dir/pdfjs_resources.grd"
+  grd_prefix = "pdfjs"
+  resource_path_prefix = "pdf/pdfjs"
+  manifest_files = [ file_list ]
+  deps = [ ":generate_file_list" ]
+}
+grit("pdfjs") {
+  source = "$target_gen_dir/pdfjs_resources.grd"
+  enable_input_discovery_for_gn_analyze = false
+  use_brotli = true
+  output_dir = "$target_gen_dir/resources"
+  outputs = [
+    "grit/pdfjs_resources.h",
+    "grit/pdfjs_resources_map.cc",
+    "grit/pdfjs_resources_map.h",
+    "pdfjs_resources.pak",
+  ]
+  deps = [ ":pdfjs_grd" ]
+}

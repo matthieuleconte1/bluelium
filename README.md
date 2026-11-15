@@ -83,6 +83,7 @@ les releases Linux actuelles et n'ont pas été testés sous Linux.
 | **Panneau Personnaliser** | ✅ | 🚧 | Anciens réglages du nouvel onglet Helium/Chrome retirés, vignettes des thèmes corrigées. |
 | **Vue partagée** (Diviser) | ✅ | ✅ | Les deux moitiés forment un seul onglet combiné. |
 | **Animations** | 🚧 | 🚧 | Geste retour/suivant au trackpad : la page suit le doigt, pastille avec retour haptique, bande découverte à la couleur de la page. Changement d'onglet : indicateur glissant, fondu directionnel, couleur de barre synchronisée. En cours d'affinage. |
+| **Lecteur PDF.js** | 🚧 | 🚧 | Lecteur Mozilla embarqué hors ligne, interface Instrument Sans et couleurs du navigateur. Les PDF téléchargés utilisent le lecteur système par défaut. Build de test : [intégration et vérifications](docs/pdfjs.md). |
 | **Bulle ⌘Q** | ✅ | — | « Maintenir ⌘Q pour quitter » redessinée : capsule en verre, touches dessinées, jauge d'appui. |
 | Extensions du Chrome Web Store | ✅ | ✅ | Installation avec la confirmation habituelle, une fois les services d'extensions de Helium acceptés. |
 
@@ -94,14 +95,16 @@ journal de travail, pas toujours à jour.
 ### Limites connues
 
 - macOS : les boutons de fenêtre ne sont pas parfaitement alignés avec les
-  onglets. La police Instrument Sans n'est appliquée que sous Linux.
+  onglets. La police Instrument Sans n'est appliquée que sous Linux, sauf
+  dans le lecteur PDF.js qui l'embarque sur les deux plateformes.
 - Linux : Instrument Sans n'est pas embarquée, il faut l'installer
   ([`assets/InstrumentSans.ttf`](assets/InstrumentSans.ttf)).
 - Le nom de travail « Glyphe » subsiste dans le code, les patchs et le dossier
   d'installation Linux.
 - Claude Code ne détecte pas encore l'extension Claude installée dans
   Bluelium ([docs/connexion-ia.md](docs/connexion-ia.md)).
-- Pas de suite de tests propre au projet. La vérification se fait à l'usage.
+- La vérification se fait surtout à l'usage. Le pont PDF.js dispose de tests
+  ciblés : `node --test tools/tests/pdfjs-bridge.test.mjs`.
 
 ## Plateformes
 
@@ -303,7 +306,7 @@ Il n'y a pas de script générique : `scripts/build-helium.sh`,
 machine de build. Ils servent d'exemple.
 
 1. Cloner [helium-linux](https://github.com/imputnet/helium-linux) et ajouter
-   à son `downloads.ini` la section `[shimmer-tab]` de ce dépôt.
+   à son `downloads.ini` les sections `[shimmer-tab]` et `[pdfjs]` de ce dépôt.
 2. Suivre sa procédure jusqu'à la fin de la préparation des sources.
 3. Appliquer la série Bluelium :
 
@@ -335,8 +338,7 @@ Sans dates.
 - Publier le `.dmg` macOS sur GitHub.
 - Reconstruire sous Linux avec les nouvelles specs.
 - Affiner les animations et la couleur de la page dans la barre.
-- Lecteur PDF : en réflexion, entre améliorer celui de Chromium et passer à
-  PDF.js. Rien n'est décidé.
+- Valider le lecteur PDF.js au quotidien sur macOS et Linux.
 - Ajouter des captures d'écran.
 
 ## Crédits et licences
@@ -353,6 +355,8 @@ Bluelium est une couche fine au-dessus du travail d'autres projets.
 - **Chromium**, sous ses propres licences.
 - [Shimmer Tab](https://github.com/dmitthedazed/shimmer-tab) de dmitthedazed
   pour le nouvel onglet (GPL-3.0, téléchargé au moment du build).
+- [PDF.js](https://github.com/mozilla/pdf.js), Mozilla Foundation et contributeurs,
+  Apache-2.0 (distribution figée et vérifiée au moment du build).
 - **Instrument Sans**, SIL Open Font License
   ([assets/OFL-InstrumentSans.txt](assets/OFL-InstrumentSans.txt)).
 - [Material Symbols](https://github.com/google/material-design-icons/tree/master/variablefont)

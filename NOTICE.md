@@ -13,3 +13,12 @@
 - **Instrument Sans** : SIL Open Font License 1.1, voir
   `assets/OFL-InstrumentSans.txt`.
 - **Material Symbols** (Google) : Apache 2.0.
+
+- **PDF.js 6.5.438** (Mozilla Foundation et contributeurs,
+  https://github.com/mozilla/pdf.js/releases/tag/v6.5.438) : Apache-2.0.
+  La distribution officielle est téléchargée avec vérification SHA-256 dans
+  `downloads.ini`, puis embarquée hors ligne. Sa licence `LICENSE`, les avis
+  intégrés aux sources et ceux des ressources (CMaps Adobe, polices et
+  décodeurs) sont conservés dans le paquet de ressources du navigateur.
+  Modifications Bluelium : pont vers le flux PDF de Chromium, entrée du lecteur,
+  palette de l’interface et Instrument Sans (SIL OFL 1.1).
