@@ -354,4 +354,18 @@ EDITS = [
     ('chrome/browser/ui/color/chrome_color_mixers.cc',
      '    p[kColorToolbarText] = {prism->text};\n',
      '    p[kColorToolbarText] = {prism->text};\n    // Bluelium : icônes de la barre d’adresse (cadenas, puces) sur la\n    // couleur de la barre, puisque les jetons système gardent le thème.\n    p[kColorPageInfoForeground] = {prism->text};\n    p[kColorOmniboxSecurityChipDefault] = {prism->text};\n    p[kColorOmniboxChipForegroundNormalVisibility] = {prism->text};\n    p[kColorOmniboxChipForegroundLowVisibility] = {prism->muted};\n    p[kColorLocationBarClearAllButtonIcon] = {prism->muted};\n'),
+    # Bluelium : icônes d'action de la barre d'adresse (installer, diviser…)
+    # sur la couleur de la barre ; sinon elles gardent l'accent du thème.
+    ('chrome/browser/ui/color/chrome_color_mixers.cc',
+     '    p[kColorLocationBarClearAllButtonIcon] = {prism->muted};\n',
+     '    p[kColorLocationBarClearAllButtonIcon] = {prism->muted};\n'
+     '    // Bluelium : icônes d\'action de la barre d\'adresse sur la barre.\n'
+     '    p[kColorOmniboxIconForeground] = {prism->text};\n'
+     '    p[kColorOmniboxIconForegroundTonal] = {prism->text};\n'
+     '    p[kColorOmniboxActionIcon] = {prism->muted};\n'
+     '    p[kColorPageInfoSubtitleForeground] = {prism->muted};\n'
+     '    p[kColorOmniboxIconBackground] = {prism->field};\n'
+     '    p[kColorOmniboxIconBackgroundTonal] = {prism->field};\n'
+     '    p[kColorOmniboxIconHover] = {SkColorSetA(prism->text, 0x1a)};\n'
+     '    p[kColorOmniboxIconPressed] = {SkColorSetA(prism->text, 0x2e)};\n'),
 ]

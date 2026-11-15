@@ -129,3 +129,22 @@ les vues divisées, la vidéo et la durée réelle restent à valider après
 compilation, avec Computer Use dans Helium. L'intégrateur doit aussi vérifier
 le découpage du conteneur Cocoa lorsqu'il est translaté. Au-delà du garde-fou
 réseau de 2 s, la page courante est volontairement remise au repos.
+
+## Variante retenue le 15 nov. : pastille seule et fondu
+
+Choisie sur le banc d'essai (variante B), dans `specs/motion_pill_spec.py`,
+appliquée après `motion_tuning_spec.py` (macOS uniquement) :
+
+- Pendant le geste, la page ne bouge plus. La pastille sort seule du bord,
+  se remplit et donne le « tic » haptique au seuil. Ni bande ni ombre.
+- Au début du geste, `RenderWidgetHostView::CopyFromSurface` copie la page
+  (délai max 500 ms, rendu ramené sur le thread UI).
+- Au relâchement validé, la pastille s'efface d'une impulsion (200 ms) et la
+  copie couvre la page pendant le chargement. Quand la destination a soumis
+  une image (même barrière visuelle qu'avant), la copie s'efface en fondu de
+  200 ms. Le garde-fou de 2 s est conservé.
+- Sans copie (contenu protégé, échec, délai dépassé), la page change sans
+  fondu. Le mode « Réduire les animations » navigue immédiatement, comme avant.
+- Dépendance ajoutée à `chrome/browser/ui/cocoa` : `//components/viz/common`.
+- Le test `BlueliumCompletionKeepsOffsetUntilSettled` vérifie maintenant que
+  la page reste immobile.
