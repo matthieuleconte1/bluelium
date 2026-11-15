@@ -3,7 +3,7 @@
 #   make-appimage.sh <paquet.tar.zst> <dossier de sortie>
 # Produit Bluelium-<version>-x86_64.AppImage (+ .sha256) et
 # Bluelium-x86_64.AppImage.zsync (mise à jour par AppImageUpdate / Gear Lever).
-# Le profil reste ~/.config/net.imput.helium (même binaire que le paquet).
+# Profil ~/.config/bluelium, copié une fois depuis celui de Helium (AppRun).
 set -Eeuo pipefail
 
 TAR=$1

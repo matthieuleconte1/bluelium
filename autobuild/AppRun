@@ -77,4 +77,43 @@ fi
         </dev/null >>"$cache/appimage-update.log" 2>&1 &
 ) 2>/dev/null
 
+# Identité propre, distincte de Helium installé à côté :
+#  - profil ~/.config/bluelium : avec le profil de Helium, lancer l'un ouvrait
+#    une fenêtre dans l'autre (verrou de profil partagé) ;
+#  - nom d'application « bluelium » (app_id Wayland, WM_CLASS X11) : la barre
+#    des tâches ne les confond plus.
+# Variables plutôt que --user-data-dir : l'option ajouterait le chemin au
+# WM_CLASS, que StartupWMClass ne reconnaîtrait plus.
+CONFIG=${XDG_CONFIG_HOME:-$HOME/.config}
+PROFILE=$CONFIG/bluelium
+HELIUM_PROFILE=$CONFIG/net.imput.helium
+export CHROME_DESKTOP=bluelium.desktop
+export CHROME_USER_DATA_DIR="$PROFILE"
+
+say() {
+    echo "Bluelium : $1" >&2
+    has_command notify-send && notify-send -a Bluelium -i bluelium "Bluelium" "$1" 2>/dev/null || true
+}
+
+# Une seule fois : copie du profil Helium (où vivaient jusqu'ici les données
+# de Bluelium). Ensuite les deux profils évoluent chacun de leur côté.
+if [ ! -e "$PROFILE/Local State" ] && [ -e "$HELIUM_PROFILE/Local State" ] \
+   && [ "${BLUELIUM_NO_IMPORT:-}" != 1 ]; then
+    lock=$(readlink "$HELIUM_PROFILE/SingletonLock" 2>/dev/null || true)
+    if [ -n "$lock" ] && kill -0 "${lock##*-}" 2>/dev/null; then
+        say "fermez Helium puis relancez Bluelium : son profil sera copié une fois."
+        exit 1
+    fi
+    say "copie de votre profil Helium, une seule fois…"
+    mkdir -p "$PROFILE"
+    if cp -a "$HELIUM_PROFILE/." "$PROFILE/"; then
+        rm -f "$PROFILE/SingletonLock" "$PROFILE/SingletonSocket" "$PROFILE/SingletonCookie"
+        date > "$PROFILE/.copie-depuis-helium"
+    else
+        rm -f "$PROFILE/Local State"   # copie incomplète : on réessaiera
+        say "copie du profil Helium impossible (place disque ?)."
+        exit 1
+    fi
+fi
+
 exec "${HERE}/opt/bluelium/helium" "$@"

@@ -10,7 +10,7 @@ Type=Application
 Categories=Network;WebBrowser;
 MimeType=application/pdf;application/xhtml+xml;text/html;text/xml;x-scheme-handler/http;x-scheme-handler/https;
 StartupNotify=true
-StartupWMClass=helium
+StartupWMClass=bluelium
 Actions=new-window;new-private-window;
 
 [Desktop Action new-window]
