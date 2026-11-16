@@ -9,9 +9,12 @@ La plateforme (linux par défaut) écarte les lignes de specs/SERIES réservées
 Lit specs/SERIES : chaque spec passe par apply_spec.py (qui écrit le .patch
 correspondant) ; une ligne « - » applique le .patch figé de patches/glyphe/
 avec `patch -p1` et le recopie tel quel. À lancer après toutes les étapes de
-Helium. S'arrête au premier échec en indiquant le patch fautif.
+Helium. S'arrête au premier échec en indiquant le patch fautif ; avec
+KEEP_GOING=1, continue et liste tous les échecs à la fin (test d'une nouvelle
+version de Helium : tools/test-serie-helium.sh).
 Remplace ensuite le nom affiché « Helium » par « Bluelium » (tools/rename-product.py).
 """
+import os
 import shutil
 import subprocess
 import sys
@@ -33,6 +36,17 @@ for line in (repo / 'specs' / 'SERIES').read_text().splitlines():
     if platform in platforms:
       entries.append((patch, spec))
 
+keep_going = os.environ.get('KEEP_GOING') == '1'
+failures = []
+
+
+def fail(message):
+  if not keep_going:
+    sys.exit(message)
+  print(message, flush=True)
+  failures.append(message.splitlines()[0])
+
+
 for index, (patch, spec) in enumerate(entries, 1):
   label = f'[{index}/{len(entries)}] {patch}'
   if spec == '-':
@@ -41,15 +55,19 @@ for index, (patch, spec) in enumerate(entries, 1):
         ['patch', '-p1', '--forward', '--no-backup-if-mismatch', '-d', str(src),
          '-i', str(fixed)], capture_output=True, text=True)
     if result.returncode != 0:
-      sys.exit(f'{label} : ÉCHEC du patch figé\n{result.stdout[-2000:]}')
+      fail(f'{label} : ÉCHEC du patch figé\n{result.stdout[-2000:]}')
+      continue
     shutil.copy(fixed, out / patch)
   else:
     result = subprocess.run(
         [sys.executable, str(apply_spec), str(src), str(repo / 'specs' / spec),
          str(out / patch)], capture_output=True, text=True)
     if result.returncode != 0:
-      sys.exit(f'{label} : ÉCHEC de {spec}\n{result.stdout}{result.stderr}')
+      fail(f'{label} : ÉCHEC de {spec}\n{result.stdout}{result.stderr}')
+      continue
   print(label, 'OK')
+if failures:
+  sys.exit(f'{len(failures)} échec(s) sur {len(entries)} patchs :\n' + '\n'.join(failures))
 print(f'Série complète ({platform}) :', len(entries), 'patchs')
 
 # Bluelium : le nom affiché devient « Bluelium » (le logo de Helium reste).
