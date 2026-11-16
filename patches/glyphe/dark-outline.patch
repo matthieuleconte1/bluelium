@@ -1,0 +1,263 @@
+--- /dev/null
++++ b/ui/color/bluelium_dark_outline.h
+@@ -0,0 +1,22 @@
++// Bluelium : couleurs communes du trait fin, sans modifier les autres modes.
++#ifndef UI_COLOR_BLUELIUM_DARK_OUTLINE_H_
++#define UI_COLOR_BLUELIUM_DARK_OUTLINE_H_
++#include "ui/color/glyphe_prism.h"
++#include "ui/color/glyphe_red_night.h"
++namespace ui {
++inline bool BlueliumDarkOutline() {
++  return IsGlypheRedNight() || IsGlypheOled();
++}
++inline SkColor BlueliumDarkOutlineAccent() {
++  return IsGlypheRedNight() ? GlypheRedNightColor() : SkColorSetRGB(0xec, 0xec, 0xef);
++}
++inline SkColor BlueliumDarkOutlineTab() {
++  return IsGlypheRedNight() ? GlypheRedNightColor() :
++      SkColorSetA(BlueliumDarkOutlineAccent(), 0x8c);
++}
++inline SkColor BlueliumDarkOutlineDivider() {
++  return IsGlypheRedNight() ? SkColorSetA(GlypheRedNightColor(), 0x52) :
++      SkColorSetRGB(0x3a, 0x3a, 0x42);
++}
++}  // namespace ui
++#endif  // UI_COLOR_BLUELIUM_DARK_OUTLINE_H_
+--- a/ui/color/BUILD.gn
++++ b/ui/color/BUILD.gn
+@@ -177,6 +177,7 @@
+     "sys_color_mixer.cc",
+     "glyphe_prism.cc",
+     "glyphe_prism.h",
++    "bluelium_dark_outline.h",
+     "glyphe_red_night.cc",
+     "glyphe_red_night.h",
+     "sys_color_mixer.h",
+--- a/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc
++++ b/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc
+@@ -3,6 +3,8 @@
+ // found in the LICENSE file.
+ 
+ #include "chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.h"
++#include "ui/color/bluelium_dark_outline.h"
++#include "cc/paint/path_effect.h"
+ 
+ #include "chrome/browser/ui/views/tabs/tab_strip.h"
+ #include "ui/views/view_utils.h"
+@@ -776,6 +778,23 @@
+     gfx::Canvas* canvas,
+     bool hovered,
+     std::optional<int> fill_id) const {
++  // Bluelium : pas de remplissage, de survol peint ni de contour Chromium doublé.
++  if (ui::BlueliumDarkOutline()) {
++    if (delegate_->IsActive()) {
++      const SkPath path = GetPath(TabStyle::PathType::kBorder,
++          canvas->image_scale(), {.should_paint_extension = false});
++      gfx::ScopedCanvas scoped(canvas);
++      const float scale = canvas->UndoDeviceScaleFactor();
++      cc::PaintFlags flags;
++      flags.setAntiAlias(true);
++      flags.setStyle(cc::PaintFlags::kStroke_Style);
++      flags.setStrokeWidth(scale);
++      flags.setColor(ui::BlueliumDarkOutlineTab());
++      canvas->DrawPath(path, flags);
++    }
++    PaintSeparators(canvas);
++    return;
++  }
+   std::optional<SkColor> group_color = delegate_->GetGroupColor();
+ 
+   PaintTabBackgroundFill(canvas, hovered, fill_id);
+@@ -854,6 +873,9 @@
+ 
+ void HorizontalTabStyleViews::PaintBackgroundHover(gfx::Canvas* canvas,
+                                                    float scale) const {
++  if (ui::BlueliumDarkOutline()) {
++    return;  // Bluelium : la pastille reste sans remplissage au survol.
++  }
+   const SkPath fill_path =
+       GetPath(TabStyle::PathType::kHighlight, canvas->image_scale(), {});
+   canvas->ClipPath(fill_path, true);
+@@ -897,6 +919,26 @@
+ }
+ 
+ void HorizontalTabStyleViews::PaintSeparators(gfx::Canvas* canvas) const {
++  if (ui::BlueliumDarkOutline()) {
++    const auto* next = delegate_->GetAdjacentTab(false);
++    if (delegate_->IsActive() || !next || next->IsActive()) {
++      return;
++    }
++    // Bluelium : un seul trait par paire, du côté logique suivant (RTL compris).
++    gfx::ScopedCanvas scoped(canvas);
++    const float scale = canvas->UndoDeviceScaleFactor();
++    const auto bounds = GetSeparatorBounds(scale);
++    const float x = (base::i18n::IsRTL() ? bounds.leading : bounds.trailing).CenterPoint().x();
++    cc::PaintFlags flags;
++    flags.setAntiAlias(false);
++    flags.setStyle(cc::PaintFlags::kStroke_Style);
++    flags.setStrokeWidth(scale);
++    flags.setColor(ui::BlueliumDarkOutlineDivider());
++    const float intervals[] = {scale, scale};  // Bluelium : point 1 px, pas 2 px.
++    flags.setPathEffect(cc::PathEffect::MakeDash(intervals, 2, 0));
++    canvas->DrawLine(gfx::PointF(x, 13 * scale), gfx::PointF(x, 27 * scale), flags);
++    return;
++  }
+   const auto separator_opacities = GetSeparatorOpacities(false);
+   if (!separator_opacities.left && !separator_opacities.right) {
+     return;
+--- a/chrome/browser/ui/views/location_bar/location_bar_view.cc
++++ b/chrome/browser/ui/views/location_bar/location_bar_view.cc
+@@ -3,6 +3,7 @@
+ // found in the LICENSE file.
+ 
+ #include "chrome/browser/ui/views/location_bar/location_bar_view.h"
++#include "ui/color/bluelium_dark_outline.h"
+ 
+ #include <algorithm>
+ #include <array>
+@@ -1533,6 +1534,10 @@
+     border_color = color_provider->GetColor(kColorLocationBarBorderOnMismatch);
+   }
+ 
++  if (ui::BlueliumDarkOutline() && !is_popup_mode_) {
++    background_color_ = SK_ColorTRANSPARENT;  // Bluelium : champ sans aplat.
++    border_color = ui::BlueliumDarkOutlineDivider();
++  }
+   if (is_popup_mode_) {
+     SetBackground(views::CreateSolidBackground(background_color_));
+   } else {
+--- a/chrome/browser/ui/views/toolbar/toolbar_view.h
++++ b/chrome/browser/ui/views/toolbar/toolbar_view.h
+@@ -265,6 +265,7 @@
+   gfx::Size GetMinimumSize() const override;
+   void Layout(PassKey) override;
+   void OnThemeChanged() override;
++  void OnPaint(gfx::Canvas* canvas) override;  // Bluelium : trait sous les onglets
+   bool AcceleratorPressed(const ui::Accelerator& acc) override;
+   void ChildPreferredSizeChanged(views::View* child) override;
+   void ChildVisibilityChanged(View* child) override;
+--- a/chrome/browser/ui/views/toolbar/toolbar_view.cc
++++ b/chrome/browser/ui/views/toolbar/toolbar_view.cc
+@@ -3,6 +3,10 @@
+ // found in the LICENSE file.
+ 
+ #include "chrome/browser/ui/views/toolbar/toolbar_view.h"
++#include "ui/color/bluelium_dark_outline.h"
++#include "cc/paint/paint_flags.h"
++#include "cc/paint/path_effect.h"
++#include "ui/gfx/canvas.h"
+ #include "ui/views/controls/separator.h"
+ 
+ #include <algorithm>
+@@ -1815,6 +1819,19 @@
+   LayoutSuperclass<AccessiblePaneView>(this);
+ }
+ 
++void ToolbarView::OnPaint(gfx::Canvas* canvas) {
++  views::AccessiblePaneView::OnPaint(canvas);
++  if (ui::BlueliumDarkOutline() && browser_view_->ShouldDrawTabStrip()) {
++    cc::PaintFlags flags;
++    flags.setColor(ui::BlueliumDarkOutlineDivider());
++    flags.setStyle(cc::PaintFlags::kStroke_Style);
++    flags.setStrokeWidth(1.f);
++    const float intervals[] = {1.f, 1.f};
++    flags.setPathEffect(cc::PathEffect::MakeDash(intervals, 2, 0));
++    canvas->DrawLine(gfx::PointF(0, 0.5f), gfx::PointF(width(), 0.5f), flags);
++  }
++}
++
+ void ToolbarView::OnThemeChanged() {
+   views::AccessiblePaneView::OnThemeChanged();
+   if (!initialized_) {
+--- a/chrome/browser/ui/views/toolbar/pinned_action_toolbar_button.h
++++ b/chrome/browser/ui/views/toolbar/pinned_action_toolbar_button.h
+@@ -55,6 +55,7 @@
+   void SetActionEngaged(bool action_engaged);
+   void UpdateIcon() override;
+   void UpdateColorsAndInsets() override;
++  void OnPaintBackground(gfx::Canvas* canvas) override;  // Bluelium : anneau IA
+   bool ShouldShowEphemerallyInToolbar();
+   bool IsIconVisible() { return is_icon_visible_; }
+   bool IsPinned() { return pinned_; }
+--- a/chrome/browser/ui/views/toolbar/pinned_action_toolbar_button.cc
++++ b/chrome/browser/ui/views/toolbar/pinned_action_toolbar_button.cc
+@@ -13,6 +13,10 @@
+ #include "chrome/browser/themes/theme_service.h"
+ #include "chrome/browser/themes/theme_service_factory.h"
+ #include "ui/color/glyphe_prism.h"
++#include "ui/color/bluelium_dark_outline.h"
++#include "cc/paint/paint_flags.h"
++#include "ui/gfx/canvas.h"
++#include <algorithm>
+ 
+ #include <string>
+ #include <type_traits>
+@@ -279,9 +283,8 @@
+       color_utils::GetContrastRatio(SK_ColorWHITE, seed) >
+               color_utils::GetContrastRatio(SK_ColorBLACK, seed)
+           ? SK_ColorWHITE : SK_ColorBLACK;
+-  const SkColor icon = glyphe_active
+-                           ? on_seed
+-                           : colors->GetColor(kColorToolbarButtonIcon);
++  const SkColor icon = ui::BlueliumDarkOutline() ? ui::BlueliumDarkOutlineAccent() :
++      glyphe_active ? on_seed : colors->GetColor(kColorToolbarButtonIcon);
+   const SkColor page_background =
+       colors->GetColor(kColorGlyphePageColorButtonBackground);
+   // Bluelium : au repos, la même pastille lisible que les autres outils.
+@@ -290,7 +293,8 @@
+           ? page_background
+           : color_utils::AlphaBlend(icon, colors->GetColor(kColorToolbar),
+                                     SkAlpha{0x14});
+-  SetBackground(views::CreateRoundedRectBackground(background, 15));
++  SetBackground(views::CreateRoundedRectBackground(
++      ui::BlueliumDarkOutline() && glyphe_active ? SK_ColorTRANSPARENT : background, 15));
+   // Survol, appui et anneau de focus ronds, comme la pastille.
+   views::InstallCircleHighlightPathGenerator(this);
+   gfx::ImageSkia logo = glyphe::AssistantIcon(
+@@ -301,6 +305,20 @@
+   }
+   if (status_indicator_) {
+     status_indicator_->Hide();
++  }
++}
++
++void PinnedActionToolbarButton::OnPaintBackground(gfx::Canvas* canvas) {
++  ToolbarButton::OnPaintBackground(canvas);
++  if (action_id_ == kActionSidePanelShowGlypheAssistant && IsActive() &&
++      ui::BlueliumDarkOutline()) {
++    cc::PaintFlags flags;
++    flags.setAntiAlias(true);
++    flags.setStyle(cc::PaintFlags::kStroke_Style);
++    flags.setStrokeWidth(1.f);
++    flags.setColor(ui::BlueliumDarkOutlineAccent());
++    canvas->DrawCircle(gfx::PointF(width() / 2.f, height() / 2.f),
++                       (std::min(width(), height()) - 1) / 2.f, flags);
+   }
+ }
+ 
+--- a/chrome/browser/ui/color/chrome_color_mixers.cc
++++ b/chrome/browser/ui/color/chrome_color_mixers.cc
+@@ -10,6 +10,7 @@
+ #include "ui/color/color_provider.h"
+ #include "ui/color/color_recipe.h"
+ #include "ui/color/glyphe_prism.h"
++#include "ui/color/bluelium_dark_outline.h"
+ #include "ui/color/glyphe_red_night.h"
+ #include "ui/gfx/color_utils.h"
+ 
+@@ -212,6 +213,15 @@
+     glyphe[kColorTabDividerFrameActive] = {SkColorSetA(red, 0x52)};
+   }
+ 
++  if (ui::BlueliumDarkOutline()) {
++    ui::ColorMixer& outline = provider->AddMixer();
++    // Bluelium : texte lisible dans la pastille vide et séparateurs solides.
++    outline[kColorTabForegroundActiveFrameActive] = {ui::BlueliumDarkOutlineAccent()};
++    outline[kColorTabForegroundActiveFrameInactive] = {ui::BlueliumDarkOutlineAccent()};
++    outline[kColorToolbarSeparatorDefault] = {ui::BlueliumDarkOutlineDivider()};
++    outline[kColorToolbarExtensionSeparatorEnabled] = {ui::BlueliumDarkOutlineDivider()};
++  }
++
+   if (key.app_controller) {
+     key.app_controller->AddColorMixers(provider, key);
+   }

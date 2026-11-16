@@ -86,34 +86,11 @@ fi
 # WM_CLASS, que StartupWMClass ne reconnaîtrait plus.
 CONFIG=${XDG_CONFIG_HOME:-$HOME/.config}
 PROFILE=$CONFIG/bluelium
-HELIUM_PROFILE=$CONFIG/net.imput.helium
 export CHROME_DESKTOP=bluelium.desktop
 export CHROME_USER_DATA_DIR="$PROFILE"
 
-say() {
-    echo "Bluelium : $1" >&2
-    has_command notify-send && notify-send -a Bluelium -i bluelium "Bluelium" "$1" 2>/dev/null || true
-}
-
-# Une seule fois : copie du profil Helium (où vivaient jusqu'ici les données
-# de Bluelium). Ensuite les deux profils évoluent chacun de leur côté.
-if [ ! -e "$PROFILE/Local State" ] && [ -e "$HELIUM_PROFILE/Local State" ] \
-   && [ "${BLUELIUM_NO_IMPORT:-}" != 1 ]; then
-    lock=$(readlink "$HELIUM_PROFILE/SingletonLock" 2>/dev/null || true)
-    if [ -n "$lock" ] && kill -0 "${lock##*-}" 2>/dev/null; then
-        say "fermez Helium puis relancez Bluelium : son profil sera copié une fois."
-        exit 1
-    fi
-    say "copie de votre profil Helium, une seule fois…"
-    mkdir -p "$PROFILE"
-    if cp -a "$HELIUM_PROFILE/." "$PROFILE/"; then
-        rm -f "$PROFILE/SingletonLock" "$PROFILE/SingletonSocket" "$PROFILE/SingletonCookie"
-        date > "$PROFILE/.copie-depuis-helium"
-    else
-        rm -f "$PROFILE/Local State"   # copie incomplète : on réessaiera
-        say "copie du profil Helium impossible (place disque ?)."
-        exit 1
-    fi
-fi
+# Bluelium : l'import est désormais proposé par chrome://setup. Le lanceur
+# ne copie plus les données ni le consentement/onboarding de Helium.
+# Les profils déjà copiés par l'ancien lanceur restent utilisables tels quels.
 
 exec "${HERE}/opt/bluelium/helium" "$@"

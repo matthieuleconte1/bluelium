@@ -1,0 +1,33 @@
+--- a/chrome/browser/extensions/api/messaging/launch_context_posix.cc
++++ b/chrome/browser/extensions/api/messaging/launch_context_posix.cc
+@@ -16,6 +16,10 @@
+ #include "base/process/launch.h"
+ #include "build/build_config.h"
+ #include "build/chromeos_buildflags.h"
++#if BUILDFLAG(IS_MAC)  // Bluelium : manifeste installé seulement pour Chromium
++#include "base/base_paths.h"
++#include "base/path_service.h"
++#endif
+ #if BUILDFLAG(IS_LINUX)  // Glyphe : dossier Chromium XDG
+ #include "base/environment.h"
+ #include "base/nix/xdg_util.h"
+@@ -67,6 +71,19 @@
+         .Append("NativeMessagingHosts").Append(host_name + ".json");
+     if (base::PathExists(manifest)) {
+       result = manifest;
++    }
++  }
++#endif
++
++#if BUILDFLAG(IS_MAC)
++  if (result.empty() && allow_user_level_hosts) {
++    base::FilePath home;
++    if (base::PathService::Get(base::DIR_HOME, &home)) {
++      const auto manifest = home.Append("Library/Application Support/Chromium")
++          .Append("NativeMessagingHosts").Append(host_name + ".json");
++      if (base::PathExists(manifest)) {
++        result = manifest;
++      }
+     }
+   }
+ #endif

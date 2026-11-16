@@ -1,0 +1,281 @@
+<!--
+  Bluelium : reprendre le profil Helium depuis l'écran de bienvenue.
+  Contrat backend (helium_import_spec.py) :
+    getHeliumImportState -> {status, sourceBusy, profiles[{id,name,items}],
+                             completed, busy}
+    importHeliumProfile(id) -> {status, requestedItems, finishedItems}
+  N'a pas besoin de l'autorisation d'accès aux autres navigateurs : la carte
+  s'affiche avant la détection générale.
+-->
+<script lang="ts">
+    import { onMount } from "svelte";
+    import { Button, HeliumLogo, IconCheck, Spinner } from "@imput/helium-prism";
+    import { sendWithPromise } from "../lib/cr/cr";
+
+    type HeliumProfile = { id: string; name: string; items: number };
+    type Info = {
+        status: "available" | "not_found" | "same_profile";
+        sourceBusy?: boolean;
+        profiles: HeliumProfile[];
+        completed: boolean;
+        busy: boolean;
+    };
+    type ImportResult = {
+        status: string;
+        requestedItems?: number;
+        finishedItems?: number;
+    };
+
+    const ITEMS: [number, string][] = [
+        [1 << 1, "favoris"],
+        [1 << 0, "historique"],
+        [1 << 3, "mots de passe"],
+        [1 << 7, "extensions"],
+        [1 << 4, "moteurs de recherche"],
+        [1 << 6, "saisie automatique"],
+    ];
+
+    let info = $state<Info | null>(null);
+    let selected = $state<string>("");
+    let phase = $state<"idle" | "importing" | "done" | "partial" | "error">("idle");
+    let message = $state("");
+
+    const describe = (items: number) =>
+        ITEMS.filter(([bit]) => items & bit).map(([, label]) => label).join(", ");
+
+    const load = async () => {
+        try {
+            info = await sendWithPromise<Info>("getHeliumImportState");
+        } catch {
+            info = null;
+            return;
+        }
+        if (info.completed) {
+            phase = "done";
+        } else if (info.busy) {
+            phase = "importing";
+        }
+        selected ||= info.profiles[0]?.id ?? "";
+    };
+
+    onMount(() => {
+        load();
+        // Helium a pu être fermé entre-temps.
+        const onFocus = () => phase === "idle" && load();
+        window.addEventListener("focus", onFocus);
+        return () => window.removeEventListener("focus", onFocus);
+    });
+
+    const errors: Record<string, string> = {
+        source_busy: "Helium est ouvert. Fermez-le, puis réessayez.",
+        busy: "Un import est déjà en cours.",
+        unavailable: "Le profil Helium a déjà été importé.",
+        invalid_profile: "Ce profil Helium n'est plus disponible.",
+        not_found: "Aucun profil Helium trouvé.",
+        failed: "L'import n'a pas abouti. Vous pourrez réessayer plus tard.",
+    };
+
+    const start = async () => {
+        if (!selected || phase === "importing") return;
+        phase = "importing";
+        message = "";
+        let result: ImportResult;
+        try {
+            result = await sendWithPromise<ImportResult>("importHeliumProfile", selected);
+        } catch {
+            result = { status: "failed" };
+        }
+        if (result.status === "finished") {
+            phase = "done";
+        } else if (result.status === "partial") {
+            phase = "partial";
+            const missing = (result.requestedItems ?? 0) & ~(result.finishedItems ?? 0);
+            message = missing
+                ? `Non repris : ${describe(missing)}.`
+                : "Une partie des données n'a pas pu être reprise.";
+        } else if (result.status === "unavailable") {
+            phase = "done";
+        } else {
+            phase = "error";
+            message = errors[result.status] ?? errors.failed;
+            if (result.status === "source_busy" && info) info.sourceBusy = true;
+        }
+    };
+
+    const visible = $derived(
+        !!info && info.status === "available" && info.profiles.length > 0
+    );
+    const current = $derived(info?.profiles.find((p: HeliumProfile) => p.id === selected));
+</script>
+
+{#if visible && info}
+    <section class="helium-import" aria-labelledby="helium-import-title">
+        <div class="logo" aria-hidden="true"><HeliumLogo /></div>
+        <div class="body">
+            <h4 id="helium-import-title">
+                {phase === "done" ? "Profil Helium repris" : "Reprendre votre profil Helium"}
+            </h4>
+
+            {#if phase === "done"}
+                <p>Vos données Helium sont maintenant dans Bluelium.</p>
+            {:else}
+                <p>
+                    Bluelium a trouvé Helium sur cet ordinateur. Vos données y restent :
+                    elles sont copiées, pas déplacées.
+                </p>
+                {#if info.profiles.length > 1}
+                    <div class="profiles" role="radiogroup" aria-label="Profil Helium">
+                        {#each info.profiles as profile (profile.id)}
+                            <label class:on={profile.id === selected}>
+                                <input
+                                    type="radio"
+                                    name="helium-profile"
+                                    value={profile.id}
+                                    bind:group={selected}
+                                    disabled={phase === "importing"}
+                                />
+                                <span>{profile.name === "Default" ? "Profil principal" : profile.name}</span>
+                            </label>
+                        {/each}
+                    </div>
+                {/if}
+                {#if current}
+                    <p class="items">{describe(current.items)}</p>
+                {/if}
+                {#if info.sourceBusy && phase !== "importing"}
+                    <p class="hint" role="status">Fermez Helium avant d'importer.</p>
+                {/if}
+                {#if message}
+                    <p class="hint" role={phase === "error" ? "alert" : "status"}>{message}</p>
+                {/if}
+            {/if}
+        </div>
+
+        <div class="action">
+            {#if phase === "done"}
+                <span class="done"><IconCheck /> Importé</span>
+            {:else}
+                <Button primary disabled={phase === "importing" || !selected} onclick={start}>
+                    {#if phase === "importing"}
+                        <Spinner size={18} /> Import…
+                    {:else}
+                        {phase === "error" || phase === "partial" ? "Réessayer" : "Importer"}
+                    {/if}
+                </Button>
+            {/if}
+        </div>
+    </section>
+{/if}
+
+<style>
+    .helium-import {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--gap-3);
+        width: 100%;
+        box-sizing: border-box;
+        padding: 18px 21px;
+        border-radius: 14px;
+        background-color: var(--helium-elevated-7);
+        box-shadow: 0 0 0 1px var(--primary) inset;
+        text-align: left;
+        animation: page-in 0.3s 0.05s backwards;
+    }
+
+    .logo {
+        flex: none;
+        width: 28px;
+        height: 28px;
+        color: var(--primary);
+
+        & :global(svg) {
+            width: 28px;
+            height: 28px;
+        }
+    }
+
+    .body {
+        display: flex;
+        flex: 1;
+        min-width: 0;
+        flex-direction: column;
+        gap: 6px;
+
+        & h4 {
+            font-size: 17px;
+        }
+
+        & p {
+            font-size: 15px;
+        }
+    }
+
+    .items {
+        opacity: 0.7;
+        &::first-letter {
+            text-transform: uppercase;
+        }
+    }
+
+    .hint {
+        color: var(--primary);
+    }
+
+    .profiles {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 4px;
+
+        & label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background-color: var(--helium-elevated-5);
+            font-size: 14px;
+            cursor: pointer;
+
+            &.on {
+                box-shadow: 0 0 0 1px var(--primary) inset;
+            }
+
+            & input {
+                accent-color: var(--primary);
+                margin: 0;
+            }
+        }
+    }
+
+    .action {
+        display: flex;
+        flex-shrink: 0;
+        align-self: center;
+    }
+
+    .done {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 15px;
+        color: var(--primary);
+    }
+
+    @media (max-width: 480px) {
+        .helium-import {
+            flex-wrap: wrap;
+        }
+
+        .action {
+            flex-basis: 100%;
+            justify-content: flex-end;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .helium-import {
+            animation: none;
+        }
+    }
+</style>

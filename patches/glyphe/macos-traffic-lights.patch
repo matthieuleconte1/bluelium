@@ -1,0 +1,30 @@
+--- a/chrome/browser/ui/views/frame/browser_native_widget_mac.mm
++++ b/chrome/browser/ui/views/frame/browser_native_widget_mac.mm
+@@ -236,6 +236,12 @@
+         browser_view_->browser_widget()->GetFrameView()->GetTopInset(true);
+     if (!browser_view_->ShouldDrawTabStrip()) {
+       *titlebar_height += kWebAppMenuMargin * 2;
++    } else if (top_element_info.tabstrip_preferred_height > 0) {
++      // Bluelium : Cocoa centre les feux dans cette hauteur. La pastille
++      // commence à y=4 et mesure 32 px : centre y=20, donc titre de 40 px.
++      // Ne pas changer les fenêtres applicatives ni les onglets verticaux.
++      *titlebar_height = 40 +
++          2 * browser_view_->browser_widget()->GetFrameView()->GetTopInset(true);
+     }
+   } else {
+     *override_titlebar_height = false;
+--- a/chrome/browser/ui/views/frame/browser_frame_view_mac.mm
++++ b/chrome/browser/ui/views/frame/browser_frame_view_mac.mm
+@@ -573,10 +573,10 @@
+   // These are empirically determined; feel free to change them if they're
+   // not precise.
+   if (@available(macOS 26, *)) {
+-    result.bounds = gfx::RectF(10, 10, 60, 14);
++    result.bounds = gfx::RectF(10, 13, 60, 14);  // Bluelium : centre y=20
+     result.margins = gfx::OutsetsF::VH(6, 14);
+   } else {
+-    result.bounds = gfx::RectF(11, 11, 52, 12);
++    result.bounds = gfx::RectF(11, 14, 52, 12);  // Bluelium : centre y=20
+     result.margins = gfx::OutsetsF::VH(6, 15);
+   }
+   // LINT.ThenChange(//chrome/browser/ui/views/frame/immersive_mode_controller_mac.mm:MacTabStripInsets)

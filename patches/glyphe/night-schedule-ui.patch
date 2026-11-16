@@ -1,0 +1,311 @@
+--- a/ui/webui/resources/cr_components/customize_color_scheme_mode/customize_color_scheme_mode.ts
++++ b/ui/webui/resources/cr_components/customize_color_scheme_mode/customize_color_scheme_mode.ts
+@@ -68,6 +68,11 @@
+       currentMode_: {type: Object, state: true},
+       colorSchemeModeOptions_: {type: Array, state: true},
+       followPageColor_: {type: Boolean, state: true},
++      // Bluelium : mode courant et Nuit automatique.
++      glypheMode_: {type: Number, state: true},
++      autoNight_: {type: Boolean, state: true},
++      autoStart_: {type: Number, state: true},
++      autoEnd_: {type: Number, state: true},
+     };
+   }
+ 
+@@ -80,6 +85,12 @@
+   private setColorSchemeModeListenerId_: number|null = null;
+   protected accessor followPageColor_: boolean = false;
+   private setFollowPageColorListenerId_: number|null = null;
++  // Bluelium : OLED et Nuit ont leurs propres couleurs.
++  protected accessor glypheMode_: number = -1;
++  protected accessor autoNight_: boolean = false;
++  protected accessor autoStart_: number = 21 * 60;
++  protected accessor autoEnd_: number = 7 * 60;
++  private glypheListenerIds_: number[] = [];
+ 
+   override connectedCallback() {
+     super.connectedCallback();
+@@ -97,6 +108,24 @@
+             (enabled: boolean) => {
+               this.followPageColor_ = enabled;
+             });
++    // Bluelium : suivre le mode (grisage) et la plage de la Nuit auto.
++    this.glypheListenerIds_ = [
++      this.browserProxy_.callbackRouter.setColorSchemeMode.addListener(
++          (mode: ColorSchemeMode) => {
++            this.glypheMode_ = mode;
++            this.dispatchEvent(new CustomEvent('glyphe-mode-change', {
++              bubbles: true,
++              composed: true,
++              detail: {locked: this.isGlypheLocked_()},
++            }));
++          }),
++      this.browserProxy_.callbackRouter.setRedNightSchedule.addListener(
++          (enabled: boolean, start: number, end: number) => {
++            this.autoNight_ = enabled;
++            this.autoStart_ = start;
++            this.autoEnd_ = end;
++          }),
++    ];
+     this.browserProxy_.handler.initializeColorSchemeMode();
+   }
+ 
+@@ -110,7 +139,59 @@
+           this.setFollowPageColorListenerId_);
+       this.setFollowPageColorListenerId_ = null;
+     }
++    // Bluelium
++    for (const id of this.glypheListenerIds_) {
++      this.browserProxy_.callbackRouter.removeListener(id);
++    }
++    this.glypheListenerIds_ = [];
+     super.disconnectedCallback();
++  }
++
++  // Bluelium : OLED et Nuit imposent leurs couleurs.
++  protected isGlypheLocked_(): boolean {
++    return this.glypheMode_ === ColorSchemeMode.kOled ||
++        this.glypheMode_ === ColorSchemeMode.kRedNight;
++  }
++
++  protected isNight_(): boolean {
++    return this.glypheMode_ === ColorSchemeMode.kRedNight;
++  }
++
++  protected formatMinutes_(minutes: number): string {
++    const h = Math.floor(minutes / 60) % 24;
++    const m = minutes % 60;
++    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
++  }
++
++  private parseTime_(value: string, fallback: number): number {
++    const match = /^(\d{1,2}):(\d{2})/.exec(value);
++    if (!match) {
++      return fallback;
++    }
++    const minutes = Number(match[1]) * 60 + Number(match[2]);
++    return minutes >= 0 && minutes < 24 * 60 ? minutes : fallback;
++  }
++
++  private sendSchedule_() {
++    this.browserProxy_.handler.setRedNightSchedule(
++        this.autoNight_, this.autoStart_, this.autoEnd_);
++  }
++
++  protected onAutoNightChange_(e: CustomEvent<boolean>) {
++    this.autoNight_ = e.detail;
++    this.sendSchedule_();
++  }
++
++  protected onAutoStartChange_(e: Event) {
++    this.autoStart_ = this.parseTime_(
++        (e.target as HTMLInputElement).value, this.autoStart_);
++    this.sendSchedule_();
++  }
++
++  protected onAutoEndChange_(e: Event) {
++    this.autoEnd_ = this.parseTime_(
++        (e.target as HTMLInputElement).value, this.autoEnd_);
++    this.sendSchedule_();
+   }
+ 
+   protected onFollowPageColorChange_(e: CustomEvent<boolean>) {
+--- a/ui/webui/resources/cr_components/customize_color_scheme_mode/customize_color_scheme_mode.html.ts
++++ b/ui/webui/resources/cr_components/customize_color_scheme_mode/customize_color_scheme_mode.html.ts
+@@ -19,10 +19,43 @@
+     </segmented-button-option>
+   `)}
+ </segmented-button>
+-<div id="glypheFollowPage">
+-  <span id="glypheFollowPageLabel">Couleur de la page dans la barre</span>
+-  <cr-toggle ?checked="${this.followPageColor_}"
+-      aria-labelledby="glypheFollowPageLabel"
+-      @change="${this.onFollowPageColorChange_}"></cr-toggle>
++<!-- Bluelium : Nuit automatique ; options grisées en OLED et en Nuit. -->
++<div id="glypheExtras" ?night="${this.isNight_()}">
++  <div id="glypheFollowPage" ?locked="${this.isGlypheLocked_()}"
++      ?inert="${this.isGlypheLocked_()}">
++    <span id="glypheFollowPageLabel">Couleur de la page dans la barre</span>
++    <cr-toggle ?checked="${this.followPageColor_}"
++        ?disabled="${this.isGlypheLocked_()}"
++        aria-labelledby="glypheFollowPageLabel"
++        @change="${this.onFollowPageColorChange_}"></cr-toggle>
++  </div>
++  <div id="glypheSchedule">
++    <div class="glyphe-row">
++      <div class="glyphe-text">
++        <span id="glypheAutoLabel">Nuit automatique</span>
++        <span class="glyphe-sub">${this.autoNight_ && !this.isNight_() ?
++            `${this.formatMinutes_(this.autoStart_)} – ${this.formatMinutes_(this.autoEnd_)}` :
++            'Bascule chaque jour aux heures choisies'}</span>
++      </div>
++      <cr-toggle ?checked="${this.autoNight_}"
++          aria-labelledby="glypheAutoLabel"
++          @change="${this.onAutoNightChange_}"></cr-toggle>
++    </div>
++    <div id="glypheTimes" ?hidden="${!this.autoNight_ || !this.isNight_()}">
++      <label for="glypheStart">De</label>
++      <input id="glypheStart" type="time" step="300"
++          .value="${this.formatMinutes_(this.autoStart_)}"
++          @change="${this.onAutoStartChange_}">
++      <label for="glypheEnd">à</label>
++      <input id="glypheEnd" type="time" step="300"
++          .value="${this.formatMinutes_(this.autoEnd_)}"
++          @change="${this.onAutoEndChange_}">
++    </div>
++  </div>
++  <p id="glypheLockNote" ?hidden="${!this.isGlypheLocked_()}">
++    ${this.isNight_() ? 'Le mode Nuit' : 'Le mode OLED'} a ses propres
++    couleurs. Thèmes et couleur de la page reviennent en Clair, Sombre et
++    Appareil.
++  </p>
+ </div>`;
+ }
+--- a/ui/webui/resources/cr_components/customize_color_scheme_mode/customize_color_scheme_mode.css
++++ b/ui/webui/resources/cr_components/customize_color_scheme_mode/customize_color_scheme_mode.css
+@@ -29,6 +29,90 @@
+   --cr-icon-image: url(chrome://resources/cr_components/customize_color_scheme_mode/night_mode.svg);
+ }
+ 
++/* Bluelium : Nuit automatique et options grisées. */
++#glypheExtras {
++  display: flex;
++  flex-direction: column;
++}
++
++#glypheExtras[night] #glypheSchedule {
++  border-bottom: 1px solid var(--cr-separator-color);
++  border-top: 0;
++  margin-top: 4px;
++  order: -1;
++  padding-bottom: 12px;
++}
++
++#glypheFollowPage[locked] {
++  opacity: 0.38;
++}
++
++#glypheSchedule {
++  border-top: 1px solid var(--cr-separator-color);
++  margin-top: 14px;
++  padding-top: 2px;
++}
++
++.glyphe-row {
++  align-items: center;
++  display: flex;
++  gap: 12px;
++  justify-content: space-between;
++  margin-top: 12px;
++}
++
++.glyphe-text {
++  color: var(--cr-primary-text-color);
++  display: flex;
++  flex-direction: column;
++  font-size: 13px;
++  gap: 2px;
++}
++
++.glyphe-sub {
++  color: var(--cr-secondary-text-color);
++  font-size: 11.5px;
++}
++
++#glypheTimes {
++  align-items: center;
++  color: var(--cr-secondary-text-color);
++  display: flex;
++  font-size: 13px;
++  gap: 8px;
++  margin-top: 10px;
++}
++
++#glypheTimes[hidden] {
++  display: none;
++}
++
++#glypheTimes input {
++  background: var(--color-sys-surface-container-lowest, transparent);
++  border: 1px solid var(--cr-separator-color);
++  border-radius: 9px;
++  color: var(--cr-primary-text-color);
++  color-scheme: inherit;
++  font: 500 13px ui-monospace, "SF Mono", Menlo, monospace;
++  padding: 5px 8px;
++}
++
++#glypheTimes input:focus-visible {
++  outline: 2px solid var(--cr-focus-outline-color);
++  outline-offset: 1px;
++}
++
++#glypheLockNote {
++  color: var(--cr-secondary-text-color);
++  font-size: 11.5px;
++  line-height: 1.4;
++  margin: 12px 0 0;
++}
++
++#glypheLockNote[hidden] {
++  display: none;
++}
++
+ #glypheFollowPage {
+   align-items: center;
+   color: var(--cr-primary-text-color);
+--- a/chrome/browser/resources/side_panel/customize_chrome/appearance.ts
++++ b/chrome/browser/resources/side_panel/customize_chrome/appearance.ts
+@@ -61,6 +61,7 @@
+       showColorPicker_: {type: Boolean},
+       showDeviceThemeToggle_: {type: Boolean},
+       showManagedDialog_: {type: Boolean},
++      glypheLocked_: {type: Boolean, state: true},
+     };
+   }
+ 
+@@ -72,6 +73,12 @@
+   protected accessor showColorPicker_: boolean = false;
+   protected accessor showDeviceThemeToggle_: boolean = false;
+   protected accessor showManagedDialog_: boolean = false;
++  // Bluelium : thèmes inactifs en OLED et en Nuit.
++  protected accessor glypheLocked_: boolean = false;
++  private onGlypheModeChange_ = (e: Event) => {
++    this.glypheLocked_ =
++        !!(e as CustomEvent<{locked: boolean}>).detail?.locked;
++  };
+   private listenerIds_: number[] = [];
+   private apiProxy_: CustomizeChromeApiProxy =
+       CustomizeChromeApiProxy.getInstance();
+@@ -86,6 +93,8 @@
+     ];
+ 
+     // Bluelium : aucune souscription aux réglages ou à la gestion de la NTP.
++    document.addEventListener(
++        'glyphe-mode-change', this.onGlypheModeChange_);
+     this.apiProxy_.handler.updateTheme();
+   }
+ 
+@@ -96,6 +105,9 @@
+       assert(this.apiProxy_.callbackRouter.removeListener(id));
+     }
+     this.listenerIds_ = [];
++    // Bluelium
++    document.removeEventListener(
++        'glyphe-mode-change', this.onGlypheModeChange_);
+   }
+ 
+   override willUpdate(changedProperties: PropertyValues<this>) {
+--- a/chrome/browser/resources/side_panel/customize_chrome/appearance.html.ts
++++ b/chrome/browser/resources/side_panel/customize_chrome/appearance.html.ts
+@@ -11,7 +11,9 @@
+ <!-- Bluelium : pas d’aperçu ni d’édition du fond de l’ancienne NTP. -->
+ <customize-color-scheme-mode></customize-color-scheme-mode>
+ <cr-theme-color-picker id="chromeColors" tabindex="-1"
+-    ?hidden="${!this.showColorPicker_}">
++    ?hidden="${!this.showColorPicker_}"
++    ?inert="${this.glypheLocked_}"
++    style="${this.glypheLocked_ ? 'opacity: 0.38' : ''}">
+ </cr-theme-color-picker>
+ <div id="followThemeToggle" class="sp-card-content"
+     ?hidden="${!this.showDeviceThemeToggle_}">

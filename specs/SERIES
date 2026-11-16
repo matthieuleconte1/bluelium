@@ -44,3 +44,10 @@ motion-pill.patch             motion_pill_spec.py            mac
 macos-identity.patch           macos_identity_spec.py         mac
 sparkle-bluelium.patch        sparkle_bluelium_spec.py       mac
 pdfjs.patch                   pdfjs_spec.py
+red-night-schedule.patch      red_night_schedule_spec.py
+night-schedule-ui.patch         night_schedule_ui_spec.py
+macos-traffic-lights.patch     macos_traffic_lights_spec.py    mac
+helium-import.patch           helium_import_spec.py
+helium-import-ui.patch         helium_import_ui_spec.py
+dark-outline.patch            dark_outline_spec.py
+native-messaging-compat.patch native_messaging_compat_spec.py
