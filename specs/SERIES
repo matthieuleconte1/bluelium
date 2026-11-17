@@ -13,7 +13,6 @@ tab-strip-fade.patch           tab_fade_spec.py
 shortcut-labels.patch          shortcut_labels_spec.py
 shimmer-native-ntp.patch       shimmer_native_spec.py
 prism-ui.patch                 prism_ui_spec.py
-assistant-tabs.patch           assistant_tabs_spec.py
 layout-spacing.patch           layout_spacing_spec.py
 native-messaging.patch         native_messaging_spec.py
 toolbar-glyphe.patch           toolbar_glyphe_spec.py
