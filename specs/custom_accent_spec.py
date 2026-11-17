@@ -1,0 +1,3 @@
+# Accent libre : conserver les surfaces Prism.
+NEW_FILES = {}
+EDITS = [('ui/color/glyphe_prism.cc', '  if (!theme) {\n    return nullptr;  // Couleur libre (pipette) : couleurs dérivées de Helium.\n  }\n', '  if (!theme) {\n    // Bluelium : conserver les surfaces Prism avec un accent libre.\n    // Stockage par thread, comme les appels synchrones des color mixers.\n    thread_local GlyphePrismPalette custom;\n    custom = dark ? kThemes[0].dark : kThemes[0].light;\n    custom.accent = SkColorSetA(*key.user_color, SK_AlphaOPAQUE);\n    custom.on_accent = color_utils::GetColorWithMaxContrast(custom.accent);\n    return &custom;\n  }\n')]

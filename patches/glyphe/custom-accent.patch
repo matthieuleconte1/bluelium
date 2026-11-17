@@ -1,0 +1,17 @@
+--- a/ui/color/glyphe_prism.cc
++++ b/ui/color/glyphe_prism.cc
+@@ -446,7 +446,13 @@
+     theme = FindGlypheTheme(*key.user_color);
+   }
+   if (!theme) {
+-    return nullptr;  // Couleur libre (pipette) : couleurs dérivées de Helium.
++    // Bluelium : conserver les surfaces Prism avec un accent libre.
++    // Stockage par thread, comme les appels synchrones des color mixers.
++    thread_local GlyphePrismPalette custom;
++    custom = dark ? kThemes[0].dark : kThemes[0].light;
++    custom.accent = SkColorSetA(*key.user_color, SK_AlphaOPAQUE);
++    custom.on_accent = color_utils::GetColorWithMaxContrast(custom.accent);
++    return &custom;
+   }
+   return dark ? &theme->dark : &theme->light;
+ }

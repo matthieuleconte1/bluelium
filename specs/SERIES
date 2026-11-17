@@ -51,3 +51,4 @@ helium-import.patch           helium_import_spec.py
 helium-import-ui.patch         helium_import_ui_spec.py
 dark-outline.patch            dark_outline_spec.py
 native-messaging-compat.patch native_messaging_compat_spec.py
+custom-accent.patch           custom_accent_spec.py
