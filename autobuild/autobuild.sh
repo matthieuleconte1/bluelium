@@ -2,12 +2,12 @@
 # Bluelium — auto-build (machine de build).
 #
 # Construit une version complète (PGO) quand Helium publie une nouvelle version
-# OU quand les patchs Bluelium changent sur GitHub (specs/, patches/,
+# MAJEURE stable (voir tools/helium-tag.py) OU quand les patchs Bluelium changent sur GitHub (specs/, patches/,
 # downloads.ini, lanceur). Travaille dans /root/helium-auto : l'arbre de
 # développement /root/helium-linux (builds incrémentaux) n'est jamais touché.
 #
 # Entrées :
-#   imputnet/helium-linux        dernière version publiée (tag)
+#   imputnet/helium-linux        version suivie : change aux majeures stables
 #   $BLUELIUM_GIT (branche main) specs/SERIES, specs/, patches/glyphe/,
 #                                downloads.ini, autobuild/helium-wrapper
 # Sorties :
@@ -52,14 +52,12 @@ PY
 fail() { status failed "$1"; echo "ÉCHEC : $1"; exit 1; }
 trap 'status failed "erreur inattendue (ligne $LINENO), voir autobuild.log"' ERR
 
-# 1. Dernière version publiée de helium-linux.
+# 1. Dépôt helium-linux (tags).
 if [ ! -d "$W/.git" ]; then
   git clone https://github.com/imputnet/helium-linux.git "$W"
 fi
 cd "$W"
 git fetch --quiet --tags --force --no-recurse-submodules origin
-TAG=$(git tag -l '[0-9]*' | sort -V | tail -1)
-[ -n "$TAG" ] || fail "aucune version trouvée sur imputnet/helium-linux"
 
 # 2. Patchs Bluelium : dernier commit de main qui les touche.
 if [ ! -d "$B/.git" ]; then
@@ -67,6 +65,15 @@ if [ ! -d "$B/.git" ]; then
 fi
 git -C "$B" fetch --quiet origin main
 git -C "$B" checkout --quiet --force origin/main
+
+# Version de Helium : on ne change qu'aux versions MAJEURES stables (0.21 ->
+# 0.22) ; les petites versions et les pré-versions sont ignorées
+# (tools/helium-tag.py). HELIUM_TAG force une version.
+CUR=$(cat "$STATE" 2>/dev/null || true); CUR=${CUR%%-g*}
+TAG=${HELIUM_TAG:-$(python3 "$B/tools/helium-tag.py" choose imputnet/helium-linux "$CUR")}
+[ -n "$TAG" ] || fail "aucune version trouvée sur imputnet/helium-linux"
+git rev-parse --quiet --verify "refs/tags/$TAG" >/dev/null \
+  || fail "la version $TAG de helium-linux n'existe pas"
 PATCH_ID=$(git -C "$B" log -1 --format=%h -- specs patches downloads.ini \
            autobuild/helium-wrapper tools/apply_spec.py tools/apply-series.py \
            tools/rename-product.py \

@@ -1,0 +1,149 @@
+# Bluelium : veille des versions majeures de Helium Linux.
+#
+# Chaque jour, cherche une version de helium-linux (pré-versions comprises)
+# dont la version majeure dépasse celle de la dernière release Bluelium
+# Linux (tools/helium-tag.py next-major). Si elle existe, prépare ses sources
+# et y applique la série Bluelium, sans compiler (tools/test-serie-helium.sh).
+# Résultat dans une issue « Helium <version> » (étiquette veille-helium) :
+# ouverte avec la liste des patchs à corriger si la série casse, fermée si
+# elle passe. Ne retest que si la version ou les patchs Bluelium changent.
+# Rien n'est construit ni publié ici.
+name: Veille Helium
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Version de helium-linux à tester (vide = nouvelle majeure)'
+        required: false
+      force:
+        description: 'Retester même si déjà testé'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: veille-helium
+  cancel-in-progress: false
+
+jobs:
+  choix:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.choix.outputs.tag }}
+      cle: ${{ steps.choix.outputs.cle }}
+      issue: ${{ steps.choix.outputs.issue }}
+      tester: ${{ steps.choix.outputs.tester }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: choix
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_DEMANDE: ${{ inputs.tag }}
+          FORCE: ${{ inputs.force }}
+        run: |
+          TAG=${TAG_DEMANDE:-$(python3 tools/helium-tag.py next-major imputnet/helium-linux)}
+          if [ -z "$TAG" ]; then
+            echo "Pas de nouvelle version majeure de Helium."
+            echo "tester=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          PATCH_ID=$(git log -1 --format=%h -- specs patches downloads.ini \
+                     tools/apply_spec.py tools/apply-series.py tools/rename-product.py \
+                     ':!specs/macos_*' ':!patches/glyphe/macos-*')
+          CLE="$TAG-g$PATCH_ID"
+          gh label create veille-helium --color 1f6feb \
+             --description "Nouvelle version majeure de Helium" 2>/dev/null || true
+          ISSUE=$(gh issue list --state all --label veille-helium --limit 50 \
+                  --json number,title --jq ".[] | select(.title | startswith(\"Helium $TAG \")) | .number" | head -1)
+          DEJA=false
+          if [ -n "$ISSUE" ] && gh issue view "$ISSUE" --json body --jq .body | grep -qF "<!-- teste:$CLE -->"; then
+            DEJA=true
+          fi
+          echo "Version : $TAG, patchs : $PATCH_ID, issue : ${ISSUE:-aucune}, déjà testé : $DEJA"
+          {
+            echo "tag=$TAG"; echo "cle=$CLE"; echo "issue=$ISSUE"
+            if [ "$DEJA" = true ] && [ "$FORCE" != true ]; then echo "tester=false"; else echo "tester=true"; fi
+          } >> "$GITHUB_OUTPUT"
+
+  test:
+    needs: choix
+    if: needs.choix.outputs.tester == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Place disque (sources Chromium ~10 Go)
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h /
+      - name: Outils
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq zstd patch
+          python3 -m pip install --quiet pillow schema
+      - name: Série Bluelium sur Helium ${{ needs.choix.outputs.tag }}
+        id: serie
+        run: |
+          set +e
+          tools/test-serie-helium.sh "${{ needs.choix.outputs.tag }}" "$RUNNER_TEMP/veille"
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+          echo "resultat=$(cat "$RUNNER_TEMP/veille/resultat.txt")" >> "$GITHUB_OUTPUT"
+      - name: Journaux
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: veille-helium-${{ needs.choix.outputs.tag }}
+          path: |
+            ${{ runner.temp }}/veille/*.log
+            ${{ runner.temp }}/veille/resultat.txt
+            ${{ runner.temp }}/veille/patches/
+          if-no-files-found: ignore
+      - name: Issue
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.choix.outputs.tag }}
+          CLE: ${{ needs.choix.outputs.cle }}
+          ISSUE: ${{ needs.choix.outputs.issue }}
+          RESULTAT: ${{ steps.serie.outputs.resultat }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          V="$RUNNER_TEMP/veille"
+          CHROMIUM=$(cat "$V/helium-linux/helium-chromium/chromium_version.txt" 2>/dev/null || echo '?')
+          PRE=$(gh release view "$TAG" -R imputnet/helium-linux --json isPrerelease --jq 'if .isPrerelease then " (pré-version)" else "" end' 2>/dev/null || true)
+          case "$RESULTAT" in
+            ok)
+              TITRE="Helium $TAG : la série Bluelium passe"
+              DETAIL="Tous les patchs Bluelium s'appliquent. Rien à corriger avant de construire."
+              ETAT=close ;;
+            bluelium)
+              TITRE="Helium $TAG : patchs Bluelium à corriger"
+              DETAIL=$(printf 'Patchs qui ne s'"'"'appliquent plus :\n\n```\n%s\n```\n\nPour corriger : mettre à jour les `old` des specs concernées sur ce nouvel arbre (`tools/test-serie-helium.sh %s <dossier>` reproduit le test sur Linux).' \
+                       "$(grep -E 'ÉCHEC|échec' "$V/series.log" | head -40)" "$TAG")
+              ETAT=reopen ;;
+            *)
+              TITRE="Helium $TAG : la préparation des sources échoue"
+              DETAIL=$(printf 'Échec avant la série Bluelium (téléchargement ou patchs de Helium) :\n\n```\n%s\n```' "$(tail -25 "$V/helium.log" 2>/dev/null)")
+              ETAT=reopen ;;
+          esac
+          BODY=$(printf '<!-- teste:%s -->\n**Helium %s%s**, Chromium %s, patchs Bluelium `%s`.\n\n%s\n\nJournaux : %s\n\n_Test automatique (veille-helium.yml). Rien n'"'"'est construit ni publié._' \
+                 "$CLE" "$TAG" "$PRE" "$CHROMIUM" "${CLE##*-g}" "$DETAIL" "$RUN")
+          if [ -z "$ISSUE" ]; then
+            URL=$(gh issue create --title "$TITRE" --label veille-helium --body "$BODY")
+            ISSUE=${URL##*/}
+          else
+            gh issue edit "$ISSUE" --title "$TITRE" --body "$BODY"
+            gh issue comment "$ISSUE" --body "Nouveau test : **$TITRE**. $RUN"
+          fi
+          if [ "$ETAT" = close ]; then
+            gh issue close "$ISSUE" --reason completed 2>/dev/null || true
+          else
+            gh issue reopen "$ISSUE" 2>/dev/null || true
+          fi
+          echo "Issue #$ISSUE : $TITRE"
