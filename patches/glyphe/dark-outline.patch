@@ -138,7 +138,7 @@
    void ChildVisibilityChanged(View* child) override;
 --- a/chrome/browser/ui/views/toolbar/toolbar_view.cc
 +++ b/chrome/browser/ui/views/toolbar/toolbar_view.cc
-@@ -3,6 +3,10 @@
+@@ -3,6 +3,11 @@
  // found in the LICENSE file.
  
  #include "chrome/browser/ui/views/toolbar/toolbar_view.h"
@@ -146,10 +146,11 @@
 +#include "cc/paint/paint_flags.h"
 +#include "cc/paint/path_effect.h"
 +#include "ui/gfx/canvas.h"
++#include <algorithm>
  #include "ui/views/controls/separator.h"
  
  #include <algorithm>
-@@ -1815,6 +1819,19 @@
+@@ -1815,6 +1820,26 @@
    LayoutSuperclass<AccessiblePaneView>(this);
  }
  
@@ -162,7 +163,14 @@
 +    flags.setStrokeWidth(1.f);
 +    const float intervals[] = {1.f, 1.f};
 +    flags.setPathEffect(cc::PathEffect::MakeDash(intervals, 2, 0));
-+    canvas->DrawLine(gfx::PointF(0, 0.5f), gfx::PointF(width(), 0.5f), flags);
++    // Commence aux onglets : rien sous les feux macOS.
++    float start = 0;
++    if (views::View* tabs = browser_view_->tab_strip_view()) {
++      gfx::Point origin;
++      views::View::ConvertPointToTarget(tabs, this, &origin);
++      start = std::clamp<float>(origin.x(), 0, width());
++    }
++    canvas->DrawLine(gfx::PointF(start, 0.5f), gfx::PointF(width(), 0.5f), flags);
 +  }
 +}
 +

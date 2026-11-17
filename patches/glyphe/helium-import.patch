@@ -45,7 +45,7 @@
 +#endif  // CHROME_BROWSER_UI_WEBUI_ONBOARDING_BLUELIUM_HELIUM_IMPORT_HANDLER_H_
 --- /dev/null
 +++ b/chrome/browser/ui/webui/onboarding/bluelium_helium_import_handler.cc
-@@ -0,0 +1,231 @@
+@@ -0,0 +1,237 @@
 +// Bluelium : source Helium fixe et lecture disque hors du thread UI.
 +#include "chrome/browser/ui/webui/onboarding/bluelium_helium_import_handler.h"
 +
@@ -106,6 +106,12 @@
 +      !base::NormalizeFilePath(target.DirName(), &canonical_target) ||
 +      canonical_root == canonical_target || canonical_root.IsParent(canonical_target) ||
 +      canonical_target.IsParent(canonical_root)) {
++    result.Set("status", "same_profile");
++    return result;
++  }
++  // Bluelium : profil déjà recopié en entier depuis Helium (lanceur AppImage
++  // ou tools/migrate-helium-macos.sh) : ne pas proposer un second import.
++  if (base::PathExists(target.DirName().Append(".copie-depuis-helium"))) {
 +    result.Set("status", "same_profile");
 +    return result;
 +  }

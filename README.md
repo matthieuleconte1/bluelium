@@ -67,9 +67,8 @@ veulent essayer cette interface, ou regarder comment le fork est construit.
 - 🚧 en cours de réglage, ou pas encore reconstruit sur cette plateforme
 - — sans objet
 
-Les ajouts des derniers jours ont été compilés et sont utilisés sur macOS.
-**L'auto-build Linux ne les a pas encore reconstruits** : ils ne sont pas dans
-les releases Linux actuelles et n'ont pas été testés sous Linux.
+Les releases macOS et Linux du 16 novembre contiennent toute la série. Les
+fonctions marquées 🚧 sont utilisables mais encore en réglage.
 
 | Fonctionnalité | macOS | Linux | Détails |
 |---|:---:|:---:|---|
@@ -111,16 +110,15 @@ journal de travail, pas toujours à jour.
 | | macOS Apple Silicon | Linux x86_64 | Windows |
 |---|---|---|:---:|
 | Build | Local, sur le Mac de l'auteur | Automatique, chaque nuit | ❌ |
-| État | Compilé, installé et utilisé | Releases publiées, sans les derniers ajouts | |
-| Paquet | `.dmg` signé ad hoc, **pas encore publié** | `.tar.zst` + `.sha256` | |
-| Mise à jour auto | Agent launchd | Minuteur systemd | |
+| État | Compilé, installé et utilisé | Compilé, installé et utilisé | |
+| Paquet | `.dmg` signé ad hoc | AppImage, `.tar.zst` + `.sha256` | |
+| Mise à jour auto | Intégrée (Sparkle) | AppImage intégrée, ou minuteur systemd | |
 
 ## Installer
 
 ### macOS (Apple Silicon)
 
-Aucun `.dmg` n'est encore publié sur GitHub. En attendant, il faut
-[compiler](#compiler-soi-même). Une fois le `.dmg` disponible dans les
+Télécharger le dernier `.dmg` macOS dans les
 [releases](https://github.com/matthieuleconte1/bluelium/releases) :
 
 1. Vérifier le `.sha256`, puis glisser **Bluelium.app** dans `~/Applications`.
@@ -201,7 +199,8 @@ Pour les installations par archive (l'AppImage se met à jour seule),
 
 Le script lit les releases GitHub, vérifie le SHA-256 et installe la nouvelle
 version quand Bluelium est fermé. La version précédente est conservée à côté.
-Sur macOS, il n'aura rien à installer tant qu'aucun `.dmg` n'est publié.
+Sur macOS, Bluelium se met aussi à jour seul (Sparkle, vérification toutes
+les 6 h) : l'agent launchd n'est plus nécessaire.
 
 ## Fonctionnement
 
@@ -335,8 +334,10 @@ Pour publier les releases, la machine de build lit `GH_TOKEN` dans
 
 Sans dates.
 
-- Publier le `.dmg` macOS sur GitHub.
-- Reconstruire sous Linux avec les nouvelles specs.
+- Mode Nuit et OLED : contours des onglets, interface Nuit redessinée,
+  activation automatique à heures fixes.
+- Reprendre son profil Helium depuis l'écran de bienvenue.
+- Connecteurs IA : détection de l'extension Claude par Claude Code.
 - Affiner les animations et la couleur de la page dans la barre.
 - Valider le lecteur PDF.js au quotidien sur macOS et Linux.
 - Ajouter des captures d'écran.

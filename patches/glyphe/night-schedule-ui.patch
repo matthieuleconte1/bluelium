@@ -1,6 +1,6 @@
 --- a/ui/webui/resources/cr_components/customize_color_scheme_mode/customize_color_scheme_mode.ts
 +++ b/ui/webui/resources/cr_components/customize_color_scheme_mode/customize_color_scheme_mode.ts
-@@ -68,6 +68,11 @@
+@@ -68,6 +68,12 @@
        currentMode_: {type: Object, state: true},
        colorSchemeModeOptions_: {type: Array, state: true},
        followPageColor_: {type: Boolean, state: true},
@@ -9,10 +9,11 @@
 +      autoNight_: {type: Boolean, state: true},
 +      autoStart_: {type: Number, state: true},
 +      autoEnd_: {type: Number, state: true},
++      pickerOpen_: {type: String, state: true},
      };
    }
  
-@@ -80,6 +85,12 @@
+@@ -80,6 +86,19 @@
    private setColorSchemeModeListenerId_: number|null = null;
    protected accessor followPageColor_: boolean = false;
    private setFollowPageColorListenerId_: number|null = null;
@@ -21,11 +22,18 @@
 +  protected accessor autoNight_: boolean = false;
 +  protected accessor autoStart_: number = 21 * 60;
 +  protected accessor autoEnd_: number = 7 * 60;
++  // Bluelium : heure réglée à la souris (le clavier du panneau est pris
++  // par les raccourcis du navigateur).
++  protected accessor pickerOpen_: string = '';
++  protected readonly hours_: number[] =
++      Array.from({length: 24}, (_, i) => i);
++  protected readonly minutes_: number[] =
++      Array.from({length: 12}, (_, i) => i * 5);
 +  private glypheListenerIds_: number[] = [];
  
    override connectedCallback() {
      super.connectedCallback();
-@@ -97,6 +108,24 @@
+@@ -97,6 +116,21 @@
              (enabled: boolean) => {
                this.followPageColor_ = enabled;
              });
@@ -34,11 +42,8 @@
 +      this.browserProxy_.callbackRouter.setColorSchemeMode.addListener(
 +          (mode: ColorSchemeMode) => {
 +            this.glypheMode_ = mode;
-+            this.dispatchEvent(new CustomEvent('glyphe-mode-change', {
-+              bubbles: true,
-+              composed: true,
-+              detail: {locked: this.isGlypheLocked_()},
-+            }));
++            this.fire('glyphe-mode-change',
++                      {locked: this.isGlypheLocked_()});
 +          }),
 +      this.browserProxy_.callbackRouter.setRedNightSchedule.addListener(
 +          (enabled: boolean, start: number, end: number) => {
@@ -50,7 +55,7 @@
      this.browserProxy_.handler.initializeColorSchemeMode();
    }
  
-@@ -110,7 +139,59 @@
+@@ -110,7 +144,71 @@
            this.setFollowPageColorListenerId_);
        this.setFollowPageColorListenerId_ = null;
      }
@@ -78,13 +83,21 @@
 +    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 +  }
 +
-+  private parseTime_(value: string, fallback: number): number {
-+    const match = /^(\d{1,2}):(\d{2})/.exec(value);
-+    if (!match) {
-+      return fallback;
++  protected pad_(n: number): string {
++    return String(n).padStart(2, '0');
++  }
++
++  protected pickedMinutes_(): number {
++    return this.pickerOpen_ === 'end' ? this.autoEnd_ : this.autoStart_;
++  }
++
++  private setPicked_(minutes: number) {
++    if (this.pickerOpen_ === 'end') {
++      this.autoEnd_ = minutes;
++    } else {
++      this.autoStart_ = minutes;
 +    }
-+    const minutes = Number(match[1]) * 60 + Number(match[2]);
-+    return minutes >= 0 && minutes < 24 * 60 ? minutes : fallback;
++    this.sendSchedule_();
 +  }
 +
 +  private sendSchedule_() {
@@ -97,22 +110,26 @@
 +    this.sendSchedule_();
 +  }
 +
-+  protected onAutoStartChange_(e: Event) {
-+    this.autoStart_ = this.parseTime_(
-+        (e.target as HTMLInputElement).value, this.autoStart_);
-+    this.sendSchedule_();
++  protected onTimeChipClick_(e: Event) {
++    const which = (e.currentTarget as HTMLElement).dataset['which'] || '';
++    this.pickerOpen_ = this.pickerOpen_ === which ? '' : which;
 +  }
 +
-+  protected onAutoEndChange_(e: Event) {
-+    this.autoEnd_ = this.parseTime_(
-+        (e.target as HTMLInputElement).value, this.autoEnd_);
-+    this.sendSchedule_();
++  protected onHourClick_(e: Event) {
++    const hour = Number((e.currentTarget as HTMLElement).dataset['value']);
++    this.setPicked_(hour * 60 + this.pickedMinutes_() % 60);
++  }
++
++  protected onMinuteClick_(e: Event) {
++    const minute = Number((e.currentTarget as HTMLElement).dataset['value']);
++    this.setPicked_(Math.floor(this.pickedMinutes_() / 60) * 60 + minute);
++    this.pickerOpen_ = '';
    }
  
    protected onFollowPageColorChange_(e: CustomEvent<boolean>) {
 --- a/ui/webui/resources/cr_components/customize_color_scheme_mode/customize_color_scheme_mode.html.ts
 +++ b/ui/webui/resources/cr_components/customize_color_scheme_mode/customize_color_scheme_mode.html.ts
-@@ -19,10 +19,43 @@
+@@ -19,10 +19,59 @@
      </segmented-button-option>
    `)}
  </segmented-button>
@@ -144,26 +161,42 @@
 +          @change="${this.onAutoNightChange_}"></cr-toggle>
 +    </div>
 +    <div id="glypheTimes" ?hidden="${!this.autoNight_ || !this.isNight_()}">
-+      <label for="glypheStart">De</label>
-+      <input id="glypheStart" type="time" step="300"
-+          .value="${this.formatMinutes_(this.autoStart_)}"
-+          @change="${this.onAutoStartChange_}">
-+      <label for="glypheEnd">à</label>
-+      <input id="glypheEnd" type="time" step="300"
-+          .value="${this.formatMinutes_(this.autoEnd_)}"
-+          @change="${this.onAutoEndChange_}">
++      <span>De</span>
++      <button class="glyphe-time" data-which="start"
++          ?open="${this.pickerOpen_ === 'start'}"
++          aria-expanded="${this.pickerOpen_ === 'start'}"
++          @click="${this.onTimeChipClick_}">
++        ${this.formatMinutes_(this.autoStart_)}</button>
++      <span>à</span>
++      <button class="glyphe-time" data-which="end"
++          ?open="${this.pickerOpen_ === 'end'}"
++          aria-expanded="${this.pickerOpen_ === 'end'}"
++          @click="${this.onTimeChipClick_}">
++        ${this.formatMinutes_(this.autoEnd_)}</button>
++    </div>
++    <div id="glyphePicker"
++        ?hidden="${!this.pickerOpen_ || !this.autoNight_ || !this.isNight_()}">
++      <span class="glyphe-picker-title">Heure</span>
++      <div class="glyphe-grid">
++        ${this.hours_.map(h => html`<button class="glyphe-cell"
++            data-value="${h}"
++            ?selected="${Math.floor(this.pickedMinutes_() / 60) === h}"
++            @click="${this.onHourClick_}">${this.pad_(h)}</button>`)}
++      </div>
++      <span class="glyphe-picker-title">Minutes</span>
++      <div class="glyphe-grid">
++        ${this.minutes_.map(m => html`<button class="glyphe-cell"
++            data-value="${m}"
++            ?selected="${this.pickedMinutes_() % 60 === m}"
++            @click="${this.onMinuteClick_}">${this.pad_(m)}</button>`)}
++      </div>
 +    </div>
 +  </div>
-+  <p id="glypheLockNote" ?hidden="${!this.isGlypheLocked_()}">
-+    ${this.isNight_() ? 'Le mode Nuit' : 'Le mode OLED'} a ses propres
-+    couleurs. Thèmes et couleur de la page reviennent en Clair, Sombre et
-+    Appareil.
-+  </p>
  </div>`;
  }
 --- a/ui/webui/resources/cr_components/customize_color_scheme_mode/customize_color_scheme_mode.css
 +++ b/ui/webui/resources/cr_components/customize_color_scheme_mode/customize_color_scheme_mode.css
-@@ -29,6 +29,90 @@
+@@ -29,6 +29,126 @@
    --cr-icon-image: url(chrome://resources/cr_components/customize_color_scheme_mode/night_mode.svg);
  }
  
@@ -225,30 +258,66 @@
 +  display: none;
 +}
 +
-+#glypheTimes input {
-+  background: var(--color-sys-surface-container-lowest, transparent);
++.glyphe-time,
++.glyphe-cell {
++  background: transparent;
 +  border: 1px solid var(--cr-separator-color);
 +  border-radius: 9px;
 +  color: var(--cr-primary-text-color);
-+  color-scheme: inherit;
-+  font: 500 13px ui-monospace, "SF Mono", Menlo, monospace;
-+  padding: 5px 8px;
++  cursor: pointer;
++  font: 500 13px ui-monospace, Menlo, monospace;
++  padding: 5px 10px;
 +}
 +
-+#glypheTimes input:focus-visible {
-+  outline: 2px solid var(--cr-focus-outline-color);
-+  outline-offset: 1px;
++.glyphe-time:hover,
++.glyphe-cell:hover {
++  border-color: var(--cr-primary-text-color);
 +}
 +
-+#glypheLockNote {
++.glyphe-time[open] {
++  border-style: dashed;
++  border-color: var(--cr-primary-text-color);
++}
++
++#glyphePicker {
++  border: 1px dashed var(--cr-separator-color);
++  border-radius: 12px;
++  display: flex;
++  flex-direction: column;
++  gap: 6px;
++  margin-top: 10px;
++  padding: 10px;
++}
++
++#glyphePicker[hidden] {
++  display: none;
++}
++
++.glyphe-picker-title {
 +  color: var(--cr-secondary-text-color);
 +  font-size: 11.5px;
-+  line-height: 1.4;
-+  margin: 12px 0 0;
 +}
 +
-+#glypheLockNote[hidden] {
-+  display: none;
++.glyphe-grid {
++  display: grid;
++  gap: 4px;
++  grid-template-columns: repeat(6, 1fr);
++}
++
++.glyphe-cell {
++  padding: 4px 0;
++}
++
++.glyphe-cell[selected] {
++  background: var(--cr-primary-text-color);
++  border-color: var(--cr-primary-text-color);
++  color: var(--cr-card-background-color, #000);
++}
++
++.glyphe-time:focus-visible,
++.glyphe-cell:focus-visible {
++  outline: 2px solid var(--cr-focus-outline-color);
++  outline-offset: 1px;
 +}
 +
  #glypheFollowPage {
@@ -272,7 +341,7 @@
 +  protected accessor glypheLocked_: boolean = false;
 +  private onGlypheModeChange_ = (e: Event) => {
 +    this.glypheLocked_ =
-+        !!(e as CustomEvent<{locked: boolean}>).detail?.locked;
++        (e as CustomEvent<{locked: boolean}>).detail?.locked === true;
 +  };
    private listenerIds_: number[] = [];
    private apiProxy_: CustomizeChromeApiProxy =
@@ -309,3 +378,32 @@
  </cr-theme-color-picker>
  <div id="followThemeToggle" class="sp-card-content"
      ?hidden="${!this.showDeviceThemeToggle_}">
+--- a/chrome/browser/ui/views/frame/browser_widget.cc
++++ b/chrome/browser/ui/views/frame/browser_widget.cc
+@@ -40,6 +40,7 @@
+ #include "components/prefs/pref_service.h"
+ #include "content/public/browser/web_contents.h"
+ #include "ui/color/glyphe_red_night.h"
++#include "ui/color/glyphe_prism.h"  // Bluelium : IsGlypheOled
+ #include <algorithm>
+ #include "ui/color/color_provider_manager.h"
+ #include "ui/gfx/animation/tween.h"
+@@ -514,7 +515,8 @@
+   // Valeur mémorisée, mise à jour par UpdateGlyphePageColor() avec un
+   // ThemeChanged() : la lire en direct ici colorait seulement les zones
+   // redessinées.
+-  else if (glyphe_shown_page_color_ && !ui::IsGlypheRedNight()) {
++  else if (glyphe_shown_page_color_ && !ui::IsGlypheRedNight() &&
++           !ui::IsGlypheOled()) {
+     key.app_background_color = *glyphe_shown_page_color_;
+   }
+ 
+@@ -545,7 +547,7 @@
+   }
+   Profile* profile = browser_view_->browser()->GetProfile();
+   const bool follow =
+-      !ui::IsGlypheRedNight() &&
++      !ui::IsGlypheRedNight() && !ui::IsGlypheOled() &&
+       !web_app::AppBrowserController::From(browser_view_->browser()) &&
+       profile->GetPrefs()->GetBoolean(prefs::kGlypheFollowPageColor);
+   std::optional<SkColor> target;

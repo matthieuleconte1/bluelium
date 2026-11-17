@@ -1,6 +1,77 @@
 # Avancement — Helium Glyphe
 
-Mis à jour le 11 novembre 2026.
+Mis à jour le 16 novembre 2026.
+
+## État au 16 novembre 2026
+
+### Fait depuis le 13 nov. (commits `6fc51da` → `f757dea`)
+- Version macOS (Apple Silicon) : identité distincte de Helium, `.dmg` mis en
+  page et publié sur GitHub, mises à jour Sparkle (appcast), migration du profil.
+- Linux : release `v0.21.3.1-gc03092a` construite avec toute la série, AppImage
+  avec mise à jour automatique, profil `~/.config/bluelium` distinct de Helium.
+- Mode Nuit : interface rouge sur noir + filtre de lumière chaude sur les pages
+  (convertisseur DOM retiré). Compilé et utilisé.
+- Lecteur PDF.js, adresses `bluelium://`, nom « Bluelium » dans l'interface,
+  animations (geste trackpad, pastille de retour, changement d'onglet), bulle ⌘Q,
+  couleur de page en dégradé fluide, page de nouveautés par release.
+- Pastille de l'onglet actif à 32 px, `kTabWidth` présent dans `prism-ui.patch`,
+  icônes Shimmer via le cache de favicons.
+- **Validés à l'écran (16 nov.)** : panneau IA arrondi, fondu des onglets qui
+  débordent, « + » centré, onglet combiné de la vue divisée, build Linux.
+
+### Sans objet (convertisseur DOM supprimé)
+Filtre de secours canvas/WebGL, sous-cadres et sites lourds, page d'accueil
+nuit, fusion des deux patchs nuit rouge.
+
+## À faire
+
+Organisation : par lots, un build et une validation par lot. Backend (specs
+C++ Chromium) par GPT/Codex, frontend (WebUI, maquettes, valeurs de DA) par Claude.
+
+### Lot 1 — priorités
+Specs écrites (GPT : backend, Claude : panneau et écran de bienvenue), pas
+encore compilées. DA validée le 16 nov. : variante A « Trait fin » pour Nuit
+et OLED ; réglage auto dans le panneau Personnaliser, thèmes et couleur de
+page grisés en OLED et en Nuit. Écran de bienvenue testé hors navigateur
+(vite dev + polyfill).
+- [ ] OLED et Nuit : contour des onglets (ils se fondent dans le noir).
+- [ ] Nuit : refonte de l'interface (contours, pointillés). Le rendu des pages
+      (filtre chaud) est validé, on n'y touche pas.
+- [ ] Nuit : activation automatique réglable dans le panneau Apparence
+      (heures fixes).
+- [ ] macOS : feux tricolores mal centrés verticalement par rapport aux onglets.
+- [ ] Écran de bienvenue : proposer l'import du profil Helium.
+- [ ] Connecteurs IA : Claude Code ne détecte pas l'extension Claude ;
+      connecteur ChatGPT/Codex (`com.openai.codexextension`) absent.
+
+### Lot 2 — faciles
+- [ ] Accent personnalisé : existe mais cassé, à réparer.
+- [ ] Instrument Sans livrée avec le navigateur (Linux) et appliquée sur macOS.
+- [ ] Shimmer : entièrement traduit en français ; raccourcis Claude/ChatGPT,
+      moteur de recherche du navigateur.
+- [ ] Jeu hors ligne, aperçu de lien, canal Nightly.
+- [ ] Nettoyage : fusion `assistant-side-panel` + `assistant-tabs`, icône
+      ChatGPT, nom « Glyphe » restant (code, dossier Linux).
+
+### Lot 3 — moyennes
+- [ ] Sites épinglés en boutons ronds.
+- [ ] Archivage automatique des onglets inactifs depuis 12 h.
+- [ ] Barre de commande : recherche d'onglets + actions dans l'omnibox.
+- [ ] Teinte et dégradé du cadre ; mode compact une ligne.
+- [ ] Onglets sur le cadre, page en retrait, adresse dans la page.
+- [ ] Import depuis Arc, code de configuration, CLI pour agents.
+
+### Lot 4 — lourdes / optionnelles
+- [ ] Transparence du cadre + flou (KWin, macOS).
+- [ ] Interface ludique en option.
+
+### README
+- [ ] Captures d'écran ; feuille de route et tableau des plateformes à jour
+      (`.dmg` publié, Linux reconstruit).
+
+---
+
+# Historique (jusqu'au 13 novembre)
 
 ## Fait
 
@@ -125,7 +196,7 @@ Règles de l'Atelier Glyphe appliquées au DOM et au CSS :
   convertisseur avec pseudo-éléments et icônes à masque, Claude/ChatGPT épinglés
   par défaut. À valider à l'écran.
 
-## À faire
+## Ancienne liste (13 nov.)
 
 ### Retours du 13 nov. (vus sur macOS)
 - [x] Bouton IA épinglé absent après l'import des données (liste des actions

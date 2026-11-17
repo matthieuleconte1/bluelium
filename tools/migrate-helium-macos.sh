@@ -28,6 +28,8 @@ rsync -a \
   --exclude '/*/Cache' --exclude '/*/Code Cache' --exclude '/*/GPUCache' \
   "$SRC/" "$DST/"
 echo "Profil copié ($(du -sh "$DST" | cut -f1))"
+# Repère lu par l'écran de bienvenue : pas de second import de Helium.
+date > "$DST/.copie-depuis-helium"
 
 # Même clé de chiffrement que Helium, sous le nom que Bluelium cherche.
 key=$(security find-generic-password -s 'Helium Storage Key' -a Helium -w)

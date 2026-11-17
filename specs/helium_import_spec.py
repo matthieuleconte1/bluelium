@@ -109,6 +109,12 @@ base::DictValue Detect(const base::FilePath& target) {
     result.Set("status", "same_profile");
     return result;
   }
+  // Bluelium : profil déjà recopié en entier depuis Helium (lanceur AppImage
+  // ou tools/migrate-helium-macos.sh) : ne pas proposer un second import.
+  if (base::PathExists(target.DirName().Append(".copie-depuis-helium"))) {
+    result.Set("status", "same_profile");
+    return result;
+  }
   result.Set("status", "available");
   // Bluelium : verrou présent, même périmé => ne jamais essayer de l'effacer.
   const auto lock = root.Append("SingletonLock");

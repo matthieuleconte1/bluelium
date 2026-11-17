@@ -107,7 +107,8 @@ EDITS = [
   '#include "ui/color/bluelium_dark_outline.h"\n'
   '#include "cc/paint/paint_flags.h"\n'
   '#include "cc/paint/path_effect.h"\n'
-  '#include "ui/gfx/canvas.h"\n'),
+  '#include "ui/gfx/canvas.h"\n'
+  '#include <algorithm>\n'),
  (TB + 'cc', 'void ToolbarView::OnThemeChanged() {\n',
   'void ToolbarView::OnPaint(gfx::Canvas* canvas) {\n'
   '  views::AccessiblePaneView::OnPaint(canvas);\n'
@@ -118,7 +119,14 @@ EDITS = [
   '    flags.setStrokeWidth(1.f);\n'
   '    const float intervals[] = {1.f, 1.f};\n'
   '    flags.setPathEffect(cc::PathEffect::MakeDash(intervals, 2, 0));\n'
-  '    canvas->DrawLine(gfx::PointF(0, 0.5f), gfx::PointF(width(), 0.5f), flags);\n'
+  '    // Commence aux onglets : rien sous les feux macOS.\n'
+  '    float start = 0;\n'
+  '    if (views::View* tabs = browser_view_->tab_strip_view()) {\n'
+  '      gfx::Point origin;\n'
+  '      views::View::ConvertPointToTarget(tabs, this, &origin);\n'
+  '      start = std::clamp<float>(origin.x(), 0, width());\n'
+  '    }\n'
+  '    canvas->DrawLine(gfx::PointF(start, 0.5f), gfx::PointF(width(), 0.5f), flags);\n'
   '  }\n'
   '}\n\n'
   'void ToolbarView::OnThemeChanged() {\n'),
