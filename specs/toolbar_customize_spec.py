@@ -20,26 +20,22 @@ EDITS = [
    '  // Bluelium : bouton de profil caché par défaut (réglable).\n'
    '  registry->RegisterBooleanPref(prefs::kShowAvatarButton, false);\n'),
   (MOJOM,
-   '  kSplitTab,\n  kContextualTasks,\n};\n',
-   '  kSplitTab,\n  kContextualTasks,\n  // Bluelium : onglet IA.\n  kGlypheAssistant,\n};\n'),
+   '  kTtc,\n  kShowTabsFromOtherDevices,\n};\n',
+   '  kTtc,\n  kShowTabsFromOtherDevices,\n  // Bluelium : onglet IA.\n  kGlypheAssistant,\n};\n'),
   (H,
    '    case kActionSidePanelShowContextualTasks:\n'
-   '      return side_panel::customize_chrome::mojom::ActionId::kContextualTasks;\n'
-   '    default:\n',
+   '      return side_panel::customize_chrome::mojom::ActionId::kContextualTasks;\n',
    '    case kActionSidePanelShowContextualTasks:\n'
    '      return side_panel::customize_chrome::mojom::ActionId::kContextualTasks;\n'
    '    case kActionSidePanelShowGlypheAssistant:  // Bluelium\n'
-   '      return side_panel::customize_chrome::mojom::ActionId::kGlypheAssistant;\n'
-   '    default:\n'),
+   '      return side_panel::customize_chrome::mojom::ActionId::kGlypheAssistant;\n'),
   (H,
    '    case side_panel::customize_chrome::mojom::ActionId::kContextualTasks:\n'
-   '      return kActionSidePanelShowContextualTasks;\n'
-   '    default:\n',
+   '      return kActionSidePanelShowContextualTasks;\n',
    '    case side_panel::customize_chrome::mojom::ActionId::kContextualTasks:\n'
    '      return kActionSidePanelShowContextualTasks;\n'
    '    case side_panel::customize_chrome::mojom::ActionId::kGlypheAssistant:\n'
-   '      return kActionSidePanelShowGlypheAssistant;  // Bluelium\n'
-   '    default:\n'),
+   '      return kActionSidePanelShowGlypheAssistant;  // Bluelium\n'),
   (H,
    '  add_action(kActionTabSearch,\n'
    '             side_panel::customize_chrome::mojom::CategoryId::kTools);\n',

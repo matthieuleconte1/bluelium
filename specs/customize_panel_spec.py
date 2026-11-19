@@ -109,9 +109,8 @@ import './customize_toolbar/toolbar.js';'''),
 '''),
   ('chrome/browser/resources/side_panel/customize_chrome/app.ts',
    '''import type {CategoriesElement} from './categories.js';
-import type {BackgroundCollection, ManagementNoticeState} from './customize_chrome.mojom-webui.js';
-import {ChromeWebStoreCategory, ChromeWebStoreCollection, CustomizeChromeSection, NewTabPageType} from './customize_chrome.mojom-webui.js';
-import {CustomizeChromeApiProxy} from './customize_chrome_api_proxy.js';
+import type {BackgroundCollection, BrowserProxy, ManagementNoticeState} from './customize_chrome.mojom-webui.js';
+import {browserProxyFactory, ChromeWebStoreCategory, ChromeWebStoreCollection, CustomizeChromeSection, NewTabPageType} from './customize_chrome.mojom-webui.js';
 import type {ThemesElement} from './themes.js';
 
 const SECTION_TO_SELECTOR = {
@@ -126,8 +125,8 @@ const CHANGE_CHROME_THEME_BUTTON_ELEMENT_ID =
     'CustomizeChromeUI::kChangeChromeThemeButtonElementId';
 
 ''',
-   '''import {ChromeWebStoreCategory, ChromeWebStoreCollection, CustomizeChromeSection} from './customize_chrome.mojom-webui.js';
-import {CustomizeChromeApiProxy} from './customize_chrome_api_proxy.js';
+   '''import type {BrowserProxy} from './customize_chrome.mojom-webui.js';
+import {browserProxyFactory, ChromeWebStoreCategory, ChromeWebStoreCollection, CustomizeChromeSection} from './customize_chrome.mojom-webui.js';
 
 // Bluelium : les anciennes destinations NTP sont ignorées par le routeur.
 '''),
@@ -423,9 +422,9 @@ import {CustomizeChromeApiProxy} from './customize_chrome_api_proxy.js';
    '''// Bluelium : aucun aperçu de la NTP Chromium à charger.
 '''),
   ('chrome/browser/resources/side_panel/customize_chrome/appearance.ts',
-   '''import {NewTabPageType} from './customize_chrome.mojom-webui.js';
+   '''import {browserProxyFactory, NewTabPageType} from './customize_chrome.mojom-webui.js';
 ''',
-   '''// Bluelium : le type de NTP ne conditionne plus les couleurs du navigateur.
+   '''import {browserProxyFactory} from './customize_chrome.mojom-webui.js';
 '''),
   ('chrome/browser/resources/side_panel/customize_chrome/appearance.ts',
    '''    editThemeButton: HTMLButtonElement,

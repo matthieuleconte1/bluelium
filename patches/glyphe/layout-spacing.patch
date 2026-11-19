@@ -9,16 +9,16 @@
  constexpr int kSeparatorHeight = 14;  // Glyphe
  
  
-@@ -30,7 +30,7 @@
+@@ -33,7 +33,7 @@
  // Split tabs need more space to be readable.
- constexpr int kSplitTabWidth = 400;  // Glyphe
+ constexpr int kSplitTabWidth = 250;
  
 -constexpr int kTabHorizontalPadding = 2;
 +constexpr int kTabHorizontalPadding = 10;  // Glyphe: 10px inside painted edge
  
- }  // namespace
- 
-@@ -104,7 +104,7 @@
+ // The horizontal distance from the tab bounds to the visible tab shape, see
+ // HorizontalTabStyleViews::GetPath().
+@@ -120,7 +120,7 @@
  }
  
  int TabStyle::GetBottomCornerRadius() const {
@@ -26,7 +26,7 @@
 +  return 4;  // Glyphe: invisible extension, not the painted 8px radius
  }
  
- int TabStyle::GetTabOverlap() const {
+ int TabStyle::GetBottomExtensionWidth() const {
 --- a/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc
 +++ b/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc
 @@ -125,11 +125,11 @@
@@ -53,7 +53,7 @@
  
      float right = aligned_bounds.right() - extension_corner_radius;
      const int bottom = top + tab_height;
-@@ -425,7 +424,7 @@
+@@ -408,7 +407,7 @@
  
    gfx::Insets insets =
        gfx::Insets::TLBR(
@@ -62,7 +62,7 @@
        base_style_insets + split_insets;
  
    return insets;
-@@ -494,7 +493,8 @@
+@@ -477,7 +476,8 @@
    separator_bounds.leading = gfx::RectF(
        aligned_bounds.x() + corner_radius - separator_margin.right() -
            separator_size.width(),
@@ -72,7 +72,7 @@
        separator_size.width(), separator_size.height());
  
    separator_bounds.trailing = separator_bounds.leading;
-@@ -561,6 +561,9 @@
+@@ -544,6 +544,9 @@
    // Check the adjacent tab/group header to see if there's a visible shapes.
    const TabStyleViewDelegate* const adjacent_tab =
        delegate_->GetAdjacentTab(leading);
@@ -84,7 +84,7 @@
        leading ? adjacent_tab : delegate_.get();
 --- a/chrome/browser/ui/layout_constants.cc
 +++ b/chrome/browser/ui/layout_constants.cc
-@@ -113,7 +113,7 @@
+@@ -135,7 +135,7 @@
      case LayoutConstant::kTabCloseButtonSize:
        return touch_ui ? 24 : (features::IsRoundedIconsEnabled() ? 14 : 16);
      case LayoutConstant::kTabHeight:
@@ -93,7 +93,7 @@
      case LayoutConstant::kTabStripHeight:
        return GetLayoutConstant(LayoutConstant::kTabHeight) +
               GetLayoutConstant(LayoutConstant::kTabStripPadding);
-@@ -246,8 +246,8 @@
+@@ -286,8 +286,8 @@
  
      case TOOLBAR_INTERIOR_MARGIN: {
        const int base = GetLayoutConstant(LayoutConstant::kHeliumBasePadding);
@@ -106,16 +106,16 @@
      case WEBUI_TAB_STRIP_TOOLBAR_INTERIOR_MARGIN:
 --- a/chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.cc
 +++ b/chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.cc
-@@ -667,7 +667,7 @@
+@@ -623,7 +623,7 @@
        GetLayoutConstant(LayoutConstant::kTabStripHeight) -
        GetLayoutConstant(LayoutConstant::kTabstripToolbarOverlap) -
-       NewTabButton::kButtonSize.height();
+       NewTabButton::GetButtonSize().height();
 -  const int top_inset = extra_vertical_space / 2;
 +  const int top_inset = extra_vertical_space / 2 + 1;  // Glyphe : centré sur les onglets (y=20)
    const int bottom_inset =
        extra_vertical_space - top_inset +
        GetLayoutConstant(LayoutConstant::kTabstripToolbarOverlap);
-@@ -779,7 +779,7 @@
+@@ -723,7 +723,7 @@
  
    tab_strip_->SetProperty(
        views::kMarginsKey,
@@ -124,10 +124,10 @@
                          tab_strip_right_margin.value_or(0)));
  }
  
-@@ -1105,7 +1105,7 @@
+@@ -1053,7 +1053,7 @@
        GetLayoutConstant(LayoutConstant::kTabStripHeight) -
        GetLayoutConstant(LayoutConstant::kTabstripToolbarOverlap) -
-       TabStripControlButton::kButtonSize.height();
+       TabStripControlButton::GetButtonSize().height();
 -  const int top_inset = extra_vertical_space / 2;
 +  const int top_inset = extra_vertical_space / 2 + 1;  // Glyphe : centré sur les onglets (y=20)
    const int bottom_inset =
@@ -146,7 +146,7 @@
                LocationBarView::GetAvailableTextHeight(), desired_font_size);
 --- a/chrome/browser/ui/views/tabs/tab.cc
 +++ b/chrome/browser/ui/views/tabs/tab.cc
-@@ -515,15 +515,15 @@
+@@ -519,15 +519,15 @@
    // indicator, but visually it will be smaller at kFaviconSize wide.
    gfx::Rect favicon_bounds(
        start,
@@ -164,8 +164,8 @@
 +      MaybeAdjustLeftForPinnedTab(&favicon_bounds, 16 /* Glyphe favicon */);
      }
      icon_->ResizeDiscardIndicatorRadiusForWidth(
-         width() - 2 * tab_style()->GetBottomCornerRadius());
-@@ -614,7 +614,7 @@
+         width() - 2 * tab_style()->GetBottomExtensionWidth());
+@@ -618,7 +618,7 @@
        // indicator), but rather the normal favicon width which is what it will
        // look like.
        const int after_favicon =
@@ -174,7 +174,7 @@
            GetLayoutConstant(LayoutConstant::kTabPreTitlePadding);
        title_left = std::max(title_left, after_favicon);
      }
-@@ -626,8 +626,8 @@
+@@ -630,8 +630,8 @@
      const int title_width = std::max(title_right - title_left, 0);
      // The Label will automatically center the font's cap height within the
      // provided vertical space.
@@ -185,7 +185,7 @@
      show_title = title_width > 0;
  
      if (title_bounds != target_title_bounds_) {
-@@ -1411,7 +1411,7 @@
+@@ -1361,7 +1361,7 @@
    int available_width = GetContentsBounds().width();
  
    const bool touch_ui = ui::TouchUiController::Get()->touch_ui();
@@ -302,7 +302,7 @@
    gfx::Size button_size = button->GetPreferredSize();
    if (delegate_->GetFrameButtonStyle() ==
 @@ -457,8 +458,9 @@
-               button->GetClassName());
+              base::NotFatalUntil::M162);
      const int caption_button_center_size =
          button_width - 2 * views::kCaptionButtonInkDropDefaultCornerRadius;
 -    const int height =
@@ -313,7 +313,7 @@
      const int corner_radius =
          std::clamp((height - caption_button_center_size) / 2, 0,
                     views::kCaptionButtonInkDropDefaultCornerRadius);
-@@ -512,7 +514,8 @@
+@@ -513,7 +515,8 @@
      case ButtonAlignment::kAlignTrailing: {
        int extra_width = top_area_padding.trailing;
        int button_start_spacing =
@@ -323,7 +323,7 @@
  
        available_space_trailing_x_ -= button_start_spacing;
        minimum_size_for_buttons_ += button_start_spacing;
-@@ -600,7 +603,8 @@
+@@ -601,7 +604,8 @@
    // Reset all our data so that everything is invisible.
    TopAreaPadding top_area_padding = GetTopAreaPadding();
    available_space_leading_x_ = top_area_padding.leading;

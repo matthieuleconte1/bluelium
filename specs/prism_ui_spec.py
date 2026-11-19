@@ -814,17 +814,27 @@ EDITS = [
    'constexpr int kTabWidth = 190;\n', 'constexpr int kTabWidth = 240;  // Glyphe : onglets plus larges\n'),
   ('chrome/browser/ui/tabs/tab_style.cc',
    'constexpr int kSeparatorHeight = 16;\n', 'constexpr int kSeparatorHeight = 14;  // Glyphe\n'),
-  (LC, '    case LayoutConstant::kTabHeight:\n      return 31;\n',
+  (LC, '    case LayoutConstant::kTabHeight:\n'
+   '      // The visible part of the tab matches the location bar height.\n'
+   '      return GetLayoutConstant(LayoutConstant::kLocationBarHeight) +\n'
+   '             GetLayoutConstant(LayoutConstant::kTabStripPadding) +\n'
+   '             GetLayoutConstant(LayoutConstant::kTabstripToolbarOverlap);\n',
    '    case LayoutConstant::kTabHeight:\n      return 30;  // Glyphe\n'),
-  (LC, '    case LayoutConstant::kTabPreTitlePadding:\n      return 6;\n',
+  (LC, '    case LayoutConstant::kTabPreTitlePadding:\n      return spacious ? 8 : 6;\n',
    '    case LayoutConstant::kTabPreTitlePadding:\n      return 8;  // Glyphe\n'),
-  (LC, '    case LayoutConstant::kLocationBarHeight:\n      return touch_ui ? 36 : 28;\n',
+  (LC, '    case LayoutConstant::kLocationBarHeight:\n      return touch_ui ? 36 : (spacious ? 32 : 28);\n',
    '    case LayoutConstant::kLocationBarHeight:\n      return touch_ui ? 36 : 30;  // Glyphe\n'),
-  (LC, '    case LayoutConstant::kToolbarButtonHeight:\n      return touch_ui ? 48 : 28;\n',
+  (LC, '    case LayoutConstant::kToolbarButtonHeight:\n      return touch_ui ? 48 : (spacious ? 32 : 28);\n',
    '    case LayoutConstant::kToolbarButtonHeight:\n      return touch_ui ? 48 : 30;  // Glyphe\n'),
   (LC, '      return touch_ui ? kDefaultTouchableIconSize\n                      : kDefaultIconSizeChromeRefresh;\n',
    '      return touch_ui ? kDefaultTouchableIconSize : 18;  // Glyphe\n'),
-  (LC, '      return gfx::Insets(touch_ui ? 12 : 4);\n',
+  (LC, '    case TOOLBAR_BUTTON:\n'
+   '      // Fills the toolbar button height.\n'
+   '      return gfx::Insets(\n'
+   '          (GetLayoutConstant(LayoutConstant::kToolbarButtonHeight) -\n'
+   '           GetLayoutConstant(LayoutConstant::kToolbarButtonIconSize)) /\n'
+   '          2);\n',
+   '    case TOOLBAR_BUTTON:\n'
    '      return gfx::Insets(touch_ui ? 12 : 6);  // Glyphe : 18 + 2 × 6 = 30\n'),
   (LC, '    case LayoutConstant::kToolbarElementPadding:\n'
        '      return touch_ui ? 0 : GetLayoutConstant(LayoutConstant::kHeliumBasePadding);\n',
@@ -832,7 +842,10 @@ EDITS = [
   (LC, '    case LayoutConstant::kToolbarIconDefaultMargin:\n'
        '      return touch_ui ? 0 : GetLayoutConstant(LayoutConstant::kHeliumBasePadding);\n',
    '    case LayoutConstant::kToolbarIconDefaultMargin:\n      return touch_ui ? 0 : 2;  // Glyphe\n'),
-  (LC, '      return gfx::Insets::VH(base, base * 2);\n',
+  (LC, '      if (spacious) {\n'
+   '        return touch_ui ? gfx::Insets::VH(4, 0) : gfx::Insets::VH(base, 6);\n'
+   '      }\n'
+   '      return gfx::Insets::VH(base, base * 2);\n',
    '      // Glyphe : rangée de 36 px, 1 px au-dessus, 5 px avant la page.\n'
    '      return gfx::Insets::TLBR(base - 2, base - 1, base + 2, base - 1);\n'),
   ('chrome/browser/ui/views/location_bar/location_bar_view.cc',

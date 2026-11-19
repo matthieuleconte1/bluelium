@@ -110,7 +110,7 @@
    },
 --- a/chrome/chrome_paks.gni
 +++ b/chrome/chrome_paks.gni
-@@ -148,6 +148,7 @@
+@@ -163,6 +163,7 @@
        "$root_gen_dir/third_party/blink/public/resources/inspector_overlay_resources.pak",
        "$root_gen_dir/third_party/blink/public/strings/permission_element_generated_strings.pak",
        "$root_gen_dir/third_party/ublock/resources/ublock_resources.pak",
@@ -118,7 +118,7 @@
        "$root_gen_dir/ui/resources/ui_lottie_resources.pak",
        "$root_gen_dir/ui/webui/resources/webui_resources.pak",
      ]
-@@ -186,6 +187,7 @@
+@@ -201,6 +202,7 @@
        "//third_party/blink/public:resources",
        "//third_party/blink/public/strings:permission_element_generated_strings",
        "//third_party/ublock",
@@ -128,7 +128,7 @@
      ]
 --- a/chrome/browser/extensions/BUILD.gn
 +++ b/chrome/browser/extensions/BUILD.gn
-@@ -649,6 +649,7 @@
+@@ -648,6 +648,7 @@
      "//services/metrics/public/cpp:ukm_builders",
      "//storage/browser",
      "//third_party/ublock",
@@ -154,7 +154,7 @@
  #endif  /* COMPONENTS_HELIUM_SERVICES_EXTENSION_IDS_H_ */
 --- a/chrome/browser/extensions/component_loader.h
 +++ b/chrome/browser/extensions/component_loader.h
-@@ -245,6 +245,7 @@
+@@ -249,6 +249,7 @@
                                   const std::string& description_string);
    void AddWebStoreApp();
    void AddUBlock();
@@ -169,10 +169,10 @@
  #include "ui/base/resource/resource_bundle.h"
  #include "third_party/ublock/resources/grit/ublock_resources.h"
 +#include "third_party/shimmer/resources/grit/shimmer_resources.h"
+ #include "ui/webui/buildflags.h"
  
  #if BUILDFLAG(IS_CHROMEOS)
- #include "ash/constants/ash_extension_constants.h"
-@@ -636,6 +637,20 @@
+@@ -663,6 +664,20 @@
        base::FilePath(FILE_PATH_LITERAL("extstore_fixups")));
  }
  
@@ -193,7 +193,7 @@
  #if BUILDFLAG(IS_CHROMEOS)
  void ComponentLoader::AddChromeApp() {
    AddWithNameAndDescription(
-@@ -714,6 +729,7 @@
+@@ -741,6 +756,7 @@
    if (!skip_session_components) {
      AddWebStoreApp();
      AddUBlock();
@@ -208,18 +208,18 @@
  #include "printing/buildflags/buildflags.h"
  #include "third_party/ublock/resources/grit/ublock_resources.h"
 +#include "third_party/shimmer/resources/grit/shimmer_resources.h"
+ #include "ui/webui/buildflags.h"
  
- #if BUILDFLAG(IS_CHROMEOS)
- #include "ash/constants/ash_extension_constants.h"
-@@ -45,6 +46,7 @@
-       extension_misc::kInAppPaymentsSupportAppId,
+ #if BUILDFLAG(ENABLE_WEBUI_NTP)
+@@ -53,6 +54,7 @@
+ #endif  // BUILDFLAG(ENABLE_WEBUI_NTP)
        extension_misc::kPdfExtensionId,
        helium::kUBlockOriginComponentId,
 +      helium::kShimmerTabComponentId,
        helium::kExtstoreFixupsExtensionId,
  #if BUILDFLAG(IS_CHROMEOS)
        extension_misc::kAssessmentAssistantExtensionId,
-@@ -105,6 +107,7 @@
+@@ -116,6 +118,7 @@
      case IDR_NETWORK_SPEECH_SYNTHESIS_MANIFEST_MV3:
      case IDR_WEBSTORE_MANIFEST:
      case IDR_UBLOCK_MANIFEST_JSON:
@@ -234,10 +234,10 @@
  #include "ui/base/resource/resource_bundle.h"
  #include "third_party/ublock/resources/grit/ublock_resources_map.h"
 +#include "third_party/shimmer/resources/grit/shimmer_resources_map.h"
+ #include "ui/webui/buildflags.h"
  
- #if BUILDFLAG(IS_CHROMEOS)
- #include "ash/keyboard/ui/resources/keyboard_resource_util.h"
-@@ -130,6 +131,7 @@
+ #if BUILDFLAG(ENABLE_WEBUI_NTP)
+@@ -141,6 +142,7 @@
      AddComponentResourceEntries(kContextualTasksExtensionResources);
    }
    AddComponentResourceEntries(kUblockResources);

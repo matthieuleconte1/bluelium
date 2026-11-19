@@ -65,7 +65,7 @@
 +#endif  // UI_COLOR_GLYPHE_PRISM_H_
 --- /dev/null
 +++ b/ui/color/glyphe_prism.cc
-@@ -0,0 +1,450 @@
+@@ -0,0 +1,454 @@
 +// Helium Glyphe — thèmes de l’interface (charte Prism).
 +#include "ui/color/glyphe_prism.h"
 +
@@ -406,10 +406,14 @@
 +}
 +
 +GlyphePrismPalette GlyphePageColorPalette(SkColor page) {
-+  const SkColor bg = SkColorSetA(page, SK_AlphaOPAQUE);
-+  const bool dark = color_utils::IsDark(bg);
++  const SkColor page_bg = SkColorSetA(page, SK_AlphaOPAQUE);
++  const bool dark = color_utils::IsDark(page_bg);
 +  const SkColor fg = dark ? SkColorSetRGB(0xf4, 0xf5, 0xf7)
 +                          : SkColorSetRGB(0x15, 0x16, 0x1a);
++  // Bluelium : barre un peu décalée de la page (plus sombre sur une page
++  // claire, plus claire sur une page sombre), même teinte : à la couleur
++  // exacte, le bord de la page se confondait avec la barre.
++  const SkColor bg = Mix(fg, page_bg, 0x14);
 +  return {.frame = bg,
 +          .card = bg,
 +          .tab = Mix(fg, bg, 0x1c),
@@ -626,9 +630,9 @@
 +    p[kColorToolbarExtensionSeparatorEnabled] = {prism->divider};
 +  }
 +
+   // Bluelium : point d’intégration des thèmes, sans palette nuit rouge.
    // Helium Glyphe : cadre, onglets et barre d’outils en nuit rouge.
    if (ui::IsGlypheRedNight()) {
-     const SkColor red = ui::GlypheRedNightColor();
 --- a/chrome/browser/ui/webui/cr_components/theme_color_picker/customize_chrome_colors.h
 +++ b/chrome/browser/ui/webui/cr_components/theme_color_picker/customize_chrome_colors.h
 @@ -47,7 +47,7 @@
@@ -797,7 +801,7 @@
  
  #include <stddef.h>
  
-@@ -364,10 +366,24 @@
+@@ -346,10 +348,24 @@
  void ThemeService::Init() {
    theme_helper_->DCheckCalledOnValidSequence();
  
@@ -826,7 +830,7 @@
    }
  
    InitFromPrefs();
-@@ -497,7 +513,13 @@
+@@ -479,7 +495,13 @@
    }
  
    ClearThemeData(/*reset_all_settings=*/true);
@@ -843,28 +847,28 @@
  }
 --- a/chrome/common/pref_names.h
 +++ b/chrome/common/pref_names.h
-@@ -335,6 +335,10 @@
+@@ -341,6 +341,10 @@
      "webkit.webprefs.force_dark_mode_enabled";
- // Helium Glyphe : pages web converties en rouge sur noir.
+ // Bluelium : filtre de lumière chaude des pages (nom de pref conservé).
  inline constexpr char kGlypheRedNightEnabled[] = "glyphe.red_night.enabled";
 +// Helium Glyphe : interface en noir pur (mode OLED du panneau Personnaliser).
 +inline constexpr char kGlypheOledEnabled[] = "glyphe.oled.enabled";
 +// Helium Glyphe : la barre du haut prend la couleur de la page active.
 +inline constexpr char kGlypheFollowPageColor[] = "glyphe.follow_page_color";
- 
- inline constexpr char kWebKitCommonScript[] = "Zyyy";
- inline constexpr char kWebKitStandardFontFamily[] =
+ // Helium Glyphe : assistant affiché dans l’onglet IA (0 Claude, 1 ChatGPT,
+ // 2 Gemini, 3 Le Chat).
+ inline constexpr char kGlypheAssistantCurrent[] = "glyphe.assistant.current";
 --- a/chrome/browser/ui/prefs/prefs_tab_helper.cc
 +++ b/chrome/browser/ui/prefs/prefs_tab_helper.cc
-@@ -412,6 +412,8 @@
+@@ -432,6 +432,8 @@
    registry->RegisterBooleanPref(prefs::kWebKitForceDarkModeEnabled,
                                  force_dark_mode_enabled);
    registry->RegisterBooleanPref(prefs::kGlypheRedNightEnabled, false);
 +  registry->RegisterBooleanPref(prefs::kGlypheOledEnabled, false);
 +  registry->RegisterBooleanPref(prefs::kGlypheFollowPageColor, false);
+   registry->RegisterIntegerPref(prefs::kGlypheAssistantCurrent, 0);
    registry->RegisterStringPref(prefs::kDefaultCharset,
                                 l10n_util::GetStringUTF8(IDS_DEFAULT_ENCODING),
-                                user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
 --- a/chrome/browser/ui/views/frame/contents_web_view.cc
 +++ b/chrome/browser/ui/views/frame/contents_web_view.cc
 @@ -12,6 +12,7 @@
@@ -875,7 +879,7 @@
  #include "ui/color/glyphe_red_night.h"
  #include "ui/compositor/layer.h"
  #include "ui/native_theme/native_theme.h"
-@@ -58,6 +59,14 @@
+@@ -63,6 +64,14 @@
          prefs::kGlypheRedNightEnabled,
          base::BindRepeating(&ContentsWebView::UpdateGlypheRedNight,
                              base::Unretained(this)));
@@ -890,24 +894,26 @@
    }
  }
  
-@@ -66,13 +75,49 @@
-   if (glyphe_pref_registrar_.prefs()) {
-     const bool glyphe_on = glyphe_pref_registrar_.prefs()->GetBoolean(
-         prefs::kGlypheRedNightEnabled);
--    if (ui::IsGlypheRedNight() != glyphe_on) {
-+    const bool glyphe_oled = glyphe_pref_registrar_.prefs()->GetBoolean(
-+        prefs::kGlypheOledEnabled);
-+    if (ui::IsGlypheRedNight() != glyphe_on ||
-+        ui::IsGlypheOled() != glyphe_oled) {
-       ui::SetGlypheRedNight(glyphe_on);
-+      ui::SetGlypheOled(glyphe_oled);
-       ui::ColorProviderManager::Get().ResetColorProviderCache();
-       ui::NativeTheme::GetInstanceForNativeUi()->NotifyOnNativeThemeUpdated();
+@@ -78,6 +87,15 @@
      }
    }
-   // Les pages sont converties par GlypheNightTabHelper.
-+}
-+
+   // Bluelium : point d'intégration OLED, indépendant du filtre des pages.
++  if (glyphe_pref_registrar_.prefs()) {
++    const bool glyphe_oled = glyphe_pref_registrar_.prefs()->GetBoolean(
++        prefs::kGlypheOledEnabled);
++    if (ui::IsGlypheOled() != glyphe_oled) {
++      ui::SetGlypheOled(glyphe_oled);
++      ui::ColorProviderManager::Get().ResetColorProviderCache();
++      ui::NativeTheme::GetInstanceForNativeUi()->NotifyOnNativeThemeUpdated();
++    }
++  }
+   ui::Layer* page_layer = layer();
+ #if defined(USE_AURA)
+   // Bluelium : secours Linux si le flag de gestion des calques est désactivé.
+@@ -111,6 +129,38 @@
+   // Bluelium : filtre de lumière chaude appliqué au calque de contenu.
+ }
+ 
 +void ContentsWebView::UpdateGlyphePageColor() {
 +  // La clé de couleurs de la fenêtre lit la couleur de la page active
 +  // (BrowserWidget::GetColorProviderKey) : il suffit de la recalculer
@@ -938,10 +944,12 @@
 +
 +void ContentsWebView::OnBackgroundColorChanged() {
 +  UpdateGlyphePageColor();
- }
- 
++}
++
  ContentsWebView::~ContentsWebView() = default;
-@@ -182,6 +227,7 @@
+ 
+ StatusBubbleViews* ContentsWebView::GetStatusBubble() const {
+@@ -220,6 +270,7 @@
  void ContentsWebView::SetWebContents(content::WebContents* web_contents) {
    views::WebView::SetWebContents(web_contents);
    UpdateGlypheRedNight();
@@ -962,18 +970,19 @@
  #include "chrome/common/buildflags.h"
  #include "ui/base/interaction/element_identifier.h"
  #include "ui/base/metadata/metadata_header_macros.h"
-@@ -71,6 +75,8 @@
-   // prompt).
+@@ -67,6 +71,9 @@
  #if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
    void DidGetUserInteraction(const blink::WebInputEvent& event) override;
+ #endif
++  // Hors du bloc Linux de Helium : aussi utilisés sur macOS.
 +  void DidChangeThemeColor() override;
 +  void OnBackgroundColorChanged() override;
- #endif
  
    // ui::View overrides:
-@@ -84,6 +90,10 @@
+   std::unique_ptr<ui::Layer> RecreateLayer() override;
+@@ -79,6 +86,10 @@
    void UpdateBackgroundColor();
-   // Helium Glyphe : applique ou retire le filtre « nuit rouge ».
+   // Bluelium : applique ou retire le filtre de lumière chaude des pages.
    void UpdateGlypheRedNight();
 +  // Helium Glyphe : barre du haut à la couleur de la page active.
 +  void UpdateGlyphePageColor();
@@ -995,7 +1004,7 @@
  #include "ui/base/hit_test.h"
  #include "ui/base/mojom/menu_source_type.mojom-shared.h"
  #include "ui/base/mojom/window_show_state.mojom.h"
-@@ -501,6 +505,22 @@
+@@ -500,6 +504,22 @@
      key.app_controller = app_controller;
      key.app_background_color = app_controller->GetBackgroundColor();
    }
@@ -1253,7 +1262,7 @@
      customize_color_scheme_mode::mojom::ColorSchemeMode colorMode) {
 +  using Mode = customize_color_scheme_mode::mojom::ColorSchemeMode;
 +  PrefService* prefs = glyphe_prefs_.prefs();
-+  // Nuit : le mode nuit rouge, par-dessus le reste.
++  // Bluelium : Nuit active seulement le filtre de lumière chaude.
 +  if (colorMode == Mode::kRedNight) {
 +    prefs->SetBoolean(prefs::kGlypheRedNightEnabled, true);
 +    return;
@@ -1334,42 +1343,45 @@
 -constexpr int kTabWidth = 190;
 +constexpr int kTabWidth = 240;  // Glyphe : onglets plus larges
  
- // Split tabs need more space to be readable.
- constexpr int kSplitTabWidth = 250;
+ // Spacious density uses the upstream tab width.
+ constexpr int kSpaciousTabWidth = 232;
 --- a/chrome/browser/ui/layout_constants.cc
 +++ b/chrome/browser/ui/layout_constants.cc
-@@ -87,7 +87,7 @@
+@@ -109,7 +109,7 @@
      case LayoutConstant::kLocationBarTrailingDecorationInnerPadding:
        return touch_ui ? 3 : 8;
      case LayoutConstant::kLocationBarHeight:
--      return touch_ui ? 36 : 28;
+-      return touch_ui ? 36 : (spacious ? 32 : 28);
 +      return touch_ui ? 36 : 30;  // Glyphe
      // LINT.IfChange(LocationBarIconSize)
      case LayoutConstant::kLocationBarIconSize:
        return touch_ui ? 20 : 16;
-@@ -113,7 +113,7 @@
+@@ -135,10 +135,7 @@
      case LayoutConstant::kTabCloseButtonSize:
        return touch_ui ? 24 : (features::IsRoundedIconsEnabled() ? 14 : 16);
      case LayoutConstant::kTabHeight:
--      return 31;
+-      // The visible part of the tab matches the location bar height.
+-      return GetLayoutConstant(LayoutConstant::kLocationBarHeight) +
+-             GetLayoutConstant(LayoutConstant::kTabStripPadding) +
+-             GetLayoutConstant(LayoutConstant::kTabstripToolbarOverlap);
 +      return 30;  // Glyphe
      case LayoutConstant::kTabStripHeight:
        return GetLayoutConstant(LayoutConstant::kTabHeight) +
               GetLayoutConstant(LayoutConstant::kTabStripPadding);
-@@ -122,7 +122,7 @@
+@@ -147,7 +144,7 @@
      case LayoutConstant::kTabSeparatorHeight:
        return touch_ui ? 24 : 20;
      case LayoutConstant::kTabPreTitlePadding:
--      return 6;
+-      return spacious ? 8 : 6;
 +      return 8;  // Glyphe
      case LayoutConstant::kTabVerticalPadding:
        return 6;
      case LayoutConstant::kTabHorizontalPadding:
-@@ -132,10 +132,9 @@
+@@ -159,10 +156,9 @@
      case LayoutConstant::kTabstripToolbarOverlap:
        return 0;
      case LayoutConstant::kToolbarButtonHeight:
--      return touch_ui ? 48 : 28;
+-      return touch_ui ? 48 : (spacious ? 32 : 28);
 +      return touch_ui ? 48 : 30;  // Glyphe
      case LayoutConstant::kToolbarButtonIconSize:
 -      return touch_ui ? kDefaultTouchableIconSize
@@ -1378,7 +1390,7 @@
      case LayoutConstant::kToolbarDividerCornerRadius:
        return 1;
      case LayoutConstant::kToolbarDividerHeight:
-@@ -145,9 +144,9 @@
+@@ -172,9 +168,9 @@
      case LayoutConstant::kToolbarDividerWidth:
        return 1;
      case LayoutConstant::kToolbarElementPadding:
@@ -1390,19 +1402,26 @@
      case LayoutConstant::kToolbarButtonRefreshExpandedMargin:
        return 5;
      case LayoutConstant::kLocationBarMargin:
-@@ -223,7 +222,7 @@
+@@ -265,11 +261,7 @@
      }
  
      case TOOLBAR_BUTTON:
--      return gfx::Insets(touch_ui ? 12 : 4);
+-      // Fills the toolbar button height.
+-      return gfx::Insets(
+-          (GetLayoutConstant(LayoutConstant::kToolbarButtonHeight) -
+-           GetLayoutConstant(LayoutConstant::kToolbarButtonIconSize)) /
+-          2);
 +      return gfx::Insets(touch_ui ? 12 : 6);  // Glyphe : 18 + 2 × 6 = 30
  
      case BROWSER_APP_MENU_CHIP_PADDING:
        if (touch_ui) {
-@@ -247,7 +246,8 @@
+@@ -294,10 +286,8 @@
  
      case TOOLBAR_INTERIOR_MARGIN: {
        const int base = GetLayoutConstant(LayoutConstant::kHeliumBasePadding);
+-      if (spacious) {
+-        return touch_ui ? gfx::Insets::VH(4, 0) : gfx::Insets::VH(base, 6);
+-      }
 -      return gfx::Insets::VH(base, base * 2);
 +      // Glyphe : rangée de 36 px, 1 px au-dessus, 5 px avant la page.
 +      return gfx::Insets::TLBR(base - 2, base - 1, base + 2, base - 1);
@@ -1411,7 +1430,7 @@
      case WEBUI_TAB_STRIP_TOOLBAR_INTERIOR_MARGIN:
 --- a/chrome/browser/ui/views/location_bar/location_bar_view.cc
 +++ b/chrome/browser/ui/views/location_bar/location_bar_view.cc
-@@ -582,8 +582,9 @@
+@@ -575,8 +575,9 @@
  
  // static
  int LocationBarView::ComputeBorderRadius(gfx::Size size) {

@@ -181,17 +181,19 @@ EDITS = [
    '  command_updater_->UpdateCommandEnabled(IDC_GLYPHE_ASSISTANT_CLAUDE, true);\n'
    '  command_updater_->UpdateCommandEnabled(IDC_GLYPHE_ASSISTANT_CHATGPT, true);\n'),
 
-  ('chrome/browser/ui/views/side_panel/side_panel_helper.cc',
+  ('chrome/browser/ui/browser_window/internal/browser_window_features.cc',
    '#include "chrome/browser/ui/views/side_panel/comments/comments_side_panel_coordinator.h"\n',
    '#include "chrome/browser/ui/views/side_panel/comments/comments_side_panel_coordinator.h"\n'
    '#include "chrome/browser/ui/views/side_panel/glyphe_assistant.h"\n'),
-  ('chrome/browser/ui/views/side_panel/side_panel_helper.cc',
-   '  BookmarksSidePanelCoordinator::From(browser)->CreateAndRegisterEntry(\n'
-   '      window_registry);\n',
-   '  BookmarksSidePanelCoordinator::From(browser)->CreateAndRegisterEntry(\n'
-   '      window_registry);\n\n'
-   '  // Helium Glyphe : assistants Claude et ChatGPT.\n'
-   '  glyphe::RegisterAssistantEntries(browser, window_registry);\n'),
+  ('chrome/browser/ui/browser_window/internal/browser_window_features.cc',
+   '    side_panel_coordinator_ =\n'
+   '        GetUserDataFactory().CreateInstance<SidePanelCoordinator>(*browser_,\n'
+   '                                                                  browser);\n',
+   '    side_panel_coordinator_ =\n'
+   '        GetUserDataFactory().CreateInstance<SidePanelCoordinator>(*browser_,\n'
+   '                                                                  browser);\n'
+   '    // Helium Glyphe : onglet IA dans le panneau latéral Views.\n'
+   '    glyphe::RegisterAssistantEntries(browser, side_panel_registry_.get());\n'),
 
   ('chrome/browser/ui/views/side_panel/BUILD.gn',
    '    "side_panel_helper.cc",\n',
