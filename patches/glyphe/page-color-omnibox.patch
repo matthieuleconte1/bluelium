@@ -1,0 +1,54 @@
+--- a/chrome/browser/ui/color/chrome_color_mixers.cc
++++ b/chrome/browser/ui/color/chrome_color_mixers.cc
+@@ -187,8 +187,43 @@
+       p[kColorToolbarInkDropRipple] = {SkColorSetA(prism->text, 0x1f)};
+     }
+   };
++  // Bluelium : barre d'adresse en saisie et suggestions sur la couleur de
++  // la page. Chromium peint le champ actif avec le fond des suggestions,
++  // resté au thème : champ sombre dans une barre claire.
++  const auto add_page_omnibox_colors =
++      [](ui::ColorMixer& p, const ui::GlyphePrismPalette& prism) {
++    const SkColor field = prism.field;
++    const SkColor hovered =
++        color_utils::AlphaBlend(prism.text, field, SkAlpha{0x14});
++    const SkColor selected =
++        color_utils::AlphaBlend(prism.text, field, SkAlpha{0x1f});
++    p[kColorOmniboxResultsBackground] = {field};
++    p[kColorOmniboxResultsBackgroundIph] = {prism.card};
++    p[kColorOmniboxResultsBackgroundHovered] = {hovered};
++    p[kColorOmniboxResultsBackgroundHoverOverlay] = {
++        SkColorSetA(prism.text, 0x14)};
++    p[kColorOmniboxResultsBackgroundSelected] = {selected};
++    p[kColorOmniboxResultsFocusIndicator] = {prism.accent};
++    p[kColorOmniboxResultsTextSelected] = {prism.text};
++    p[kColorOmniboxResultsTextDimmed] = {prism.subtle};
++    p[kColorOmniboxResultsTextDimmedSelected] = {prism.subtle};
++    p[kColorOmniboxResultsUrl] = {prism.accent};
++    p[kColorOmniboxResultsUrlSelected] = {prism.accent};
++    p[kColorOmniboxKeywordSelected] = {prism.accent};
++    p[kColorOmniboxKeywordSeparator] = {prism.divider};
++    p[kColorOmniboxResultsIcon] = {prism.subtle};
++    p[kColorOmniboxResultsIconSelected] = {prism.subtle};
++    p[kColorOmniboxResultsIconHovered] = {SkColorSetA(prism.subtle, 0x21)};
++    p[kColorOmniboxResultsButtonBorder] = {prism.divider};
++    p[kColorOmniboxResultsButtonIcon] = {prism.text};
++    p[kColorOmniboxSelectionBackground] = {
++        color_utils::AlphaBlend(prism.text, field, SkAlpha{0x40})};
++    p[kColorOmniboxSelectionForeground] = {prism.text};
++    p[kColorOmniboxContextEntrypointText] = {prism.text};
++  };
+   if (glyphe_page && SkColorGetA(*key.app_background_color) == SK_AlphaOPAQUE) {
+     add_prism_colors(provider->AddMixer(), *glyphe_page);
++    add_page_omnibox_colors(provider->AddMixer(), *glyphe_page);
+   } else {
+     if (const auto* base = ui::GetGlyphePrismPalette(key)) {
+       add_prism_colors(provider->AddMixer(), *base);
+@@ -196,6 +231,7 @@
+     if (glyphe_page) {
+       ui::ColorMixer page;
+       add_prism_colors(page, *glyphe_page);
++      add_page_omnibox_colors(page, *glyphe_page);
+       ui::AddGlyphePageColorFadeMixer(
+           provider, page, SkColorGetA(*key.app_background_color));
+     }
