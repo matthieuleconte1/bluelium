@@ -45,13 +45,32 @@ page grisés en OLED et en Nuit. Écran de bienvenue testé hors navigateur
       connecteur ChatGPT/Codex (`com.openai.codexextension`) absent.
 
 ### Lot 2 — faciles
-- [ ] Accent personnalisé : existe mais cassé, à réparer.
-- [ ] Instrument Sans livrée avec le navigateur (Linux) et appliquée sur macOS.
-- [ ] Shimmer : entièrement traduit en français ; raccourcis Claude/ChatGPT,
-      moteur de recherche du navigateur.
-- [ ] Jeu hors ligne, aperçu de lien, canal Nightly.
-- [ ] Nettoyage : fusion `assistant-side-panel` + `assistant-tabs`, icône
-      ChatGPT, nom « Glyphe » restant (code, dossier Linux).
+Base : Helium 0.22.1.1 (branche `helium22`). Décisions du 19 nov. : jeu hors
+ligne original propre à Bluelium, aperçu de lien natif de Chromium, canal
+Nightly reporté, icône ChatGPT conservée telle quelle.
+- [ ] Accent personnalisé : spec `custom_accent` écrite, à vérifier à l'écran
+      après le build Helium 22.
+- [ ] Instrument Sans livrée avec le navigateur (Linux) et appliquée sur macOS
+      (branche `lot2-police`, série appliquée, relue ; à compiler).
+- [ ] Shimmer (branche `lot2-shimmer`, série appliquée, pas encore compilé) :
+      français (`shimmer_fr`, locale ajoutée au tableau de Shimmer), moteur de
+      recherche du navigateur (`shimmer_search` : `chrome.search.query`
+      n'existait pas dans la page interne, repli DuckDuckGo), raccourcis
+      Claude et ChatGPT pour les profils neufs.
+- Abandonné : aperçu de lien. Chromium a retiré la fonction du desktop
+  (avril 2026, sécurité) ; absente de Chromium 158.
+- [ ] Jeu hors ligne original « Paquet perdu » (`offline_game`, branche
+      `lot2-shimmer`) : remplace le dinosaure, série appliquée, typage
+      TypeScript strict vérifié et rendu vu en headless. À compiler et à
+      essayer à l'écran.
+- [ ] Pages internes (demande du 19 nov.) : fond = couleur de base du thème,
+      cartes Prism à coins de 12 px, entrée en fondu + glissement, sections
+      des Réglages et cartes d'extensions décalées (`webui_prism`, branche
+      `lot2-shimmer`, CSS vérifié dans Chrome). Cadre aux couleurs du thème
+      sur les pages internes (GPT, branche `lot2-pages-internes`).
+- [x] Nettoyage : fusion `assistant-side-panel` + `assistant-tabs` ; nom
+      « Glyphe » conservé dans les clés et chemins (voir docs/nettoyage-glyphe.md).
+- Reporté : canal Nightly.
 
 ### Lot 3 — moyennes
 - [ ] Sites épinglés en boutons ronds.

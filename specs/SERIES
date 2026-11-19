@@ -34,6 +34,10 @@ page-color-contrast.patch      page_color_contrast_spec.py
 assistant-tabs-contrast.patch  assistant_tabs_contrast_spec.py
 shimmer-appearance.patch      shimmer_appearance_spec.py
 shimmer-name.patch            shimmer_name_spec.py
+shimmer-fr.patch              shimmer_fr_spec.py
+shimmer-search.patch          shimmer_search_spec.py
+offline-game.patch            offline_game_spec.py
+webui-prism.patch             webui_prism_spec.py
 bluelium-scheme.patch         bluelium_scheme_spec.py
 customize-panel.patch         customize_panel_spec.py
 quit-hud.patch                 quit_hud_spec.py               mac
