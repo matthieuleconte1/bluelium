@@ -124,7 +124,7 @@
  
  #include <memory>
  #include <optional>
-@@ -178,7 +180,8 @@
+@@ -177,7 +179,8 @@
      return std::make_unique<PageNotAvailableForGuestUI>(
          web_ui, chrome::kChromeUINewTabPageHost);
    }
@@ -136,7 +136,7 @@
  namespace {
 --- a/chrome/browser/ui/webui/new_tab_page/BUILD.gn
 +++ b/chrome/browser/ui/webui/new_tab_page/BUILD.gn
-@@ -70,6 +70,8 @@
+@@ -71,6 +71,8 @@
  source_set("impl") {
    sources = [
      "new_tab_page_handler.cc",
@@ -147,7 +147,7 @@
    ]
 --- a/chrome/browser/extensions/component_loader.cc
 +++ b/chrome/browser/extensions/component_loader.cc
-@@ -729,7 +729,7 @@
+@@ -756,7 +756,7 @@
    if (!skip_session_components) {
      AddWebStoreApp();
      AddUBlock();
@@ -167,20 +167,6 @@
        <script type="module" crossorigin src="./assets/index-kwRkEiyG.js"></script>
        <link rel="stylesheet" crossorigin href="./assets/index-D40cEp1a.css">
      </head>
---- a/chrome/browser/ui/glyphe_night_tab_helper.cc
-+++ b/chrome/browser/ui/glyphe_night_tab_helper.cc
-@@ -68,8 +68,10 @@
-     return;
-   }
-   const GURL& url = rfh->GetLastCommittedURL();
-+  const bool is_new_tab_page = url.SchemeIs("chrome") &&
-+                               url.host() == "new-tab-page";
-   if (!url.SchemeIsHTTPOrHTTPS() && !url.SchemeIsFile() &&
--      !url.IsAboutBlank()) {
-+      !url.IsAboutBlank() && !is_new_tab_page) {
-     return;
-   }
-   rfh->ExecuteJavaScriptInIsolatedWorld(Script(), base::NullCallback(),
 --- a/third_party/shimmer/assets/index-kwRkEiyG.js
 +++ b/third_party/shimmer/assets/index-kwRkEiyG.js
 @@ -232,5 +232,5 @@

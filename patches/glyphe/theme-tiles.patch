@@ -20,10 +20,19 @@
  </cr-theme-color-check-mark-wrapper>`;
 --- a/ui/webui/resources/cr_components/theme_color_picker/theme_color.css
 +++ b/ui/webui/resources/cr_components/theme_color_picker/theme_color.css
-@@ -44,6 +44,25 @@
-   fill: var(--cr-theme-color-base-color);
+@@ -40,8 +40,32 @@
+   fill: var(--cr-theme-color-foreground-color);
  }
  
++/* Bluelium : pas d’aplat d’accent sous le cadre ; seule la pastille l’utilise. */
++:host(:not([background-color-hidden])) #foreground {
++  display: none;
++}
++
+ #base {
+   fill: var(--cr-theme-color-base-color);
++}
++
 +/* Bluelium : champ, page et accent de la mini-fenêtre. */
 +.field {
 +  fill: var(--cr-theme-color-base-color);
@@ -41,8 +50,20 @@
 +
 +:host([background-color-hidden]) .mini {
 +  display: none;
+ }
+ 
+ :host([background-color-hidden]) #background {
+--- a/ui/webui/resources/cr_components/theme_color_picker/theme_color_picker.css
++++ b/ui/webui/resources/cr_components/theme_color_picker/theme_color_picker.css
+@@ -42,6 +42,11 @@
+   --cr-dialog-width: min(calc(100% - 32px), 512px);
+ }
+ 
++/* Bluelium : aucun fond clair sous les coins des mini-fenêtres. */
++cr-theme-color:not([background-color-hidden]) {
++  background-color: transparent;
 +}
 +
- :host([background-color-hidden]) #background {
-   display: none;
- }
+ cr-theme-color {
+   background-color: var(
+       --color-theme-color-picker-option-background,

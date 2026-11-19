@@ -375,7 +375,7 @@
 +CLOSE,
 --- a/chrome/browser/ui/views/toolbar/toolbar_view.cc
 +++ b/chrome/browser/ui/views/toolbar/toolbar_view.cc
-@@ -761,6 +761,9 @@
+@@ -765,6 +765,9 @@
      else if (sab_value == "never")
        show_avatar_toolbar_button = false;
  

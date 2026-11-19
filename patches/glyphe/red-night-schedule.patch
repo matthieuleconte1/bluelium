@@ -118,7 +118,7 @@
 +}
 --- a/chrome/common/pref_names.h
 +++ b/chrome/common/pref_names.h
-@@ -335,6 +335,10 @@
+@@ -341,6 +341,10 @@
      "webkit.webprefs.force_dark_mode_enabled";
  // Bluelium : filtre de lumière chaude des pages (nom de pref conservé).
  inline constexpr char kGlypheRedNightEnabled[] = "glyphe.red_night.enabled";
@@ -126,12 +126,12 @@
 +inline constexpr char kGlypheRedNightAutoEnabled[] = "glyphe.red_night.auto.enabled";
 +inline constexpr char kGlypheRedNightAutoStart[] = "glyphe.red_night.auto.start";
 +inline constexpr char kGlypheRedNightAutoEnd[] = "glyphe.red_night.auto.end";
- // Helium Glyphe : assistant affiché dans l’onglet IA (0 Claude, 1 ChatGPT,
- // 2 Gemini, 3 Le Chat).
- inline constexpr char kGlypheAssistantCurrent[] = "glyphe.assistant.current";
+ // Helium Glyphe : interface en noir pur (mode OLED du panneau Personnaliser).
+ inline constexpr char kGlypheOledEnabled[] = "glyphe.oled.enabled";
+ // Helium Glyphe : la barre du haut prend la couleur de la page active.
 --- a/chrome/browser/ui/prefs/prefs_tab_helper.cc
 +++ b/chrome/browser/ui/prefs/prefs_tab_helper.cc
-@@ -412,6 +412,10 @@
+@@ -432,6 +432,10 @@
    registry->RegisterBooleanPref(prefs::kWebKitForceDarkModeEnabled,
                                  force_dark_mode_enabled);
    registry->RegisterBooleanPref(prefs::kGlypheRedNightEnabled, false);
@@ -139,9 +139,9 @@
 +  registry->RegisterBooleanPref(prefs::kGlypheRedNightAutoEnabled, false);
 +  registry->RegisterIntegerPref(prefs::kGlypheRedNightAutoStart, 1260);
 +  registry->RegisterIntegerPref(prefs::kGlypheRedNightAutoEnd, 420);
-   registry->RegisterIntegerPref(prefs::kGlypheAssistantCurrent, 0);
-   registry->RegisterBooleanPref(prefs::kGlypheAssistantUnpinned, false);
    registry->RegisterBooleanPref(prefs::kGlypheOledEnabled, false);
+   registry->RegisterBooleanPref(prefs::kGlypheFollowPageColor, false);
+   registry->RegisterIntegerPref(prefs::kGlypheAssistantCurrent, 0);
 --- a/chrome/browser/profiles/BUILD.gn
 +++ b/chrome/browser/profiles/BUILD.gn
 @@ -52,6 +52,8 @@
@@ -181,7 +181,7 @@
  
  #include <stddef.h>
  
-@@ -963,6 +964,7 @@
+@@ -991,6 +992,7 @@
  }
  
  ProfileImpl::~ProfileImpl() {
@@ -189,7 +189,7 @@
    MaybeSendDestroyedNotification();
  
  #if BUILDFLAG(ENABLE_SESSION_SERVICE)
-@@ -1213,6 +1215,10 @@
+@@ -1241,6 +1243,10 @@
  
    FullBrowserTransitionManager::Get()->OnProfileCreated(this);
  

@@ -5,7 +5,7 @@
      case IDC_TOGGLE_ZEN_MODE_TOP_CHROME_PIN:
        return Label(IDS_SHORTCUT_COMMAND_TOGGLE_ZEN_MODE_TOP_CHROME_PIN);
 +    case IDC_GLYPHE_TOGGLE_RED_NIGHT:
-+      return Label(IDS_WILDCARD, u"Mode nuit rouge");
++      return Label(IDS_WILDCARD, u"Mode nuit (interface rouge, pages en lumière chaude)");
 +    case IDC_GLYPHE_ASSISTANT_CLAUDE:
 +      return Label(IDS_WILDCARD, u"Ouvrir Claude dans le panneau latéral");
 +    case IDC_GLYPHE_ASSISTANT_CHATGPT:

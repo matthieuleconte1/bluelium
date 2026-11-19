@@ -19,7 +19,7 @@
        "ads_click_old.icon",
 --- a/chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.cc
 +++ b/chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.cc
-@@ -271,9 +271,7 @@
+@@ -247,9 +247,7 @@
          std::make_unique<NewTabButton>(
              base::BindRepeating(&TabStrip::NewTabButtonPressed,
                                  base::Unretained(tab_strip_)),
@@ -32,7 +32,7 @@
      new_tab_button_ = AddChildView(std::move(tab_strip_control_button));
 --- a/chrome/browser/ui/views/tabs/tab_strip_control_button.cc
 +++ b/chrome/browser/ui/views/tabs/tab_strip_control_button.cc
-@@ -60,7 +60,7 @@
+@@ -61,7 +61,7 @@
  };
  }  // namespace
  
@@ -40,8 +40,8 @@
 +const int TabStripControlButton::kIconSize = 18;  // Glyphe
  const gfx::Size TabStripControlButton::kButtonSize{28, 28};
  
- TabStripControlButton::TabStripControlButton(
-@@ -241,6 +241,27 @@
+ // static
+@@ -249,6 +249,27 @@
    const auto insets = GetInsets();
    size.Enlarge(insets.width(), insets.height());
    return size;
@@ -81,7 +81,7 @@
  NewTabButton::~NewTabButton() = default;
 --- a/chrome/browser/ui/views/tabs/tab_strip_control_button.h
 +++ b/chrome/browser/ui/views/tabs/tab_strip_control_button.h
-@@ -103,6 +103,9 @@
+@@ -106,6 +106,9 @@
    // views::View
    gfx::Size CalculatePreferredSize(
        const views::SizeBounds& available_size) const override;

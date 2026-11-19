@@ -101,7 +101,7 @@
  #include "ui/base/hit_test.h"
  #include "ui/base/mojom/menu_source_type.mojom-shared.h"
  #include "ui/base/mojom/window_show_state.mojom.h"
-@@ -507,19 +511,11 @@
+@@ -506,19 +510,11 @@
    }
    // Helium Glyphe : couleur de la page active dans la barre du haut
    // (champ réservé aux applis web, libre pour une fenêtre normale).
@@ -126,7 +126,7 @@
    }
  
  #if BUILDFLAG(IS_CHROMEOS)
-@@ -541,6 +537,123 @@
+@@ -540,6 +536,123 @@
  #endif
  
    return key;
@@ -207,7 +207,7 @@
 +}
 +
 +void BrowserWidget::StepGlyphePageColorFade() {
-+  constexpr base::TimeDelta kDuration = base::Milliseconds(240);
++  constexpr base::TimeDelta kDuration = base::Milliseconds(180);  // Bluelium : même durée que les onglets
 +  const double t = std::clamp(
 +      (base::TimeTicks::Now() - glyphe_fade_start_) / kDuration, 0.0, 1.0);
 +  if (t >= 1.0 || !glyphe_target_page_color_) {
@@ -216,7 +216,7 @@
 +    return;
 +  }
 +  const float eased = static_cast<float>(
-+      gfx::Tween::CalculateValue(gfx::Tween::EASE_IN_OUT, t));
++      gfx::Tween::CalculateValue(gfx::Tween::EASE_OUT, t));
 +  const SkColor color = color_utils::AlphaBlend(
 +      *glyphe_target_page_color_, glyphe_fade_from_, eased);
 +  if (glyphe_shown_page_color_ == color) {
@@ -262,14 +262,15 @@
  
  #include "base/debug/dump_without_crashing.h"
  #include "build/build_config.h"
-@@ -83,41 +86,35 @@
-       ui::SetGlypheOled(glyphe_oled);
+@@ -84,6 +87,7 @@
+       ui::SetGlypheRedNight(glyphe_on);
        ui::ColorProviderManager::Get().ResetColorProviderCache();
        ui::NativeTheme::GetInstanceForNativeUi()->NotifyOnNativeThemeUpdated();
 +      UpdateGlyphePageColor();
      }
    }
-   // Les pages sont converties par GlypheNightTabHelper.
+   // Bluelium : point d'intégration OLED, indépendant du filtre des pages.
+@@ -130,35 +134,28 @@
  }
  
  void ContentsWebView::UpdateGlyphePageColor() {
@@ -323,7 +324,7 @@
  ContentsWebView::~ContentsWebView() = default;
 --- a/chrome/browser/ui/views/frame/contents_web_view.h
 +++ b/chrome/browser/ui/views/frame/contents_web_view.h
-@@ -92,8 +92,7 @@
+@@ -88,8 +88,7 @@
    void UpdateGlypheRedNight();
    // Helium Glyphe : barre du haut à la couleur de la page active.
    void UpdateGlyphePageColor();

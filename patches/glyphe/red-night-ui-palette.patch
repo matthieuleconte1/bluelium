@@ -210,10 +210,11 @@
  
  #include <memory>
  #include <string_view>
-@@ -92,6 +99,30 @@
+@@ -92,6 +99,31 @@
      key.custom_theme->AddColorMixers(provider, key);
    }
  
++  // Bluelium : point d’intégration des thèmes, sans palette nuit rouge.
 +  // Helium Glyphe : cadre, onglets et barre d’outils en nuit rouge.
 +  if (ui::IsGlypheRedNight()) {
 +    const SkColor red = ui::GlypheRedNightColor();
@@ -251,10 +252,10 @@
 +#include "ui/color/glyphe_red_night.h"
  #include "ui/compositor/layer.h"
 +#include "ui/native_theme/native_theme.h"
+ #include "chrome/browser/ui/views/animations/common_animation_values.h"
  #include "chrome/browser/ui/views/frame/safe_invoke/safe_invoke.h"
  #include "chrome/browser/ui/views/frame/web_contents_close_handler.h"
- #include "chrome/browser/ui/views/status_bubble_views.h"
-@@ -59,6 +62,16 @@
+@@ -64,6 +67,16 @@
  }
  
  void ContentsWebView::UpdateGlypheRedNight() {
@@ -268,6 +269,6 @@
 +      ui::NativeTheme::GetInstanceForNativeUi()->NotifyOnNativeThemeUpdated();
 +    }
 +  }
+   // Bluelium : point d'intégration OLED, indépendant du filtre des pages.
+   ui::Layer* page_layer = layer();
  #if defined(USE_AURA)
-   content::WebContents* contents = web_contents();
-   if (!contents || !glyphe_pref_registrar_.prefs()) {

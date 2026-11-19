@@ -171,7 +171,7 @@
 +CLOSE,
 --- a/chrome/browser/ui/browser_ui_prefs.cc
 +++ b/chrome/browser/ui/browser_ui_prefs.cc
-@@ -159,7 +159,7 @@
+@@ -164,7 +164,7 @@
    registry->RegisterIntegerPref(prefs::kBookmarkBarRenderedOnNtpCount, 0);
    registry->RegisterBooleanPref(prefs::kPinContextualTaskButton, true,
                                  pref_registration_flags);
@@ -213,7 +213,7 @@
  
  #include <algorithm>
  #include <memory>
-@@ -661,6 +662,12 @@
+@@ -664,6 +665,12 @@
          std::make_unique<ExtensionsToolbarCoordinator>(extensions_container_);
    }
  

@@ -103,7 +103,7 @@
  
 --- a/chrome/browser/ui/extensions/extension_action_view_model.cc
 +++ b/chrome/browser/ui/extensions/extension_action_view_model.cc
-@@ -292,6 +292,16 @@
+@@ -294,6 +294,16 @@
        gfx::ImageSkia(GetIconImageSource(web_contents, size), size));
  }
  
@@ -175,12 +175,12 @@
  
 --- a/chrome/browser/ui/views/toolbar/toolbar_icon_container_view.cc
 +++ b/chrome/browser/ui/views/toolbar/toolbar_icon_container_view.cc
-@@ -290,7 +290,7 @@
+@@ -280,7 +280,7 @@
+     return;
    }
  
-   bool showing_before = border_.layer()->GetTargetOpacity() == 1;
 -  border_.layer()->SetOpacity(GetHighlighted() ? 1 : 0);
 +  border_.layer()->SetOpacity(0);  // Glyphe : pas de bordure de conteneur
+ }
  
-   if (showing_before == (border_.layer()->GetTargetOpacity() == 1)) {
-     return;
+ void ToolbarIconContainerView::OnButtonHighlightedChanged(

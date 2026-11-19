@@ -285,27 +285,27 @@
 +}
 --- a/chrome/common/pref_names.h
 +++ b/chrome/common/pref_names.h
-@@ -339,6 +339,7 @@
+@@ -345,6 +345,7 @@
  inline constexpr char kGlypheRedNightAutoEnabled[] = "glyphe.red_night.auto.enabled";
  inline constexpr char kGlypheRedNightAutoStart[] = "glyphe.red_night.auto.start";
  inline constexpr char kGlypheRedNightAutoEnd[] = "glyphe.red_night.auto.end";
 +inline constexpr char kGlypheHeliumImportCompleted[] = "glyphe.helium_import.completed";
- // Helium Glyphe : assistant affiché dans l’onglet IA (0 Claude, 1 ChatGPT,
- // 2 Gemini, 3 Le Chat).
- inline constexpr char kGlypheAssistantCurrent[] = "glyphe.assistant.current";
+ // Helium Glyphe : interface en noir pur (mode OLED du panneau Personnaliser).
+ inline constexpr char kGlypheOledEnabled[] = "glyphe.oled.enabled";
+ // Helium Glyphe : la barre du haut prend la couleur de la page active.
 --- a/chrome/browser/ui/prefs/prefs_tab_helper.cc
 +++ b/chrome/browser/ui/prefs/prefs_tab_helper.cc
-@@ -416,6 +416,7 @@
+@@ -436,6 +436,7 @@
    registry->RegisterBooleanPref(prefs::kGlypheRedNightAutoEnabled, false);
    registry->RegisterIntegerPref(prefs::kGlypheRedNightAutoStart, 1260);
    registry->RegisterIntegerPref(prefs::kGlypheRedNightAutoEnd, 420);
 +  registry->RegisterBooleanPref(prefs::kGlypheHeliumImportCompleted, false);
-   registry->RegisterIntegerPref(prefs::kGlypheAssistantCurrent, 0);
-   registry->RegisterBooleanPref(prefs::kGlypheAssistantUnpinned, false);
    registry->RegisterBooleanPref(prefs::kGlypheOledEnabled, false);
+   registry->RegisterBooleanPref(prefs::kGlypheFollowPageColor, false);
+   registry->RegisterIntegerPref(prefs::kGlypheAssistantCurrent, 0);
 --- a/chrome/browser/ui/webui/BUILD.gn
 +++ b/chrome/browser/ui/webui/BUILD.gn
-@@ -695,6 +695,8 @@
+@@ -710,6 +710,8 @@
  source_set("onboarding") {
    sources = [
      "onboarding/onboarding_handler.cc",
@@ -314,7 +314,7 @@
      "onboarding/onboarding_page_ui.cc",
    ]
    public = [
-@@ -716,6 +718,9 @@
+@@ -731,6 +733,9 @@
      "//chrome/browser/ui/webui/settings",
      "//components/helium_onboarding:generated_resources",
      "//components/helium_onboarding:localized_strings",
@@ -322,11 +322,11 @@
 +    "//chrome/common/importer",
 +    "//components/user_data_importer/common",
      "//components/helium_services",
+     "//components/push_messaging",
      "//extensions/common",
-     "//ui/webui",
 --- a/chrome/browser/ui/webui/onboarding/onboarding_page_ui.cc
 +++ b/chrome/browser/ui/webui/onboarding/onboarding_page_ui.cc
-@@ -8,6 +8,7 @@
+@@ -9,6 +9,7 @@
  #include "build/build_config.h"
  #include "chrome/browser/profiles/profile.h"
  #include "chrome/browser/ui/webui/onboarding/onboarding_handler.h"
@@ -334,7 +334,7 @@
  #include "chrome/browser/ui/webui/settings/brave_import_data_handler.h"
  #include "chrome/browser/ui/webui/settings/search_engines_handler.h"
  #include "chrome/browser/ui/webui/settings/settings_default_browser_handler.h"
-@@ -50,6 +51,8 @@
+@@ -54,6 +55,8 @@
  
    web_ui->AddMessageHandler(
        std::make_unique<OnboardingMessageHandler>(browser_context));

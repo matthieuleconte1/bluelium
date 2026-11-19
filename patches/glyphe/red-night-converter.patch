@@ -1,17 +1,17 @@
 --- a/chrome/common/pref_names.h
 +++ b/chrome/common/pref_names.h
-@@ -333,6 +333,8 @@
+@@ -339,6 +339,8 @@
  #endif
  inline constexpr char kWebKitForceDarkModeEnabled[] =
      "webkit.webprefs.force_dark_mode_enabled";
-+// Helium Glyphe : pages web converties en rouge sur noir.
++// Bluelium : filtre de lumière chaude des pages (nom de pref conservé).
 +inline constexpr char kGlypheRedNightEnabled[] = "glyphe.red_night.enabled";
  
  inline constexpr char kWebKitCommonScript[] = "Zyyy";
  inline constexpr char kWebKitStandardFontFamily[] =
 --- a/chrome/browser/ui/prefs/prefs_tab_helper.cc
 +++ b/chrome/browser/ui/prefs/prefs_tab_helper.cc
-@@ -411,6 +411,7 @@
+@@ -431,6 +431,7 @@
            : pref_defaults.force_dark_mode_enabled;
    registry->RegisterBooleanPref(prefs::kWebKitForceDarkModeEnabled,
                                  force_dark_mode_enabled);
@@ -19,31 +19,9 @@
    registry->RegisterStringPref(prefs::kDefaultCharset,
                                 l10n_util::GetStringUTF8(IDS_DEFAULT_ENCODING),
                                 user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
---- a/chrome/browser/ui/prefs/pref_watcher.cc
-+++ b/chrome/browser/ui/prefs/pref_watcher.cc
-@@ -78,6 +78,7 @@
-     prefs::kWebKitPasswordEchoEnabledTouch,
- #endif
-     prefs::kWebKitForceDarkModeEnabled,
-+    prefs::kGlypheRedNightEnabled,
-     prefs::kWebKitJavascriptEnabled,
-     prefs::kWebKitLoadsImagesAutomatically,
-     prefs::kWebKitMinimumFontSize,
---- a/chrome/browser/chrome_content_browser_client.cc
-+++ b/chrome/browser/chrome_content_browser_client.cc
-@@ -4772,7 +4772,8 @@
-       prefs::kAccessibilityTouchpadOverscrollHistoryNavigation);
- #endif
-   web_prefs->force_dark_mode_enabled =
--      prefs->GetBoolean(prefs::kWebKitForceDarkModeEnabled);
-+      prefs->GetBoolean(prefs::kWebKitForceDarkModeEnabled) ||
-+      prefs->GetBoolean(prefs::kGlypheRedNightEnabled);
- 
- #if BUILDFLAG(IS_CHROMEOS)
-   web_prefs->always_show_focus =
 --- a/chrome/app/chrome_command_ids.h
 +++ b/chrome/app/chrome_command_ids.h
-@@ -123,6 +123,7 @@
+@@ -113,6 +113,7 @@
  
  #define IDC_CTRL_S_SHORTCUT             34090
  #define IDC_TOGGLE_ZEN_MODE_TOP_CHROME_PIN 34091
@@ -64,7 +42,7 @@
      {ui::VKEY_P, ui::EF_PLATFORM_ACCELERATOR, IDC_PRINT},
 --- a/chrome/browser/ui/browser_command_controller.cc
 +++ b/chrome/browser/ui/browser_command_controller.cc
-@@ -1561,6 +1561,13 @@
+@@ -1583,6 +1583,13 @@
                                      time_stamp);
        break;
      }
@@ -78,14 +56,14 @@
      case IDC_TOGGLE_ZEN_MODE_TOP_CHROME_PIN: {
        if (auto* browser_view =
                BrowserView::GetBrowserViewForBrowser(browser_)) {
-@@ -2146,6 +2153,7 @@
+@@ -2164,6 +2171,7 @@
    // These are always enabled; the menu determines their menu item visibility.
    command_updater_->UpdateCommandEnabled(IDC_UPGRADE_DIALOG, true);
    command_updater_->UpdateCommandEnabled(IDC_HELIUM_SERVICES_OPEN, true);
 +  command_updater_->UpdateCommandEnabled(IDC_GLYPHE_TOGGLE_RED_NIGHT, true);
    command_updater_->UpdateCommandEnabled(IDC_TOGGLE_ZEN_MODE_TOP_CHROME_PIN,
                                           false);
-   command_updater_->UpdateCommandEnabled(IDC_SET_BROWSER_AS_DEFAULT, true);
+ #if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
 --- a/chrome/browser/ui/views/frame/contents_web_view.h
 +++ b/chrome/browser/ui/views/frame/contents_web_view.h
 @@ -10,6 +10,7 @@
@@ -96,11 +74,11 @@
  #include "chrome/common/buildflags.h"
  #include "ui/base/interaction/element_identifier.h"
  #include "ui/base/metadata/metadata_header_macros.h"
-@@ -81,6 +82,10 @@
+@@ -76,6 +77,10 @@
  
   private:
    void UpdateBackgroundColor();
-+  // Helium Glyphe : applique ou retire le filtre « nuit rouge ».
++  // Bluelium : applique ou retire le filtre de lumière chaude des pages.
 +  void UpdateGlypheRedNight();
 +  PrefChangeRegistrar glyphe_pref_registrar_;
 +
@@ -119,10 +97,10 @@
 +#include "chrome/common/pref_names.h"
 +#include "components/prefs/pref_service.h"
 +#include "ui/compositor/layer.h"
+ #include "chrome/browser/ui/views/animations/common_animation_values.h"
  #include "chrome/browser/ui/views/frame/safe_invoke/safe_invoke.h"
  #include "chrome/browser/ui/views/frame/web_contents_close_handler.h"
- #include "chrome/browser/ui/views/status_bubble_views.h"
-@@ -43,6 +48,43 @@
+@@ -48,6 +53,49 @@
    status_bubble_ = std::make_unique<StatusBubbleViews>(this);
    status_bubble_->Reposition();
    web_contents_close_handler_ = std::make_unique<WebContentsCloseHandler>(this);
@@ -137,36 +115,42 @@
 +}
 +
 +void ContentsWebView::UpdateGlypheRedNight() {
++  // Bluelium : point d'intégration OLED, indépendant du filtre des pages.
++  ui::Layer* page_layer = layer();
 +#if defined(USE_AURA)
-+  content::WebContents* contents = web_contents();
-+  if (!contents || !glyphe_pref_registrar_.prefs()) {
++  // Bluelium : secours Linux si le flag de gestion des calques est désactivé.
++  if (!holder()->layer_managed_by_views()) {
++    content::WebContents* contents = web_contents();
++    gfx::NativeView native_view = contents ? contents->GetNativeView() : nullptr;
++    page_layer = native_view ? native_view->layer() : nullptr;
++  }
++#endif
++  if (!page_layer) {
 +    return;
 +  }
-+  gfx::NativeView native_view = contents->GetNativeView();
-+  if (!native_view || !native_view->layer()) {
-+    return;
-+  }
-+  ui::Layer* page_layer = native_view->layer();
-+  if (!glyphe_pref_registrar_.prefs()->GetBoolean(
-+          prefs::kGlypheRedNightEnabled)) {
++  const bool enabled = glyphe_pref_registrar_.prefs() &&
++      glyphe_pref_registrar_.prefs()->GetBoolean(prefs::kGlypheRedNightEnabled);
++  if (!enabled) {
 +    if (page_layer->LayerHasCustomColorMatrix()) {
 +      page_layer->ClearLayerCustomColorMatrix();
 +    }
 +    return;
 +  }
-+  // Luminance (Rec. 709) envoyée sur le seul canal rouge, à 85 %.
-+  // La page a déjà été assombrie par Blink (force_dark_mode_enabled).
-+  cc::FilterOperation::Matrix matrix = {
-+      0.18f, 0.61f, 0.06f, 0.0f, 0.0f,
-+      0.0f,  0.0f,  0.0f,  0.0f, 0.0f,
-+      0.0f,  0.0f,  0.0f,  0.0f, 0.0f,
-+      0.0f,  0.0f,  0.0f,  1.0f, 0.0f};
++  // Bluelium : ce calque contient le NativeViewHost et la surface de la page,
++  // Bluelium : y compris RenderWidgetHostViewMac via SetParentUiLayer().
++  // Bluelium : R reste intact, G à 85 %, B à 65 % ; noir et alpha préservés.
++  // Bluelium : ni désaturation, ni inversion, ni mode sombre forcé de Blink.
++  const cc::FilterOperation::Matrix matrix = {
++      1.0f, 0.0f,  0.0f,  0.0f, 0.0f,
++      0.0f, 0.85f, 0.0f,  0.0f, 0.0f,
++      0.0f, 0.0f,  0.65f, 0.0f, 0.0f,
++      0.0f, 0.0f,  0.0f,  1.0f, 0.0f};
 +  page_layer->SetLayerCustomColorMatrix(matrix);
-+#endif  // defined(USE_AURA)
++  // Bluelium : filtre de lumière chaude appliqué au calque de contenu.
  }
  
  ContentsWebView::~ContentsWebView() = default;
-@@ -151,6 +193,7 @@
+@@ -158,6 +206,7 @@
  
  void ContentsWebView::SetWebContents(content::WebContents* web_contents) {
    views::WebView::SetWebContents(web_contents);
@@ -174,7 +158,7 @@
    if (web_contents == nullptr) {
      status_bubble_.reset();
      holder()->SetProperty(views::kIsBlockedByModalKey, false);
-@@ -285,6 +328,7 @@
+@@ -292,6 +341,7 @@
      UpdateBackgroundColor();
    }
    WebView::RenderViewReady();

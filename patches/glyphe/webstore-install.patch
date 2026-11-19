@@ -1,6 +1,6 @@
 --- a/chrome/browser/extensions/extension_management.cc
 +++ b/chrome/browser/extensions/extension_management.cc
-@@ -411,6 +411,16 @@
+@@ -410,6 +410,16 @@
        "always-prompt-for-install") {
      return true;
    }

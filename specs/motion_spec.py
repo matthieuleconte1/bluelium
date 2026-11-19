@@ -922,7 +922,7 @@ EDITS = [('chrome/browser/ui/cocoa/history_overlay_controller_unittest.mm',
   '  float max_delta_ = 0.f;',
   '  float max_delta_ = 0.f;\n'
   "  // Bluelium : terminer après l'impulsion sans retenir un WebContents détruit.\n"
-  '  void FinishBlueliumNavigation(OverscrollMode mode, OverscrollSource source);\n'
+  '  void FinishBlueliumNavigation(OverscrollMode mode);\n'
   '  base::WeakPtrFactory<GestureNavSimple> bluelium_weak_factory_{this};'),
  ('content/browser/web_contents/aura/gesture_nav_simple.cc',
   '// Parameters defining the arrow icon inside the affordance.\n'
@@ -971,7 +971,6 @@ EDITS = [('chrome/browser/ui/cocoa/history_overlay_controller_unittest.mm',
   'constexpr auto kAbortAnimationDuration = base::Milliseconds(300);\n'
   '\n',
   '// Bluelium : pastille de 44 DIP, flèche blanche et anneau discret.\n'
-  'constexpr int kArrowSize = 20;\n'
   'constexpr int kBackgroundRadius = 22;\n'
   'constexpr SkColor kBackgroundColorBeforeActivation = SkColorSetARGB(235, 40, 43, 60);\n'
   'constexpr int kBgShadowOffsetY = 2;\n'
@@ -1063,24 +1062,39 @@ EDITS = [('chrome/browser/ui/cocoa/history_overlay_controller_unittest.mm',
   '\n'
   '  animation_ ='),
  ('content/browser/web_contents/aura/gesture_nav_simple.cc',
-  '      origin.set_x(-kMaxRippleBurstRadius - kBackgroundRadius);',
-  '      // Bluelium : entrer depuis le bord avec la même course de 40 DIP.\n'
-  '      origin.set_x(-kMaxRippleBurstRadius - 4);'),
+  '  int x = mode_ == OVERSCROLL_EAST\n'
+  '              ? (-kMaxRippleBurstRadius - kBackgroundRadius)\n'
+  '              : (content_bounds.width() - kMaxRippleBurstRadius +\n'
+  '                 kBackgroundRadius);',
+  '  // Bluelium : entrer depuis le bord avec la même course de 40 DIP.\n'
+  '  int x = mode_ == OVERSCROLL_EAST\n'
+  '              ? -kMaxRippleBurstRadius - 4\n'
+  '              : content_bounds.width() - kMaxRippleBurstRadius + 4;'),
  ('content/browser/web_contents/aura/gesture_nav_simple.cc',
-  '      origin.set_x(content_bounds.width() - kMaxRippleBurstRadius +\n'
-  '                   kBackgroundRadius);',
-  '      origin.set_x(content_bounds.width() - kMaxRippleBurstRadius + 4);'),
+  '  // Image icon of the arrow inside the affordance.\n'
+  '  raw_ptr<const gfx::VectorIcon> arrow_icon_ = nullptr;\n'
+  '\n'
+  '  // Values that determine current state of the affordance.',
+  '  // Values that determine current state of the Bluelium affordance.'),
+ ('content/browser/web_contents/aura/gesture_nav_simple.cc',
+  '  if (mode_ == OVERSCROLL_EAST) {\n'
+  '    arrow_icon_ =\n'
+  '        &(features::IsRoundedIconsEnabled() ? vector_icons::kArrowBackIcon\n'
+  '                                            : vector_icons::kBackArrowOldIcon);\n'
+  '  } else {\n'
+  '    arrow_icon_ = &(features::IsRoundedIconsEnabled()\n'
+  '                        ? vector_icons::kArrowForwardIcon\n'
+  '                        : vector_icons::kForwardArrowOldIcon);\n'
+  '  }\n'
+  '\n'
+  '  root_layer_.SetBounds(content_bounds);',
+  '  // Bluelium : le chevron est dessiné directement dans OnPaintLayer.\n'
+  '  root_layer_.SetBounds(content_bounds);'),
  ('content/browser/web_contents/aura/gesture_nav_simple.cc',
   'void Affordance::UpdatePaintedLayer() {\n'
   '  const float offset = GetAffordanceProgress() * kAffordanceActivationOffset;\n'
   '  gfx::Transform transform;\n'
-  '  if (mode_ == OVERSCROLL_EAST) {\n'
-  '    transform.Translate(offset, 0);\n'
-  '  } else if (mode_ == OVERSCROLL_WEST) {\n'
-  '    transform.Translate(-offset, 0);\n'
-  '  } else {\n'
-  '    transform.Translate(0, offset);\n'
-  '  }\n'
+  '  transform.Translate(mode_ == OVERSCROLL_EAST ? offset : -offset, 0);\n'
   '  painted_layer_.SetTransform(transform);\n'
   '}\n'
   '\n',
@@ -1091,11 +1105,7 @@ EDITS = [('chrome/browser/ui/cocoa/history_overlay_controller_unittest.mm',
   '  const float returning = 1.f - gfx::BlueliumMotionEase(abort_progress_);\n'
   '  const float sign = mode_ == OVERSCROLL_WEST ? -1.f : 1.f;\n'
   '  gfx::Transform transform;\n'
-  '  if (mode_ == OVERSCROLL_SOUTH) {\n'
-  '    transform.Translate(0, offset * returning);\n'
-  '  } else {\n'
-  '    transform.Translate(sign * offset * returning, 0);\n'
-  '  }\n'
+  '  transform.Translate(sign * offset * returning, 0);\n'
   '  painted_layer_.SetTransform(transform);\n'
   '  const float exit = state_ == State::COMPLETING\n'
   '      ? 1.f - gfx::BlueliumMotionEase(std::min(1.f, complete_progress_ * 320 / 220))\n'
@@ -1224,23 +1234,17 @@ EDITS = [('chrome/browser/ui/cocoa/history_overlay_controller_unittest.mm',
   '  const float sign = mode_ == OVERSCROLL_WEST ? 1.f : -1.f;\n'
   '  const float cx = center_point.x();\n'
   '  const float cy = center_point.y();\n'
-  '  if (mode_ == OVERSCROLL_SOUTH) {\n'
-  '    canvas->DrawImageInt(gfx::CreateVectorIcon(*arrow_icon_, kArrowSize,\n'
-  '                                              SK_ColorWHITE), cx - 10, cy - 10);\n'
-  '  } else {\n'
-  '    canvas->DrawLine(gfx::PointF(cx - sign * 4, cy - 8),\n'
-  '                     gfx::PointF(cx + sign * 4, cy), arrow_flags);\n'
-  '    canvas->DrawLine(gfx::PointF(cx + sign * 4, cy),\n'
-  '                     gfx::PointF(cx - sign * 4, cy + 8), arrow_flags);\n'
-  '  }'),
+  '  canvas->DrawLine(gfx::PointF(cx - sign * 4, cy - 8),\n'
+  '                   gfx::PointF(cx + sign * 4, cy), arrow_flags);\n'
+  '  canvas->DrawLine(gfx::PointF(cx + sign * 4, cy),\n'
+  '                   gfx::PointF(cx - sign * 4, cy + 8), arrow_flags);'),
  ('content/browser/web_contents/aura/gesture_nav_simple.cc',
   '  affordance_->Complete();\n'
   '\n'
   '  NavigationControllerImpl& controller = web_contents_->GetController();',
   '  const bool available =\n'
   '      ShouldNavigateForward(&web_contents_->GetController(), overscroll_mode) ||\n'
-  '      ShouldNavigateBack(&web_contents_->GetController(), overscroll_mode) ||\n'
-  '      ShouldReload(web_contents_->GetController(), overscroll_mode);\n'
+  '      ShouldNavigateBack(&web_contents_->GetController(), overscroll_mode);\n'
   '  if (!available) {\n'
   '    affordance_->Abort();\n'
   '    return;\n'
@@ -1251,15 +1255,15 @@ EDITS = [('chrome/browser/ui/cocoa/history_overlay_controller_unittest.mm',
   '    base::SingleThreadTaskRunner::GetCurrentDefault()->PostDelayedTask(\n'
   '        FROM_HERE, base::BindOnce(&GestureNavSimple::FinishBlueliumNavigation,\n'
   '                                 bluelium_weak_factory_.GetWeakPtr(),\n'
-  '                                 overscroll_mode, overscroll_source),\n'
+  '                                 overscroll_mode),\n'
   '        base::Milliseconds(220));\n'
   '  } else {\n'
-  '    FinishBlueliumNavigation(overscroll_mode, overscroll_source);\n'
+  '    FinishBlueliumNavigation(overscroll_mode);\n'
   '  }\n'
   '}\n'
   '\n'
   'void GestureNavSimple::FinishBlueliumNavigation(\n'
-  '    OverscrollMode overscroll_mode, OverscrollSource overscroll_source) {\n'
+  '    OverscrollMode overscroll_mode) {\n'
   '  // Bluelium : le fondu de la page arrivée doit posséder seul sa transformation.\n'
   '  if (affordance_) {\n'
   '    affordance_->ReleaseBlueliumContentLayer();\n'
@@ -1271,24 +1275,20 @@ EDITS = [('chrome/browser/ui/cocoa/history_overlay_controller_unittest.mm',
   '  NavigationControllerImpl& controller = web_contents_->GetController();'),
  ('content/browser/web_contents/aura/gesture_nav_simple.cc',
   '  if (!ShouldNavigateForward(&controller, mode_) &&\n'
-  '      !ShouldNavigateBack(&controller, mode_) &&\n'
-  '      !ShouldReload(controller, mode_)) {',
+  '      !ShouldNavigateBack(&controller, mode_)) {',
   "  // Bluelium : autoriser le retour visuel seul aux extrémités de l'historique.\n"
-  '  const bool horizontal = mode_ == OVERSCROLL_EAST || mode_ == OVERSCROLL_WEST;\n'
-  '  if (!horizontal && !ShouldNavigateForward(&controller, mode_) &&\n'
-  '      !ShouldNavigateBack(&controller, mode_) &&\n'
-  '      !ShouldReload(controller, mode_)) {'),
+  '  if (mode_ == OVERSCROLL_NONE) {'),
  ('content/browser/web_contents/aura/gesture_nav_simple.cc',
   '  affordance_ = std::make_unique<Affordance>(\n'
   '      this, mode_, window->bounds(), max_delta_ / completion_threshold_);',
   '  const bool available = ShouldNavigateBack(&controller, mode_) ||\n'
-  '      ShouldNavigateForward(&controller, mode_) || ShouldReload(controller, mode_);\n'
+  '      ShouldNavigateForward(&controller, mode_);\n'
   '  // Bluelium : la couleur provient du thème du WebContents, sans dépendre de Chrome.\n'
   '  const SkColor accent = static_cast<WebContents*>(web_contents_.get())\n'
   '      ->GetColorProvider().GetColor(ui::kColorSysPrimary);\n'
   '  affordance_ = std::make_unique<Affordance>(\n'
   '      this, mode_, window->bounds(), completion_threshold_, available, accent,\n'
-  '      horizontal ? window->layer() : nullptr);'),
+  '      window->layer());'),
  ('content/browser/web_contents/aura/gesture_nav_simple.cc',
   '  mode_ = new_mode;\n\n  NavigationControllerImpl& controller =',
   '  mode_ = new_mode;\n'

@@ -980,7 +980,7 @@
 +}  // namespace extensions
 --- a/chrome/browser/download/download_prefs.cc
 +++ b/chrome/browser/download/download_prefs.cc
-@@ -378,7 +378,8 @@
+@@ -379,7 +379,8 @@
                                   default_download_path);
  #if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS) || \
      BUILDFLAG(IS_MAC)
@@ -992,7 +992,7 @@
    DownloadPromptStatus download_prompt_status =
 --- a/chrome/browser/download/download_prefs_unittest.cc
 +++ b/chrome/browser/download/download_prefs_unittest.cc
-@@ -369,6 +369,11 @@
+@@ -372,6 +372,11 @@
    content::BrowserTaskEnvironment task_environment;
    TestingProfile profile;
    DownloadPrefs prefs(&profile);
@@ -1066,7 +1066,7 @@
  }
 --- a/tools/gritsettings/resource_ids.spec
 +++ b/tools/gritsettings/resource_ids.spec
-@@ -1795,6 +1795,11 @@
+@@ -1807,6 +1807,11 @@
      "includes": [10140],
    },
  
@@ -1080,7 +1080,7 @@
      "includes": [12000],
 --- a/chrome/chrome_paks.gni
 +++ b/chrome/chrome_paks.gni
-@@ -149,6 +149,7 @@
+@@ -164,6 +164,7 @@
        "$root_gen_dir/third_party/blink/public/strings/permission_element_generated_strings.pak",
        "$root_gen_dir/third_party/ublock/resources/ublock_resources.pak",
        "$root_gen_dir/third_party/shimmer/resources/shimmer_resources.pak",
@@ -1088,7 +1088,7 @@
        "$root_gen_dir/ui/resources/ui_lottie_resources.pak",
        "$root_gen_dir/ui/webui/resources/webui_resources.pak",
      ]
-@@ -188,6 +189,7 @@
+@@ -203,6 +204,7 @@
        "//third_party/blink/public/strings:permission_element_generated_strings",
        "//third_party/ublock",
        "//third_party/shimmer",
@@ -1116,7 +1116,7 @@
  #include "components/strings/grit/components_strings.h"
  #include "components/tabs/public/tab_interface.h"
  #include "components/zoom/page_zoom_constants.h"
-@@ -466,6 +467,12 @@
+@@ -467,6 +468,12 @@
      }
      resources.push_back(resource);
    }
@@ -1329,21 +1329,21 @@
  
 --- a/tools/metrics/histograms/metadata/extensions/enums.xml
 +++ b/tools/metrics/histograms/metadata/extensions/enums.xml
-@@ -2950,6 +2950,8 @@
+@@ -2952,6 +2952,8 @@
    <int value="1990" label="AUTOFILLPRIVATE_GETDETAILSFORUPSERTPASS"/>
    <int value="1991" label="AUTOFILLPRIVATE_PRELOADDETAILSFORUPSERTPASS"/>
    <int value="1992" label="EXPERIMENTALAIDATA_GETAPCSNAPSHOT"/>
 +  <int value="1993" label="PDFVIEWERPRIVATE_READPDFSTREAM"/>
 +  <int value="1994" label="PDFVIEWERPRIVATE_GETBLUELIUMTHEME"/>
+   <int value="1993" label="EXPERIMENTALAIDATA_GETTEXTSURROUNDINGSELECTION"/>
  </enum>
  
- <!-- LINT.ThenChange(//extensions/browser/extension_function_histogram_value.h:HistogramValue) -->
 --- a/extensions/browser/extension_function_histogram_value.h
 +++ b/extensions/browser/extension_function_histogram_value.h
-@@ -2059,6 +2059,8 @@
-   AUTOFILLPRIVATE_GETDETAILSFORUPSERTPASS = 1990,
+@@ -2060,6 +2060,8 @@
    AUTOFILLPRIVATE_PRELOADDETAILSFORUPSERTPASS = 1991,
    EXPERIMENTALAIDATA_GETAPCSNAPSHOT = 1992,
+   EXPERIMENTALAIDATA_GETTEXTSURROUNDINGSELECTION = 1993,
 +  PDFVIEWERPRIVATE_READPDFSTREAM = 1993,
 +  PDFVIEWERPRIVATE_GETBLUELIUMTHEME = 1994,
    // Last entry: Add new entries above, then run:

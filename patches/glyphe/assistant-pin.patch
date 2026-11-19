@@ -1,6 +1,6 @@
 --- a/chrome/common/pref_names.h
 +++ b/chrome/common/pref_names.h
-@@ -342,6 +342,8 @@
+@@ -348,6 +348,8 @@
  // Helium Glyphe : assistant affiché dans l’onglet IA (0 Claude, 1 ChatGPT,
  // 2 Gemini, 3 Le Chat).
  inline constexpr char kGlypheAssistantCurrent[] = "glyphe.assistant.current";
@@ -11,7 +11,7 @@
  inline constexpr char kWebKitStandardFontFamily[] =
 --- a/chrome/browser/ui/prefs/prefs_tab_helper.cc
 +++ b/chrome/browser/ui/prefs/prefs_tab_helper.cc
-@@ -415,6 +415,7 @@
+@@ -435,6 +435,7 @@
    registry->RegisterBooleanPref(prefs::kGlypheOledEnabled, false);
    registry->RegisterBooleanPref(prefs::kGlypheFollowPageColor, false);
    registry->RegisterIntegerPref(prefs::kGlypheAssistantCurrent, 0);
@@ -29,7 +29,7 @@
  #include <iterator>
  #include <string>
  #include <vector>
-@@ -152,6 +153,9 @@
+@@ -153,6 +154,9 @@
  }
  
  void PinnedToolbarActionsModel::PinAction(actions::ActionId action_id) {
@@ -39,7 +39,7 @@
    std::vector<actions::ActionId> updated_pinned_action_ids = pinned_action_ids_;
  
    updated_pinned_action_ids.push_back(action_id);
-@@ -166,6 +170,10 @@
+@@ -167,6 +171,10 @@
  }
  
  void PinnedToolbarActionsModel::UnpinAction(actions::ActionId action_id) {
@@ -50,7 +50,7 @@
    std::vector<actions::ActionId> updated_pinned_action_ids = pinned_action_ids_;
    std::erase(updated_pinned_action_ids, action_id);
  
-@@ -208,6 +216,14 @@
+@@ -209,6 +217,14 @@
      }
    }
  

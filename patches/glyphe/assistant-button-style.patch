@@ -1,7 +1,7 @@
 --- a/chrome/browser/ui/views/toolbar/pinned_action_toolbar_button.h
 +++ b/chrome/browser/ui/views/toolbar/pinned_action_toolbar_button.h
-@@ -54,6 +54,7 @@
-   }
+@@ -68,6 +68,7 @@
+   void SetEngagedIndicatorStyle(ActionItemEngagedIndicatorStyle style);
    void SetActionEngaged(bool action_engaged);
    void UpdateIcon() override;
 +  void UpdateColorsAndInsets() override;
@@ -27,13 +27,14 @@
  
  #include <string>
  #include <type_traits>
-@@ -152,11 +162,17 @@
+@@ -156,12 +166,18 @@
  void PinnedActionToolbarButton::AddHighlight() {
    anchor_higlight_ = AddAnchorHighlight();
    GetViewAccessibility().SetCheckedState(ax::mojom::CheckedState::kTrue);
 +  if (action_id_ == kActionSidePanelShowGlypheAssistant) {
 +    UpdateColorsAndInsets();
 +  }
+   UpdateStatusIndicator();
  }
  
  void PinnedActionToolbarButton::ResetHighlight() {
@@ -42,11 +43,11 @@
 +  if (action_id_ == kActionSidePanelShowGlypheAssistant) {
 +    UpdateColorsAndInsets();
 +  }
+   UpdateStatusIndicator();
  }
  
- bool PinnedActionToolbarButton::IsHighlighted() const {
-@@ -240,7 +256,51 @@
-   skip_execution_ = false;
+@@ -268,7 +284,51 @@
+   return ToolbarButton::GetIconSize();
  }
  
 +void PinnedActionToolbarButton::UpdateColorsAndInsets() {
@@ -97,7 +98,7 @@
    const std::optional<VectorIcons>& icons = GetVectorIcons();
    // If the button is a cached permanent button the color provider will not be
    // available.
-@@ -272,6 +332,9 @@
+@@ -312,6 +372,9 @@
  
  void PinnedActionToolbarButton::SetActionEngaged(bool action_engaged) {
    action_engaged_ = action_engaged;
@@ -107,7 +108,7 @@
    UpdateFlexPriority();
  }
  
-@@ -280,6 +343,10 @@
+@@ -320,6 +383,10 @@
  }
  
  void PinnedActionToolbarButton::UpdateStatusIndicator() {
@@ -115,10 +116,10 @@
 +    status_indicator_->Hide();
 +    return;
 +  }
-   if (action_engaged_ && is_icon_visible_) {
-     status_indicator_->Show();
-   } else {
-@@ -418,6 +485,11 @@
+   if (engaged_indicator_style_ ==
+       ActionItemEngagedIndicatorStyle::kCircleHighlight) {
+     status_indicator_->Hide();
+@@ -474,6 +541,11 @@
          views::Button::STATE_NORMAL,
          action_view_->IsIconVisible() ? image_model : ui::ImageModel());
    }

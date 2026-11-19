@@ -14,8 +14,8 @@
 +ROUND_RECT, 19, 7, 2, 10, 0
 --- a/chrome/browser/ui/tabs/tab_style.cc
 +++ b/chrome/browser/ui/tabs/tab_style.cc
-@@ -28,7 +28,7 @@
- constexpr int kTabWidth = 240;  // Glyphe : onglets plus larges
+@@ -31,7 +31,7 @@
+ constexpr int kSpaciousTabWidth = 232;
  
  // Split tabs need more space to be readable.
 -constexpr int kSplitTabWidth = 250;
@@ -79,7 +79,7 @@
  #include "ui/views/accessibility/view_accessibility.h"
  #include "ui/views/border.h"
  #include "ui/views/bubble/bubble_border.h"
-@@ -922,6 +926,60 @@
+@@ -930,6 +934,60 @@
  
  void Tab::OnPaint(gfx::Canvas* canvas) {
    tab_style_views()->PaintTab(canvas);

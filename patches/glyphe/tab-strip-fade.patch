@@ -1,6 +1,6 @@
 --- a/chrome/browser/ui/views/tabs/common/tab_strip_view.cc
 +++ b/chrome/browser/ui/views/tabs/common/tab_strip_view.cc
-@@ -574,19 +574,9 @@
+@@ -581,19 +581,9 @@
          views::ScrollView::ScrollBarMode::kDisabled);
      scroll_view->SetTreatAllScrollEventsAsHorizontal(true);
  

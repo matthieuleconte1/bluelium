@@ -325,7 +325,7 @@
    color: var(--cr-primary-text-color);
 --- a/chrome/browser/resources/side_panel/customize_chrome/appearance.ts
 +++ b/chrome/browser/resources/side_panel/customize_chrome/appearance.ts
-@@ -61,6 +61,7 @@
+@@ -60,6 +60,7 @@
        showColorPicker_: {type: Boolean},
        showDeviceThemeToggle_: {type: Boolean},
        showManagedDialog_: {type: Boolean},
@@ -333,7 +333,7 @@
      };
    }
  
-@@ -72,6 +73,12 @@
+@@ -71,6 +72,12 @@
    protected accessor showColorPicker_: boolean = false;
    protected accessor showDeviceThemeToggle_: boolean = false;
    protected accessor showManagedDialog_: boolean = false;
@@ -344,9 +344,9 @@
 +        (e as CustomEvent<{locked: boolean}>).detail?.locked === true;
 +  };
    private listenerIds_: number[] = [];
-   private apiProxy_: CustomizeChromeApiProxy =
-       CustomizeChromeApiProxy.getInstance();
-@@ -86,6 +93,8 @@
+   private apiProxy_: BrowserProxy = browserProxyFactory.getInstance();
+ 
+@@ -84,6 +91,8 @@
      ];
  
      // Bluelium : aucune souscription aux réglages ou à la gestion de la NTP.
@@ -355,7 +355,7 @@
      this.apiProxy_.handler.updateTheme();
    }
  
-@@ -96,6 +105,9 @@
+@@ -94,6 +103,9 @@
        assert(this.apiProxy_.callbackRouter.removeListener(id));
      }
      this.listenerIds_ = [];
@@ -388,7 +388,7 @@
  #include <algorithm>
  #include "ui/color/color_provider_manager.h"
  #include "ui/gfx/animation/tween.h"
-@@ -514,7 +515,8 @@
+@@ -513,7 +514,8 @@
    // Valeur mémorisée, mise à jour par UpdateGlyphePageColor() avec un
    // ThemeChanged() : la lire en direct ici colorait seulement les zones
    // redessinées.
@@ -398,7 +398,7 @@
      key.app_background_color = *glyphe_shown_page_color_;
    }
  
-@@ -545,7 +547,7 @@
+@@ -544,7 +546,7 @@
    }
    Profile* profile = browser_view_->browser()->GetProfile();
    const bool follow =

@@ -1107,7 +1107,7 @@ EDITS = [('chrome/browser/renderer_host/BUILD.gn',
   '  NSView* view = native_view.GetNativeNSView();\n'),
  ('chrome/browser/ui/views/frame/browser_view.cc',
   '                                     int reason) {\n'
-  '  DCHECK(new_contents);\n'
+  '  CHECK(new_contents, base::NotFatalUntil::M162);\n'
   '  TRACE_EVENT0("ui", "BrowserView::OnActiveTabChanged");\n'
   "  // Bluelium : remettre l'ancien contenu en place avant sa réutilisation.\n"
   '  ResetBlueliumContentMotion();\n'
@@ -1115,7 +1115,7 @@ EDITS = [('chrome/browser/renderer_host/BUILD.gn',
   '      ? browser_->GetTabStripModel()->GetIndexOfWebContents(old_contents) : -1;\n'
   '  views::WebView* active_contents_view = GetActiveContentsWebView();\n',
   '                                     int reason) {\n'
-  '  DCHECK(new_contents);\n'
+  '  CHECK(new_contents, base::NotFatalUntil::M162);\n'
   '  TRACE_EVENT0("ui", "BrowserView::OnActiveTabChanged");\n'
   "  // Bluelium : remettre l'ancien contenu en place avant sa réutilisation.\n"
   '#if BUILDFLAG(IS_MAC)\n'
