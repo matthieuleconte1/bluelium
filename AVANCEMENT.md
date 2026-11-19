@@ -58,7 +58,10 @@ Nightly reporté, icône ChatGPT conservée telle quelle.
       n'existait pas dans la page interne, repli DuckDuckGo), raccourcis
       Claude et ChatGPT pour les profils neufs.
 - [ ] Aperçu de lien natif (GPT, branche `lot2-apercu`).
-- [ ] Jeu hors ligne original.
+- [ ] Jeu hors ligne original « Paquet perdu » (`offline_game`, branche
+      `lot2-shimmer`) : remplace le dinosaure, série appliquée, typage
+      TypeScript strict vérifié et rendu vu en headless. À compiler et à
+      essayer à l'écran.
 - [x] Nettoyage : fusion `assistant-side-panel` + `assistant-tabs` ; nom
       « Glyphe » conservé dans les clés et chemins (voir docs/nettoyage-glyphe.md).
 - Reporté : canal Nightly.
