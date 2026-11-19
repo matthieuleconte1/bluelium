@@ -63,6 +63,11 @@ Nightly reporté, icône ChatGPT conservée telle quelle.
       `lot2-shimmer`) : remplace le dinosaure, série appliquée, typage
       TypeScript strict vérifié et rendu vu en headless. À compiler et à
       essayer à l'écran.
+- [ ] Pages internes (demande du 19 nov.) : fond = couleur de base du thème,
+      cartes Prism à coins de 12 px, entrée en fondu + glissement, sections
+      des Réglages et cartes d'extensions décalées (`webui_prism`, branche
+      `lot2-shimmer`, CSS vérifié dans Chrome). Cadre aux couleurs du thème
+      sur les pages internes (GPT, branche `lot2-pages-internes`).
 - [x] Nettoyage : fusion `assistant-side-panel` + `assistant-tabs` ; nom
       « Glyphe » conservé dans les clés et chemins (voir docs/nettoyage-glyphe.md).
 - Reporté : canal Nightly.
