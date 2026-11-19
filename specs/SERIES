@@ -52,3 +52,6 @@ helium-import-ui.patch         helium_import_ui_spec.py
 dark-outline.patch            dark_outline_spec.py
 native-messaging-compat.patch native_messaging_compat_spec.py
 custom-accent.patch           custom_accent_spec.py
+instrument-sans-assets.patch   instrument_sans_assets_spec.py linux,mac
+instrument-sans-linux.patch    instrument_sans_linux_spec.py  linux
+instrument-sans-mac.patch      instrument_sans_mac_spec.py    mac
