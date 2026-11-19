@@ -94,7 +94,10 @@ journal de travail, pas toujours à jour.
 ### Limites connues
 
 - macOS : les boutons de fenêtre ne sont pas parfaitement alignés avec les
-  onglets.
+  onglets. La police Instrument Sans n'est appliquée que sous Linux, sauf
+  dans le lecteur PDF.js qui l'embarque sur les deux plateformes.
+- Linux : Instrument Sans n'est pas embarquée, il faut l'installer
+  ([`assets/InstrumentSans.ttf`](assets/InstrumentSans.ttf)).
 - Le nom de travail « Glyphe » subsiste dans le code, les patchs et le dossier
   d'installation Linux.
 - Claude Code ne détecte pas encore l'extension Claude installée dans
