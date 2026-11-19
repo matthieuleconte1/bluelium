@@ -51,13 +51,14 @@ Nightly reporté, icône ChatGPT conservée telle quelle.
 - [ ] Accent personnalisé : spec `custom_accent` écrite, à vérifier à l'écran
       après le build Helium 22.
 - [ ] Instrument Sans livrée avec le navigateur (Linux) et appliquée sur macOS
-      (GPT, branche `lot2-police`).
+      (branche `lot2-police`, série appliquée, relue ; à compiler).
 - [ ] Shimmer (branche `lot2-shimmer`, série appliquée, pas encore compilé) :
       français (`shimmer_fr`, locale ajoutée au tableau de Shimmer), moteur de
       recherche du navigateur (`shimmer_search` : `chrome.search.query`
       n'existait pas dans la page interne, repli DuckDuckGo), raccourcis
       Claude et ChatGPT pour les profils neufs.
-- [ ] Aperçu de lien natif (GPT, branche `lot2-apercu`).
+- Abandonné : aperçu de lien. Chromium a retiré la fonction du desktop
+  (avril 2026, sécurité) ; absente de Chromium 158.
 - [ ] Jeu hors ligne original « Paquet perdu » (`offline_game`, branche
       `lot2-shimmer`) : remplace le dinosaure, série appliquée, typage
       TypeScript strict vérifié et rendu vu en headless. À compiler et à
