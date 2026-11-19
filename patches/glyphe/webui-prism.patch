@@ -48,14 +48,86 @@
 +}
 +
 +@media (prefers-reduced-motion: no-preference) {
-+  :host {
++  :host(:nth-child(-n + 10)) {
 +    animation: bluelium-page-enter 280ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
-+    animation-delay: calc((min(sibling-index(), 10) - 1) * 30ms);
++    animation-delay: calc((sibling-index() - 1) * 30ms);
 +  }
 +}
  
  :host {
    display: flex;
+--- a/chrome/browser/resources/history/history_item.css
++++ b/chrome/browser/resources/history/history_item.css
+@@ -9,6 +9,21 @@
+  * #import=./shared_style.css.js
+  * #include=cr-hidden-style-lit shared-style
+  * #css_wrapper_metadata_end */
++
++/* Bluelium : les visites arrivent l'une après l'autre. */
++@keyframes bluelium-page-enter {
++  from {
++    opacity: 0;
++    translate: 0 8px;
++  }
++}
++
++@media (prefers-reduced-motion: no-preference) {
++  :host(:nth-child(-n + 10)) {
++    animation: bluelium-page-enter 280ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
++    animation-delay: calc((sibling-index() - 1) * 30ms);
++  }
++}
+ 
+ :host {
+   display: block;
+--- a/chrome/browser/resources/downloads/item.css
++++ b/chrome/browser/resources/downloads/item.css
+@@ -12,6 +12,21 @@
+  * #include=cr-hidden-style-lit action-link-lit cr-icons-lit
+  * #css_wrapper_metadata_end */
+ 
++/* Bluelium : les téléchargements arrivent l'un après l'autre. */
++@keyframes bluelium-page-enter {
++  from {
++    opacity: 0;
++    translate: 0 8px;
++  }
++}
++
++@media (prefers-reduced-motion: no-preference) {
++  :host(:nth-child(-n + 10)) {
++    animation: bluelium-page-enter 280ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
++    animation-delay: calc((sibling-index() - 1) * 30ms);
++  }
++}
++
+ :host {
+   --controlled-by-active-color: #333;
+   --controlled-by-active-link-color: var(--google-blue-600);
+--- a/chrome/browser/resources/bookmarks/item.css
++++ b/chrome/browser/resources/bookmarks/item.css
+@@ -9,6 +9,21 @@
+  * #import=./shared_style_lit.css.js
+  * #include=shared-style-lit cr-icons-lit
+  * #css_wrapper_metadata_end */
++
++/* Bluelium : les favoris arrivent l'un après l'autre. */
++@keyframes bluelium-page-enter {
++  from {
++    opacity: 0;
++    translate: 0 8px;
++  }
++}
++
++@media (prefers-reduced-motion: no-preference) {
++  :host(:nth-child(-n + 10)) {
++    animation: bluelium-page-enter 280ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
++    animation-delay: calc((sibling-index() - 1) * 30ms);
++  }
++}
+ 
+ :host {
+   --cr-icon-button-focus-outline-color: var(
 --- a/chrome/browser/resources/extensions/item.css
 +++ b/chrome/browser/resources/extensions/item.css
 @@ -61,6 +61,21 @@
@@ -71,9 +143,9 @@
 +}
 +
 +@media (prefers-reduced-motion: no-preference) {
-+  :host {
++  :host(:nth-child(-n + 10)) {
 +    animation: bluelium-page-enter 280ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
-+    animation-delay: calc((min(sibling-index(), 10) - 1) * 30ms);
++    animation-delay: calc((sibling-index() - 1) * 30ms);
 +  }
 +}
 +

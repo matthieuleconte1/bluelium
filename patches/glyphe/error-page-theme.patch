@@ -1,0 +1,127 @@
+--- a/chrome/browser/net/net_error_tab_helper.h
++++ b/chrome/browser/net/net_error_tab_helper.h
+@@ -96,6 +96,8 @@
+   void RenderFrameCreated(content::RenderFrameHost* render_frame_host) override;
+   void DidFinishNavigation(
+       content::NavigationHandle* navigation_handle) override;
++  // Bluelium : la page d'erreur suit la couleur du cadre.
++  void OnColorProviderChanged() override;
+ 
+   // chrome::mojom::NetErrorPageSupport:
+ #if BUILDFLAG(ENABLE_OFFLINE_PAGES)
+@@ -132,6 +134,9 @@
+   }
+ 
+  private:
++  // Bluelium : transmet la couleur du cadre à la page d'erreur affichée.
++  void UpdateBlueliumErrorPageColor();
++
+   void OnMainFrameDnsError();
+ 
+   void InitializePref(content::WebContents* contents);
+--- a/chrome/browser/net/net_error_tab_helper.cc
++++ b/chrome/browser/net/net_error_tab_helper.cc
+@@ -6,11 +6,14 @@
+ 
+ #include "base/functional/bind.h"
+ #include "base/logging.h"
++#include "base/strings/stringprintf.h"
++#include "base/strings/utf_string_conversions.h"
+ #include "chrome/browser/net/dns_probe_service.h"
+ #include "chrome/browser/net/dns_probe_service_factory.h"
+ #include "chrome/browser/net/net_error_diagnostics_dialog.h"
+ #include "chrome/browser/platform_util.h"
+ #include "chrome/browser/profiles/profile.h"
++#include "chrome/common/chrome_isolated_world_ids.h"
+ #include "chrome/common/pref_names.h"
+ #include "components/embedder_support/pref_names.h"
+ #include "components/error_page/common/net_error_info.h"
+@@ -28,6 +31,8 @@
+ #include "net/base/net_errors.h"
+ #include "third_party/blink/public/common/associated_interfaces/associated_interface_provider.h"
+ #include "ui/base/page_transition_types.h"
++#include "ui/color/color_id.h"
++#include "ui/color/color_provider.h"
+ #include "url/gurl.h"
+ 
+ #if BUILDFLAG(ENABLE_OFFLINE_PAGES)
+@@ -132,6 +137,28 @@
+       CanShowNetworkDiagnosticsDialog(web_contents()));
+ }
+ 
++void NetErrorTabHelper::OnColorProviderChanged() {
++  UpdateBlueliumErrorPageColor();
++}
++
++void NetErrorTabHelper::UpdateBlueliumErrorPageColor() {
++  content::RenderFrameHost* frame = web_contents()->GetPrimaryMainFrame();
++  if (!frame || !frame->IsErrorDocument() || !frame->IsRenderFrameLive()) {
++    return;
++  }
++  const SkColor color =
++      web_contents()->GetColorProvider().GetColor(ui::kColorSysHeader);
++  // Bluelium : monde isolé ; le style posé sur <html> est partagé avec la
++  // page. La valeur est une couleur #rrggbb, rien d'autre n'est injecté.
++  const std::string script = base::StringPrintf(
++      "document.documentElement.style.setProperty("
++      "'--bluelium-page-background', '#%02x%02x%02x');",
++      SkColorGetR(color), SkColorGetG(color), SkColorGetB(color));
++  frame->ExecuteJavaScriptInIsolatedWorld(base::UTF8ToUTF16(script),
++                                          base::NullCallback(),
++                                          ISOLATED_WORLD_ID_CHROME_INTERNAL);
++}
++
+ void NetErrorTabHelper::DidFinishNavigation(
+     content::NavigationHandle* navigation_handle) {
+   if (!navigation_handle->IsInPrimaryMainFrame())
+@@ -140,6 +167,11 @@
+   if (net::IsHostnameResolutionError(navigation_handle->GetNetErrorCode())) {
+     dns_error_active_ = true;
+     OnMainFrameDnsError();
++  }
++
++  // Bluelium : fond de la page d'erreur à la couleur du cadre.
++  if (navigation_handle->HasCommitted() && navigation_handle->IsErrorPage()) {
++    UpdateBlueliumErrorPageColor();
+   }
+ 
+   // Resend status every time an error page commits; this is somewhat spammy,
+--- a/components/security_interstitials/core/common/resources/interstitial_core.css
++++ b/components/security_interstitials/core/common/resources/interstitial_core.css
+@@ -35,7 +35,8 @@
+   --secondary-button-text-color: var(--google-gray-700);
+   --small-link-color: var(--google-gray-700);
+   --text-color: var(--google-gray-700);
+-  background: var(--background-color);
++  /* Bluelium : couleur du cadre, transmise par le navigateur. */
++  background: var(--bluelium-page-background, var(--background-color));
+   color: var(--text-color);
+   word-wrap: break-word;
+ }
+--- a/components/neterror/resources/neterror.css
++++ b/components/neterror/resources/neterror.css
+@@ -728,3 +728,24 @@
+     display: none;
+   }
+ }
++
++/* Bluelium : le jeu, le texte puis les boutons arrivent en fondu. */
++@keyframes bluelium-page-enter {
++  from {
++    opacity: 0;
++    translate: 0 8px;
++  }
++}
++
++@media (prefers-reduced-motion: no-preference) {
++  .interstitial-wrapper > *,
++  #buttons {
++    animation: bluelium-page-enter 280ms cubic-bezier(0.2, 0.8, 0.2, 1)
++        backwards;
++    animation-delay: calc((min(sibling-index(), 6) - 1) * 40ms);
++  }
++
++  #buttons {
++    animation-delay: 160ms;
++  }
++}

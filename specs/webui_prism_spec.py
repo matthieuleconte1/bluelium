@@ -11,12 +11,14 @@ pages et des cartes venait d'autres variables (gris de Chromium, blanc).
 - Accent : déjà fourni par --color-sys-primary (prism_ui).
 - Entrée : fondu et glissement de 8 px vers le haut, 280 ms, courbe Bluelium.
   Les sections des Réglages et les cartes d'extensions arrivent l'une après
-  l'autre (30 ms d'écart, plafonné à 10). Rien si « réduire les animations ».
+  l'autre (30 ms d'écart). Seuls les 10 premiers éléments s'animent : une
+  ligne ajoutée plus tard (défilement d'une liste longue) apparaît sans délai.
+  Rien si « réduire les animations ». Seuls opacity et translate bougent.
 Clair, Sombre, OLED et Nuit suivent, puisque tout passe par les jetons.
 """
 
 ENTER = 'bluelium-page-enter 280ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards'
-STAGGER = 'calc((min(sibling-index(), 10) - 1) * 30ms)'
+STAGGER = 'calc((sibling-index() - 1) * 30ms)'
 
 KEYFRAMES = (
     '@keyframes bluelium-page-enter {\n'
@@ -31,7 +33,7 @@ def host_animation(comment):
   return (
       '/* Bluelium : ' + comment + ' */\n' + KEYFRAMES + '\n'
       '@media (prefers-reduced-motion: no-preference) {\n'
-      '  :host {\n'
+      '  :host(:nth-child(-n + 10)) {\n'
       '    animation: ' + ENTER + ';\n'
       '    animation-delay: ' + STAGGER + ';\n'
       '  }\n'
@@ -74,6 +76,24 @@ EDITS = [
    ' * #css_wrapper_metadata_end */\n\n:host {\n',
    ' * #css_wrapper_metadata_end */\n\n'
    + host_animation('les sections arrivent l\'une après l\'autre.') +
+   ':host {\n'),
+  # Bluelium : listes de l'Historique, des Téléchargements et des Favoris.
+  # Les listes virtuelles n'insèrent que les lignes visibles : seules
+  # celles-ci s'animent, le défilement ne relance rien.
+  ('chrome/browser/resources/history/history_item.css',
+   ' * #css_wrapper_metadata_end */\n\n:host {\n',
+   ' * #css_wrapper_metadata_end */\n\n'
+   + host_animation('les visites arrivent l\'une après l\'autre.') +
+   ':host {\n'),
+  ('chrome/browser/resources/downloads/item.css',
+   ' * #css_wrapper_metadata_end */\n\n:host {\n',
+   ' * #css_wrapper_metadata_end */\n\n'
+   + host_animation('les téléchargements arrivent l\'un après l\'autre.') +
+   ':host {\n'),
+  ('chrome/browser/resources/bookmarks/item.css',
+   ' * #css_wrapper_metadata_end */\n\n:host {\n',
+   ' * #css_wrapper_metadata_end */\n\n'
+   + host_animation('les favoris arrivent l\'un après l\'autre.') +
    ':host {\n'),
   ('chrome/browser/resources/extensions/item.css',
    '#card {\n'
