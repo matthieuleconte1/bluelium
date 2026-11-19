@@ -168,7 +168,7 @@ class GlypheShimmerHandler : public content::WebUIMessageHandler {
     if (ok) {
       service->RestoreEntryById(context,
                                 SessionID::FromSerializedValue(session_id),
-                                WindowOpenDisposition::NEW_FOREGROUND_TAB);
+                                WindowOpenDisposition::kNewForegroundTab);
     }
     ResolveJavascriptCallback(args[0], base::Value(ok));
   }
