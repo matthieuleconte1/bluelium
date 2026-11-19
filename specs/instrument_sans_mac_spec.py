@@ -68,12 +68,12 @@ base::apple::ScopedCFTypeRef<CTFontRef>
 CreateBundledInstrumentSans(int size, int style, Weight weight) {
   if (!g_instrument_sans_registered.load(std::memory_order_acquire) ||
       (style & Font::ITALIC)) {
-    return {};
+    return base::apple::ScopedCFTypeRef<CTFontRef>();
   }
 
   NSFont* regular = [NSFont fontWithName:@"InstrumentSans-Regular" size:size];
   if (![regular.familyName isEqualToString:@"Instrument Sans"]) {
-    return {};
+    return base::apple::ScopedCFTypeRef<CTFontRef>();
   }
 
   base::apple::ScopedCFTypeRef<CTFontDescriptorRef> descriptor(
