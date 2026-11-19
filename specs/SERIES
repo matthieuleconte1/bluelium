@@ -43,6 +43,7 @@ customize-panel.patch         customize_panel_spec.py
 quit-hud.patch                 quit_hud_spec.py               mac
 motion.patch                  motion_spec.py
 page-color-blend.patch        page_color_blend_spec.py
+page-color-internal.patch     page_color_internal_spec.py
 motion-tuning.patch           motion_tuning_spec.py          mac
 motion-pill.patch             motion_pill_spec.py            mac
 macos-identity.patch           macos_identity_spec.py         mac

@@ -1,0 +1,277 @@
+--- a/chrome/browser/ui/views/frame/browser_widget.cc
++++ b/chrome/browser/ui/views/frame/browser_widget.cc
+@@ -38,7 +38,9 @@
+ #include "chrome/common/chrome_switches.h"
+ #include "chrome/common/pref_names.h"
+ #include "components/prefs/pref_service.h"
++#include "content/public/browser/render_frame_host.h"
+ #include "content/public/browser/web_contents.h"
++#include "content/public/common/url_constants.h"
+ #include "ui/color/glyphe_red_night.h"
+ #include <algorithm>
+ #include "ui/color/color_provider_manager.h"
+@@ -52,6 +54,8 @@
+ #include "ui/views/controls/menu/menu_runner.h"
+ #include "ui/views/input_protection/widget_stationarity_monitor.h"
+ #include "ui/views/widget/native_widget.h"
++#include "url/gurl.h"
++#include "url/url_constants.h"
+ 
+ #if BUILDFLAG(IS_CHROMEOS)
+ #include "chromeos/ui/base/window_properties.h"
+@@ -96,6 +100,24 @@
+   base::ScopedObservation<views::Widget, views::WidgetObserver>
+       widget_observation{this};
+ };
++
++bool UsesThemeForPage(content::WebContents& contents) {
++  const auto* main_frame = contents.GetPrimaryMainFrame();
++  if (main_frame && main_frame->IsErrorDocument()) {
++    return true;
++  }
++
++  // Bluelium : l'URL visible peut déjà désigner une navigation en attente.
++  // L'alias bluelium:// est normalement réécrit en chrome:// avant le commit.
++  const GURL& committed_url = contents.GetLastCommittedURL();
++  const GURL& page_url =
++      committed_url.is_empty() ? contents.GetVisibleURL() : committed_url;
++  return page_url.SchemeIs(content::kChromeUIScheme) ||
++         page_url.SchemeIs(content::kChromeUIUntrustedScheme) ||
++         page_url.SchemeIs(content::kChromeDevToolsScheme) ||
++         page_url.SchemeIs(url::kAboutScheme) ||
++         page_url.SchemeIs(content::kHeliumUIScheme);
++}
+ 
+ bool IsUsingLinuxSystemTheme(Profile* profile) {
+ #if BUILDFLAG(IS_LINUX)
+@@ -548,20 +570,11 @@
+       !web_app::AppBrowserController::From(browser_view_->browser()) &&
+       profile->GetPrefs()->GetBoolean(prefs::kGlypheFollowPageColor);
+   std::optional<SkColor> target;
+-  // Nouvel onglet : couleurs du thème, comme Shimmer qui les suit.
+   content::WebContents* active = browser_view_->GetActiveWebContents();
+-  const bool new_tab_page =
+-      active && active->GetVisibleURL().SchemeIs("chrome") &&
+-      (active->GetVisibleURL().host() == "new-tab-page" ||
+-       active->GetVisibleURL().host() == "newtab");
+-  if (follow && !new_tab_page) {
+-    content::WebContents* contents = active;
+-    std::optional<SkColor> page;
+-    if (contents) {
+-      page = contents->GetThemeColor();
+-      if (!page || SkColorGetA(*page) == SK_AlphaTRANSPARENT) {
+-        page = contents->GetBackgroundColor();
+-      }
++  if (follow && active && !UsesThemeForPage(*active)) {
++    std::optional<SkColor> page = active->GetThemeColor();
++    if (!page || SkColorGetA(*page) == SK_AlphaTRANSPARENT) {
++      page = active->GetBackgroundColor();
+     }
+     if (!page || SkColorGetA(*page) == SK_AlphaTRANSPARENT) {
+       // Couleur pas encore connue (chargement) : on garde la précédente
+@@ -574,6 +587,13 @@
+       target = SkColorSetA(*page, SK_AlphaOPAQUE);
+     }
+   }
++  if (!follow || !active) {
++    glyphe_target_page_color_.reset();
++    glyphe_settle_timer_.Stop();
++    glyphe_fade_timer_.Stop();
++    FinishGlyphePageColorFade();
++    return;
++  }
+   if (target == glyphe_target_page_color_) {
+     if (immediate && glyphe_settle_timer_.IsRunning()) {
+       glyphe_settle_timer_.Stop();
+@@ -581,14 +601,17 @@
+     }
+     return;
+   }
++  const bool theme_transition = !target || !glyphe_target_page_color_;
+   glyphe_target_page_color_ = target;
+-  if (immediate || !target || !glyphe_shown_page_color_) {
++  if (immediate || theme_transition || !glyphe_shown_page_color_ ||
++      SkColorGetA(*glyphe_shown_page_color_) != SK_AlphaOPAQUE) {
+     glyphe_settle_timer_.Stop();
+     StartGlyphePageColorFade();
+     return;
+   }
+   // Pendant un chargement la couleur change plusieurs fois de suite (fond
+   // blanc, puis celui du site) : on attend qu’elle se stabilise.
++  glyphe_fade_timer_.Stop();
+   glyphe_settle_timer_.Start(
+       FROM_HERE, base::Milliseconds(120),
+       base::BindOnce(&BrowserWidget::StartGlyphePageColorFade,
+@@ -596,14 +619,13 @@
+ }
+ 
+ void BrowserWidget::StartGlyphePageColorFade() {
+-  if (!glyphe_target_page_color_ || !glyphe_shown_page_color_ ||
+-      *glyphe_target_page_color_ == *glyphe_shown_page_color_) {
+-    // Activation, désactivation ou rien à animer : passage direct.
++  if (glyphe_target_page_color_ == glyphe_shown_page_color_) {
+     glyphe_fade_timer_.Stop();
+     FinishGlyphePageColorFade();
+     return;
+   }
+-  glyphe_fade_from_ = *glyphe_shown_page_color_;
++  // Bluelium : une teinte transparente laisse apparaître le thème.
++  glyphe_fade_from_ = glyphe_shown_page_color_.value_or(SK_ColorTRANSPARENT);
+   glyphe_fade_start_ = base::TimeTicks::Now();
+   glyphe_fade_timer_.Start(
+       FROM_HERE, base::Milliseconds(16),  // Bluelium : une teinte par image
+@@ -616,20 +638,25 @@
+   constexpr base::TimeDelta kDuration = base::Milliseconds(280);  // Bluelium : dégradé fluide
+   const double t = std::clamp(
+       (base::TimeTicks::Now() - glyphe_fade_start_) / kDuration, 0.0, 1.0);
+-  if (t >= 1.0 || !glyphe_target_page_color_) {
++  if (t >= 1.0) {
+     glyphe_fade_timer_.Stop();
+     FinishGlyphePageColorFade();
+     return;
+   }
+-  const float eased = static_cast<float>(
+-      gfx::Tween::CalculateValue(gfx::Tween::EASE_OUT, t));
+-  const SkColor color = color_utils::AlphaBlend(
+-      *glyphe_target_page_color_, glyphe_fade_from_, eased);
+-  if (glyphe_shown_page_color_ == color) {
+-    return;
+-  }
+-  glyphe_shown_page_color_ = color;
+-  glyphe_fade_steps_.push_back(color);
++  const double eased = gfx::Tween::CalculateValue(gfx::Tween::EASE_OUT, t);
++  const SkColor color = gfx::Tween::ColorValueBetween(
++      eased, glyphe_fade_from_,
++      glyphe_target_page_color_.value_or(SK_ColorTRANSPARENT));
++  const std::optional<SkColor> shown = SkColorGetA(color) == SK_AlphaTRANSPARENT
++                                          ? std::nullopt
++                                          : std::optional<SkColor>(color);
++  if (glyphe_shown_page_color_ == shown) {
++    return;
++  }
++  glyphe_shown_page_color_ = shown;
++  if (shown) {
++    glyphe_fade_steps_.push_back(*shown);
++  }
+   ThemeChanged();
+ }
+ 
+--- a/chrome/browser/ui/views/frame/browser_view.cc
++++ b/chrome/browser/ui/views/frame/browser_view.cc
+@@ -2812,6 +2812,9 @@
+     restore_focus_on_activation_ = true;
+   }
+ 
++  // Bluelium : couvre aussi le changement d'onglet en vue divisée,
++  // où le WebContents peut déjà être attaché à sa vue.
++  browser_widget_->UpdateGlyphePageColor(/*immediate=*/true);
+   // Update all the UI bits.
+   UpdateTitleBar();
+ 
+@@ -3740,6 +3743,8 @@
+     SetWindowManagementPermissionSubscriptionForUnframedMode(
+         navigation_handle->GetWebContents());
+   }
++  // Bluelium : une page interne ou une erreur peut garder le même fond.
++  browser_widget_->UpdateGlyphePageColor(/*immediate=*/false);
+ }
+ 
+ // Bluelium : les calques natifs évitent de déplacer les contrôles du navigateur.
+--- a/ui/color/glyphe_prism.h
++++ b/ui/color/glyphe_prism.h
+@@ -7,6 +7,7 @@
+ 
+ namespace ui {
+ 
++class ColorMixer;
+ class ColorProvider;
+ struct ColorProviderKey;
+ 
+@@ -59,6 +60,11 @@
+ COMPONENT_EXPORT(COLOR)
+ const GlyphePrismPalette* GetGlyphePrismPalette(const ColorProviderKey& key);
+ 
++// Fond la palette de page (recettes à couleurs fixes) sur les couleurs
++// déjà définies dans le fournisseur.
++COMPONENT_EXPORT(COLOR) void AddGlyphePageColorFadeMixer(
++    ColorProvider* provider, const ColorMixer& page, SkAlpha opacity);
++
+ // Réécrit les jetons système quand une palette s’applique.
+ void AddGlyphePrismMixer(ColorProvider* provider, const ColorProviderKey& key);
+ 
+--- a/ui/color/glyphe_prism.cc
++++ b/ui/color/glyphe_prism.cc
+@@ -449,6 +449,16 @@
+     return nullptr;  // Couleur libre (pipette) : couleurs dérivées de Helium.
+   }
+   return dark ? &theme->dark : &theme->light;
++}
++
++void AddGlyphePageColorFadeMixer(ColorProvider* provider,
++                                const ColorMixer& page,
++                                SkAlpha opacity) {
++  ColorMixer& fade = provider->AddMixer();
++  for (ColorId id : page.GetDefinedColorIds()) {
++    fade[id] = {AlphaBlend(page.GetResultColor(id), FromTransformInput(),
++                           opacity)};
++  }
+ }
+ 
+ void AddGlyphePrismMixer(ColorProvider* provider,
+@@ -529,7 +539,10 @@
+     // Bluelium : jetons d’en-tête seulement (cadre, onglets, adresse).
+     const GlyphePrismPalette& h = *page;
+     const SkColor header_tint = h.dark ? h.text : h.accent;
+-    ColorMixer& header = provider->AddMixer();
++    const SkAlpha opacity = SkColorGetA(*key.app_background_color);
++    ColorMixer page_header;
++    ColorMixer& header =
++        opacity == SK_AlphaOPAQUE ? provider->AddMixer() : page_header;
+     header[kColorSysHeader] = {h.frame};
+     header[kColorSysHeaderInactive] = {h.frame};
+     header[kColorSysHeaderContainer] = {h.tab};
+@@ -542,6 +555,9 @@
+     header[kColorSysStateHeaderHover] = {SkColorSetA(header_tint, 0x1a)};
+     header[kColorSysStateHeaderHoverInactive] = {SkColorSetA(header_tint, 0x14)};
+     header[kColorSysStateHeaderSelect] = {SkColorSetA(header_tint, 0x24)};
++    if (opacity != SK_AlphaOPAQUE) {
++      AddGlyphePageColorFadeMixer(provider, page_header, opacity);
++    }
+   }
+ }
+ 
+--- a/chrome/browser/ui/color/chrome_color_mixers.cc
++++ b/chrome/browser/ui/color/chrome_color_mixers.cc
+@@ -109,9 +109,9 @@
+   if (ui::ShouldUseGlyphePageColor(key)) {
+     glyphe_page = ui::GlyphePageColorPalette(*key.app_background_color, key);
+   }
+-  if (const ui::GlyphePrismPalette* prism =
+-          glyphe_page ? &*glyphe_page : ui::GetGlyphePrismPalette(key)) {
+-    ui::ColorMixer& p = provider->AddMixer();
++  const auto add_prism_colors = [](ui::ColorMixer& p,
++                                   const ui::GlyphePrismPalette& palette) {
++    const auto* prism = &palette;
+     for (ui::ColorId id : std::initializer_list<ui::ColorId>{
+              ui::kColorFrameActive, ui::kColorFrameInactive, kColorToolbar,
+              kColorToolbarTopSeparatorFrameActive,
+@@ -185,6 +185,19 @@
+       p[kColorToolbarInkDropHover] = {SkColorSetA(prism->text, 0x14)};
+       p[kColorToolbarInkDropRipple] = {SkColorSetA(prism->text, 0x1f)};
+     }
++  };
++  if (glyphe_page && SkColorGetA(*key.app_background_color) == SK_AlphaOPAQUE) {
++    add_prism_colors(provider->AddMixer(), *glyphe_page);
++  } else {
++    if (const auto* base = ui::GetGlyphePrismPalette(key)) {
++      add_prism_colors(provider->AddMixer(), *base);
++    }
++    if (glyphe_page) {
++      ui::ColorMixer page;
++      add_prism_colors(page, *glyphe_page);
++      ui::AddGlyphePageColorFadeMixer(
++          provider, page, SkColorGetA(*key.app_background_color));
++    }
+   }
+ 
+   // Bluelium : point d’intégration des thèmes, sans palette nuit rouge.
