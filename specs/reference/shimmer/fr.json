@@ -1,0 +1,417 @@
+{
+ "12h": "12 h",
+ "24h": "24 h",
+ "accent": "Accent",
+ "add": "Ajouter",
+ "add_shortcut": "Ajouter un raccourci",
+ "add_shortcuts": "Ajouter des raccourcis",
+ "allow_access_to_file": "Activez « Autoriser l'accès aux URL de fichier » pour cette extension, ou choisissez une couleur ci-dessous",
+ "amber": "Ambre",
+ "answers": "Réponses rapides",
+ "appearance": "Apparence",
+ "back_to_defaults": "Réglages réinitialisés",
+ "background": "Arrière-plan",
+ "backup": "Sauvegarde",
+ "answers_desc": "2+2 ou 10 km en mi, juste sous la recherche",
+ "bangs": "Chercher sur un site avec !",
+ "copied": "Copié",
+ "berlin": "Berlin",
+ "blur": "Flou",
+ "browser_colors": "Couleurs du navigateur",
+ "c": "°C",
+ "cancel": "Annuler",
+ "center": "Centre",
+ "city": "Ville",
+ "clear_skies_until_you": "Affiche un ciel dégagé tant que vous n'avez pas ajouté votre ville dans Widgets → Météo.",
+ "clock": "Horloge",
+ "clock_format": "Format de l'heure",
+ "color": "Couleur",
+ "custom": "Personnalisé",
+ "custom_color": "Couleur personnalisée",
+ "data": "Données",
+ "date_and_time": "Date et heure",
+ "defaults": "Tout réinitialiser",
+ "edit_name": "Modifier {name}",
+ "edit_shortcut": "Modifier le raccourci",
+ "export": "Enregistrer une copie",
+ "f": "°F",
+ "feels_like": "Ressenti",
+ "focus_mode": "Mode concentration",
+ "focus_mode_just_the": "Mode concentration : la recherche seule",
+ "fade_when_idle": "Masquer au repos",
+ "shortcuts_and_the_top_bar": "Les raccourcis et l'horloge s'effacent jusqu'à ce que vous bougiez la souris",
+ "follow_the_browser_theme": "Même couleur que le navigateur",
+ "format": "Format",
+ "gif_too_big": "Ce GIF dépasse 25 Mo. Choisissez-en un plus léger.",
+ "green": "Vert",
+ "greeting": "Message d'accueil",
+ "hide_add_and_edit": "Masque l'ajout et la modification, pour ne rien changer par erreur",
+ "high_low": "Max / min",
+ "history": "Historique",
+ "hover_to_edit_drag": "Survolez un raccourci et cliquez sur ⋯ pour le modifier, faites-le glisser pour le déplacer",
+ "humidity": "Humidité",
+ "icon_color": "Couleur des icônes",
+ "icon_containers": "Icônes sur fond",
+ "icons_for_every_site": "Une icône pour chaque site",
+ "image": "Image",
+ "import": "Charger une copie",
+ "intro_animation": "Animation d'ouverture",
+ "left": "Gauche",
+ "lock": "Verrouiller les raccourcis",
+ "logo_text": "Texte du logo",
+ "look": "Style",
+ "medium": "Moyen",
+ "most_visited": "Les plus visités",
+ "name": "Nom",
+ "names": "Noms sous les icônes",
+ "next_to_the_clock": "À côté de l'horloge, par Open-Meteo",
+ "next_to_the_mark": "À côté du logo",
+ "no_theme_policy_found": "Aucune couleur n'est définie dans le navigateur. Choisissez-en une ci-dessous",
+ "none": "Aucun",
+ "number_keys": "Touches numériques",
+ "number_keys_desc": "1 à 9 ouvrent un raccourci. Maintenez Alt pour voir les numéros",
+ "not_an_image": "Ce fichier n'est pas une image lisible par le navigateur.",
+ "off": "Désactivé",
+ "only_the_logo_and": "Seulement le logo et la recherche, comme le bouton en forme d'œil",
+ "open": "Ouvrir",
+ "open_file": "Ouvrir un fichier",
+ "paint_all_icons_in": "Toutes les icônes de la même couleur",
+ "paste_or_open_a": "Coller plusieurs liens d'un coup",
+ "photo_or_gif_stays": "Vos photos, gardées sur cet ordinateur uniquement",
+ "picture": "Image",
+ "updated_to": "Mis à jour en version {version}",
+ "whats_new": "Nouveautés",
+ "update_out": "La version {version} est disponible",
+ "view_release": "Détails",
+ "dismiss": "Ignorer",
+ "speed_auto": "Les effets ralentissaient cet ordinateur, ils sont désactivés",
+ "undo": "Annuler",
+ "check_for_updates": "Rechercher les mises à jour",
+ "check_for_updates_desc": "Vérifie une fois par jour s'il existe une version plus récente",
+ "search_engine": "Moteur de recherche",
+ "browser_default": "Celui du navigateur",
+ "custom_engine_url": "%s indique où vont vos mots",
+ "suggestions": "Suggestions",
+ "suggestions_pick_engine": "Nécessite Google, DuckDuckGo, Bing, Brave ou Ecosia ci-dessus",
+ "suggestions_desc": "Des idées pendant la saisie. Ce que vous tapez est envoyé au moteur de recherche",
+ "folder": "Dossier",
+ "new_folder": "Nouveau dossier",
+ "edit_folder": "Modifier le dossier",
+ "move_out": "Sortir du dossier",
+ "pictures": "Images",
+ "change_picture": "Changer d'image",
+ "every_tab": "À chaque onglet",
+ "never": "Jamais",
+ "simple": "Simple",
+ "advanced": "Avancé",
+ "settings_mode": "Niveau de détail",
+ "effects": "Effets",
+ "fx_performance": "Rapidité",
+ "fx_balanced": "Équilibré",
+ "fx_beauty": "Beauté",
+ "fx_performance_desc": "Ni verre translucide ni animations. Idéal pour les ordinateurs anciens",
+ "fx_balanced_desc": "Verre translucide et animations fluides",
+ "fx_beauty_desc": "Verre plus riche et images plus lumineuses",
+ "dim_picture": "Assombrir l'image",
+ "dim_picture_desc": "Atténue l'image pour que le texte reste lisible",
+ "picture_colors": "Couleurs de l'image",
+ "picture_colors_desc": "Les boutons et le texte prennent les couleurs de l'image",
+ "every_hour": "Toutes les heures",
+ "every_day": "Tous les jours",
+ "order": "Ordre",
+ "in_order": "Dans l'ordre",
+ "position": "Position",
+ "precipitation": "Précipitations",
+ "purple": "Violet",
+ "random": "Aléatoire",
+ "read_sites_own_hq": "Demande l'accès aux sites pour lire leurs icônes. Sans cela, certains affichent une lettre",
+ "recently_closed": "Fermés récemment",
+ "red": "Rouge",
+ "remove": "Supprimer",
+ "reset": "Réinitialiser",
+ "right": "Droite",
+ "save": "Enregistrer",
+ "saved_to_your_downloads": "Enregistré dans vos Téléchargements.",
+ "search": "Rechercher",
+ "search_or_enter_address": "Rechercher ou saisir une adresse",
+ "search_service": "Rechercher sur {service}",
+ "seconds": "Secondes",
+ "settings": "Réglages",
+ "settings_and_shortcuts_as": "Réglages et raccourcis dans un fichier",
+ "settings_section": "Section des réglages",
+ "shimmer": "Shimmer",
+ "shortcuts": "Raccourcis",
+ "show_everything": "Tout afficher",
+ "show_shortcuts": "Afficher les raccourcis",
+ "single_color": "Une seule couleur d'icônes",
+ "soft": "Léger",
+ "stars": "Étoiles",
+ "strong": "Fort",
+ "sure": "Oui, réinitialiser",
+ "temperature_unit": "Unité de température",
+ "text": "Texte",
+ "that_file_isn_t": "Ce fichier n'est pas une sauvegarde de réglages.",
+ "theme_color": "Couleur du thème",
+ "top_sites_below_your": "Les sites que vous visitez le plus, sous vos raccourcis",
+ "units": "Unités",
+ "wallpaper_entrance_when_a": "L'arrière-plan s'anime à chaque nouvel onglet",
+ "weather": "Météo",
+ "weather_clear": "Dégagé",
+ "weather_drizzle": "Bruine",
+ "weather_fog": "Brouillard",
+ "weather_overcast": "Couvert",
+ "weather_partly_cloudy": "Partiellement nuageux",
+ "weather_rain": "Pluie",
+ "weather_showers": "Averses",
+ "weather_snow": "Neige",
+ "weather_snow_showers": "Averses de neige",
+ "weather_thunderstorm": "Orage",
+ "where_the_search_and": "Emplacement de la recherche et des raccourcis",
+ "widgets": "Widgets",
+ "wind": "Vent",
+ "your_shortcuts_are_reset": "Réglages et raccourcis comme à l'installation. Les images sont conservées",
+ "yt_cats_w_helium": "!yt chats cherche sur YouTube, !w sur Wikipédia",
+ "greetings": {
+  "generic": [
+   "Prêt quand vous l'êtes.",
+   "On va où ?",
+   "Et maintenant ?",
+   "La suite ?",
+   "Dites-moi tout.",
+   "À vous de jouer.",
+   "Page blanche.",
+   "Pas de bruit. Juste la recherche.",
+   "Rien à désactiver.",
+   "Rapide, discret, à vous.",
+   "Calme, par défaut.",
+   "Nouvel onglet, rien d'autre.",
+   "Cherchez donc.",
+   "Une question ?",
+   "Tapez.",
+   "Allez-y, demandez."
+  ],
+  "memes": [
+   "6 7.",
+   "Aura farming.",
+   "Focus.",
+   "Chat, c'est réel ?",
+   "Delulu is the solulu.",
+   "Sans mentir. Juste des onglets.",
+   "Le retour.",
+   "Ça sent le nouvel onglet.",
+   "Pas de crise. Cherche.",
+   "Tung tung tung sahur.",
+   "Énergie de personnage principal.",
+   "Robots non invités."
+  ],
+  "night": [
+   "Insomnie ?",
+   "Encore debout ?",
+   "Bonsoir, oiseau de nuit.",
+   "Les heures calmes.",
+   "Longue soirée, hein ?",
+   "Juste une dernière recherche.",
+   "Le web ne dort jamais.",
+   "Couché tard ou levé tôt ?"
+  ],
+  "early": [
+   "Debout de bonne heure.",
+   "Levé avant le réveil ?",
+   "Bonjour, lève-tôt.",
+   "Un café d'abord ?",
+   "Matin tranquille."
+  ],
+  "morning": [
+   "Bonjour.",
+   "Bonjour. On va où ?",
+   "Bonjour. On commence par quoi ?",
+   "Nouveau matin, nouvel onglet."
+  ],
+  "afternoon": [
+   "Bon après-midi.",
+   "Après-midi. Et ensuite ?",
+   "On s'y remet.",
+   "Après-midi tranquille."
+  ],
+  "evening": [
+   "Bonsoir.",
+   "Bonsoir. Doucement.",
+   "On décompresse ?",
+   "Bonsoir, rien ne presse."
+  ],
+  "late": [
+   "Tard ce soir ?",
+   "Service de nuit ?",
+   "Encore un onglet ?",
+   "Presque demain."
+  ],
+  "monday": [
+   "Lundi. C'est parti.",
+   "Nouvelle semaine, page blanche.",
+   "Lundi, mais calme.",
+   "#lundi"
+  ],
+  "tuesday": [
+   "Mardi. On garde le rythme."
+  ],
+  "wednesday": [
+   "Déjà mercredi.",
+   "La moitié de la semaine."
+  ],
+  "thursday": [
+   "Jeudi. Bientôt vendredi."
+  ],
+  "friday": [
+   "Vendredi. Enfin.",
+   "C'est vendredi.",
+   "Vendredi. Presque."
+  ],
+  "weekend": [
+   "Mode week-end.",
+   "Week-end tranquille.",
+   "Week-end. Rien ne presse."
+  ],
+  "saturday": [
+   "Samedi. Tout à vous."
+  ],
+  "sunday": [
+   "Dimanche. On prend son temps.",
+   "Dimanche paresseux ?"
+  ],
+  "mondayMorning": [
+   "Lundi matin. En douceur.",
+   "Un café, puis lundi."
+  ],
+  "sundayLate": [
+   "Lundi peut attendre.",
+   "Pas encore lundi. Presque."
+  ],
+  "fridayAfternoon": [
+   "Vendredi après-midi. Presque."
+  ],
+  "fridayNight": [
+   "Vendredi soir. Filez.",
+   "Vendredi soir, enfin.",
+   "Le week-end commence."
+  ],
+  "saturdayNight": [
+   "Samedi soir. Allez-y.",
+   "De grands projets ce samedi soir ?"
+  ],
+  "sundayEvening": [
+   "Dimanche soir. Tranquille.",
+   "Dimanche soir calme."
+  ],
+  "newYear": [
+   "Bonne année.",
+   "Bonjour, {year}.",
+   "Nouvelle année, page blanche.",
+   "Calendrier neuf. On va où ?"
+  ],
+  "newYearsEve": [
+   "Bientôt {next}.",
+   "Derniers onglets de l'année.",
+   "À l'année prochaine."
+  ],
+  "winter": [
+   "Joyeuses fêtes.",
+   "Meilleurs vœux.",
+   "Bonnes fêtes de fin d'année.",
+   "Onglets douillets uniquement."
+  ],
+  "valentine": [
+   "Joyeuse Saint-Valentin.",
+   "L'amour est dans la barre d'adresse.",
+   "Onglets tendres uniquement."
+  ],
+  "aprilFools": [
+   "Onglet parfaitement normal.",
+   "Pas de poisson ici. Sans doute.",
+   "Les pubs sont de retour. Poisson d'avril."
+  ],
+  "piDay": [
+   "Joyeux jour de Pi.",
+   "3,14159 et ça continue.",
+   "Une part de π ?"
+  ],
+  "earthDay": [
+   "Joyeux Jour de la Terre.",
+   "Jour de la Terre. Jolie planète."
+  ],
+  "starWars": [
+   "Que le 4 mai soit avec vous.",
+   "Chercher, tu dois."
+  ],
+  "towelDay": [
+   "N'oubliez pas votre serviette.",
+   "Joyeux Towel Day.",
+   "Pas de panique."
+  ],
+  "sysadminDay": [
+   "Remerciez un admin système aujourd'hui.",
+   "Joyeuse journée des admins système."
+  ],
+  "programmersDay": [
+   "Joyeuse journée des programmeurs.",
+   "Jour 256. On livre.",
+   "Jour 0x100."
+  ],
+  "adaLovelaceDay": [
+   "Joyeuse journée Ada Lovelace."
+  ],
+  "halloween": [
+   "Joyeux Halloween.",
+   "Onglets effrayants uniquement.",
+   "Bouh. On va où ?",
+   "Un bonbon ou un onglet ?"
+  ],
+  "winterSolstice": [
+   "La nuit la plus longue. Au chaud."
+  ],
+  "friday13": [
+   "Vendredi 13. Détendez-vous.",
+   "Jour de malchance, onglet de chance.",
+   "Rien d'effrayant ici."
+  ],
+  "leapDay": [
+   "Joyeux 29 février.",
+   "Un jour en prime. Profitez-en.",
+   "Rendez-vous dans quatre ans."
+  ],
+  "easter": [
+   "Joyeuses Pâques.",
+   "Dimanche de Pâques. Rien ne presse.",
+   "Chasse aux œufs ou aux onglets ?"
+  ],
+  "chineseNewYear": [
+   "Bon Nouvel An chinois."
+  ]
+ },
+ "big_clock": "Grande horloge",
+ "big_clock_desc": "Une grande horloge à la place du logo",
+ "show_logo": "Afficher le logo",
+ "show_search_bar": "Afficher la barre de recherche",
+ "show_search_bar_desc": "Désactivée, elle apparaît dès que vous tapez",
+ "about": "À propos",
+ "version": "Version {version}",
+ "made_by": "par",
+ "chrome_logo": "Logo Chrome",
+ "chrome_logo_desc": "Le logo de Chrome au lieu de celui de Helium",
+ "import_desc": "Remplace vos réglages, ou ajoute une liste de liens",
+ "shortcuts_added": "{count} raccourcis ajoutés",
+ "backup_loaded": "Réglages chargés",
+ "shortcut_removed": "{name} supprimé",
+ "folder_removed": "Dossier {name} supprimé",
+ "picture_removed": "Image supprimée",
+ "blur_off_desc": "L'image reste nette",
+ "blur_soft_desc": "Un peu adoucie",
+ "blur_medium_desc": "Adoucie, pour faire ressortir le texte",
+ "blur_strong_desc": "Seulement les couleurs de l'image",
+ "recently_closed_desc": "Les onglets fermés, pour les rouvrir",
+ "address": "Adresse",
+ "custom_engine": "Adresse de recherche",
+ "found_shortcuts": "{count} trouvés",
+ "add_shortcuts_hint": "Un lien par ligne, précédé d'un nom si vous voulez",
+ "weather_city_not_found": "Ville introuvable. Essayez son nom en anglais",
+ "weather_offline": "Pas de connexion au service météo pour le moment"
+}

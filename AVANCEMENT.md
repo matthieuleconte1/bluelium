@@ -45,13 +45,23 @@ page grisés en OLED et en Nuit. Écran de bienvenue testé hors navigateur
       connecteur ChatGPT/Codex (`com.openai.codexextension`) absent.
 
 ### Lot 2 — faciles
-- [ ] Accent personnalisé : existe mais cassé, à réparer.
-- [ ] Instrument Sans livrée avec le navigateur (Linux) et appliquée sur macOS.
-- [ ] Shimmer : entièrement traduit en français ; raccourcis Claude/ChatGPT,
-      moteur de recherche du navigateur.
-- [ ] Jeu hors ligne, aperçu de lien, canal Nightly.
-- [ ] Nettoyage : fusion `assistant-side-panel` + `assistant-tabs`, icône
-      ChatGPT, nom « Glyphe » restant (code, dossier Linux).
+Base : Helium 0.22.1.1 (branche `helium22`). Décisions du 19 nov. : jeu hors
+ligne original propre à Bluelium, aperçu de lien natif de Chromium, canal
+Nightly reporté, icône ChatGPT conservée telle quelle.
+- [ ] Accent personnalisé : spec `custom_accent` écrite, à vérifier à l'écran
+      après le build Helium 22.
+- [ ] Instrument Sans livrée avec le navigateur (Linux) et appliquée sur macOS
+      (GPT, branche `lot2-police`).
+- [ ] Shimmer (branche `lot2-shimmer`, série appliquée, pas encore compilé) :
+      français (`shimmer_fr`, locale ajoutée au tableau de Shimmer), moteur de
+      recherche du navigateur (`shimmer_search` : `chrome.search.query`
+      n'existait pas dans la page interne, repli DuckDuckGo), raccourcis
+      Claude et ChatGPT pour les profils neufs.
+- [ ] Aperçu de lien natif (GPT, branche `lot2-apercu`).
+- [ ] Jeu hors ligne original.
+- [x] Nettoyage : fusion `assistant-side-panel` + `assistant-tabs` ; nom
+      « Glyphe » conservé dans les clés et chemins (voir docs/nettoyage-glyphe.md).
+- Reporté : canal Nightly.
 
 ### Lot 3 — moyennes
 - [ ] Sites épinglés en boutons ronds.
