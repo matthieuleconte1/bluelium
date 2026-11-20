@@ -94,6 +94,22 @@ Nightly reporté, icône ChatGPT conservée telle quelle.
 
 ## Fait
 
+### Helium 22 et Lot 2 (19-20 novembre)
+
+- macOS publié : `v0.22.1.1-gd0116bd-macos` (Helium 0.22.1.1, Chromium 158),
+  appcast Sparkle à jour, patch note `docs/patch-notes/0.22.1.1-gd0116bd.html`.
+- Lot 2 : Shimmer en français et recherche par le moteur par défaut, jeu
+  « Paquet perdu », pages internes et pages d'erreur aux couleurs du thème avec
+  entrée animée, cadre au thème sur les pages internes, barre d'adresse lisible
+  en saisie (page-color-omnibox), Instrument Sans embarquée.
+- Linux (branche `helium22`, pas encore sur `main`) : série complète
+  compilée sur la machine de build ; identité propre dans le binaire
+  (linux-identity) et mise à jour signalée dans le navigateur
+  (linux-update). AppImage de test : `/root/glyphe/releases-test/`. Reste à
+  tester sur un vrai bureau Linux avant de fusionner dans `main`.
+- Auto-build : mode test (`BLUELIUM_BRANCH`, `PUBLISH=0`, dossiers à part).
+
+
 ### Mode nuit à lumière chaude (13 novembre, specs préparées)
 - Remplace le convertisseur DOM/CSS et la palette rouge par une matrice RGB
   sur le calque de `ContentsWebView` : R × 1, G × 0,85, B × 0,65. Les fonds
