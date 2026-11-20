@@ -20,6 +20,10 @@
 #
 # FORCE=1 reconstruit même si rien n'a changé. PGO=false pour aller plus vite.
 # PATCH_ONLY=1 s'arrête après la série Bluelium (vérifie qu'elle s'applique).
+# Build de test d'une branche, sans rien publier :
+#   BLUELIUM_BRANCH=<branche> PUBLISH=0 HELIUM_TAG=<tag> FORCE=1 PGO=false \
+#   BLUELIUM_WORK=/root/helium-test BLUELIUM_CLONE=/root/bluelium-test
+# PUBLISH=0 : pas de release GitHub, état (autobuild.state, latest.json) intact.
 set -Eeuo pipefail  # -E : le piège ERR vaut aussi dans les fonctions de Helium
 
 # Lancé par systemd, le service n'a pas de HOME : les outils Go de Chromium
@@ -28,8 +32,10 @@ export HOME=${HOME:-/root}
 export XDG_CACHE_HOME=${XDG_CACHE_HOME:-$HOME/.cache}
 
 G=/root/glyphe
-W=/root/helium-auto
-B=/root/bluelium
+# BLUELIUM_WORK / BLUELIUM_CLONE : autres dossiers, pour un build de test qui
+# ne touche pas l'arbre de l'auto-build de nuit.
+W=${BLUELIUM_WORK:-/root/helium-auto}
+B=${BLUELIUM_CLONE:-/root/bluelium}
 REL=$G/releases
 LOG=$G/autobuild.log
 STATE=$G/autobuild.state
@@ -63,8 +69,9 @@ git fetch --quiet --tags --force --no-recurse-submodules origin
 if [ ! -d "$B/.git" ]; then
   git clone --quiet "$BLUELIUM_GIT" "$B"
 fi
-git -C "$B" fetch --quiet origin main
-git -C "$B" checkout --quiet --force origin/main
+BRANCH=${BLUELIUM_BRANCH:-main}
+git -C "$B" fetch --quiet origin "$BRANCH"
+git -C "$B" checkout --quiet --force "origin/$BRANCH"
 
 # Version de Helium : on ne change qu'aux versions MAJEURES stables (0.21 ->
 # 0.22) ; les petites versions et les pré-versions sont ignorées
@@ -151,6 +158,7 @@ tar -C "$REL" -cf - "bluelium-$VERSION" | zstd -q -T0 -10 -o "$PKG.tar.zst" -f
 rm -rf "$PKG"
 SHA=$(sha256sum "$PKG.tar.zst" | cut -d' ' -f1)
 echo "$SHA  bluelium-$VERSION.tar.zst" > "$PKG.tar.zst.sha256"
+if [ "${PUBLISH:-1}" = 1 ]; then
 python3 - "$REL/latest.json" "$VERSION" "bluelium-$VERSION.tar.zst" "$SHA" <<'PY'
 import json, sys, datetime
 path, version, name, sha = sys.argv[1:]
@@ -158,6 +166,7 @@ json.dump({'version': version, 'file': name, 'sha256': sha,
            'time': datetime.datetime.now().astimezone().isoformat(timespec='seconds')},
           open(path, 'w'), indent=1)
 PY
+fi
 # 5 bis. AppImage (même contenu, un seul fichier exécutable).
 ASSETS=("$PKG.tar.zst" "$PKG.tar.zst.sha256")
 if bash "$B/autobuild/make-appimage.sh" "$PKG.tar.zst" "$REL"; then
@@ -169,7 +178,13 @@ else
 fi
 # 6. Release GitHub (le PC se met à jour depuis là).
 if [ -f "$G/github.env" ]; then . "$G/github.env"; fi
-if [ -n "${GH_TOKEN:-}" ]; then
+if [ "${PUBLISH:-1}" != 1 ]; then
+  echo "PUBLISH=0 : build de test, rien n'est publié ($VERSION, branche $BRANCH)."
+  trap - ERR
+  status idle "test $VERSION ($BRANCH) prêt, non publié"
+  echo "=== $(date -Is) terminé (test) : $VERSION"
+  exit 0
+elif [ -n "${GH_TOKEN:-}" ]; then
   export GH_TOKEN
   gh release create "v$VERSION" "${ASSETS[@]}" \
      --repo "${BLUELIUM_REPO:-matthieuleconte1/bluelium}" \
