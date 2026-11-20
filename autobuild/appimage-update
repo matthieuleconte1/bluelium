@@ -60,6 +60,8 @@ version=$(grep -o '"tag_name"[[:space:]]*:[[:space:]]*"[^"\\]*"' "$work/release.
     head -n 1 | sed 's/^[^:]*:[[:space:]]*"v\{0,1\}//; s/"$//')
 case $version in ''|*[!a-zA-Z0-9._-]*) echo 'Tag de release invalide.' >&2; exit 1 ;; esac
 [ "$version" != "$current" ] || exit 0
+# Déjà téléchargée, en attente de relance : rien à refaire.
+[ "$(cat "$cache/update-ready" 2>/dev/null)" != "$version" ] || exit 0
 asset=Bluelium-$version-x86_64.AppImage
 urls=$(grep -o '"browser_download_url"[[:space:]]*:[[:space:]]*"[^"\\]*"' "$work/release.json" |
     sed 's/^[^:]*:[[:space:]]*"//; s/"$//')

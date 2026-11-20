@@ -64,6 +64,9 @@ fi
 
 # Charger le script avant détachement : il reste utilisable après démontage.
 # Tout échec de préparation est isolé du lancement du navigateur.
+# Vérification au lancement, puis toutes les heures tant que le navigateur
+# tourne ($$ devient le navigateur après le exec final). appimage-update ne
+# télécharge qu'une fois toutes les 6 h au plus (horodatage).
 (
     [ "${BLUELIUM_NO_UPDATE:-}" != 1 ] || exit 0
     [ ! -e "$HOME/.config/bluelium/no-appimage-update" ] || exit 0
@@ -73,7 +76,13 @@ fi
     mkdir -p "$cache" || exit 0
     updater=$(cat "$HERE/opt/bluelium/appimage-update") || exit 0
     version=$(cat "$HERE/opt/bluelium/VERSION") || exit 0
-    nohup nice -n 19 sh -c "$updater" appimage-update "$APPIMAGE" "$version" \
+    nohup nice -n 19 sh -c '
+        browser=$1 updater=$2; shift 2
+        while :; do
+            sh -c "$updater" appimage-update "$@"
+            sleep 3600
+            kill -0 "$browser" 2>/dev/null || exit 0
+        done' bluelium-update "$$" "$updater" "$APPIMAGE" "$version" \
         </dev/null >>"$cache/appimage-update.log" 2>&1 &
 ) 2>/dev/null
 
