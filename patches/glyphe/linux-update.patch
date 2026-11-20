@@ -1,0 +1,133 @@
+--- a/chrome/browser/upgrade_detector/get_installed_version_linux.cc
++++ b/chrome/browser/upgrade_detector/get_installed_version_linux.cc
+@@ -4,10 +4,17 @@
+ 
+ #include "chrome/browser/upgrade_detector/get_installed_version.h"
+ 
++#include <memory>
++#include <optional>
+ #include <string>
+ #include <utility>
+ 
+ #include "base/command_line.h"
++#include "base/environment.h"
++#include "base/files/file_path.h"
++#include "base/files/file_util.h"
++#include "base/nix/xdg_util.h"
++#include "base/strings/strcat.h"
+ #include "base/functional/bind.h"
+ #include "base/functional/callback.h"
+ #include "base/location.h"
+@@ -17,27 +24,44 @@
+ #include "base/task/task_traits.h"
+ #include "base/task/thread_pool.h"
+ #include "chrome/common/chrome_switches.h"
++#include "components/version_info/version_info.h"
+ 
+ namespace {
+ 
+-// On Linux, the Chrome binary may have been replaced by an update. Ask it to
+-// report its version.
++// Bluelium : version téléchargée par appimage-update, prête au prochain
++// lancement. Renvoie une version invalide s'il n'y en a pas.
++base::Version GetBlueliumReadyVersion() {
++  std::unique_ptr<base::Environment> env = base::Environment::Create();
++  const std::optional<std::string> running = env->GetVar("BLUELIUM_VERSION");
++  if (!running || running->empty()) {
++    return base::Version();
++  }
++  const base::FilePath marker =
++      base::nix::GetXDGDirectory(env.get(), "XDG_CACHE_HOME", ".cache")
++          .Append("bluelium")
++          .Append("update-ready");
++  std::string ready;
++  if (!base::ReadFileToStringWithMaxSize(marker, &ready, 256)) {
++    return base::Version();
++  }
++  ready = std::string(base::TrimWhitespaceASCII(ready, base::TRIM_ALL));
++  if (ready.empty() || ready == *running) {
++    return base::Version();
++  }
++  // Deux versions de Bluelium peuvent partager la version de Chromium : un
++  // composant de plus suffit à la rendre plus récente que celle en cours.
++  return base::Version(
++      base::StrCat({version_info::GetVersionNumber(), ".1"}));
++}
++
++// Bluelium : seule la mise à jour signalée par appimage-update compte. Le
++// binaire en cours n'est jamais remplacé sur place (AppImage montée, archive
++// installée au lancement suivant), et --product-version donnerait la version
++// de Helium (0.22…) au lieu de celle de Chromium : fausse mise à jour.
+ InstalledAndCriticalVersion GetInstalledVersionSynchronous() {
+-  base::CommandLine command_line(*base::CommandLine::ForCurrentProcess());
+-  command_line.AppendSwitch(switches::kProductVersion);
+-  base::Version installed_version;
+-  std::string reply;
+-  if (base::GetAppOutput(command_line, &reply)) {
+-    installed_version =
+-        base::Version(base::TrimWhitespaceASCII(reply, base::TRIM_ALL));
+-  }
+-  // Failure may be a result of invoking a Chrome that predates the introduction
+-  // of the --product-version switch in https://crrev.com/48795 (6.0.424.0).
+-  DLOG_IF(ERROR, !installed_version.IsValid())
+-      << "Failed to get current file version; child process replied with: "
+-      << reply;
+-
+-  return InstalledAndCriticalVersion(std::move(installed_version));
++  base::Version ready = GetBlueliumReadyVersion();
++  return InstalledAndCriticalVersion(
++      ready.IsValid() ? std::move(ready) : version_info::GetVersion());
+ }
+ 
+ }  // namespace
+--- a/chrome/browser/first_run/upgrade_util.cc
++++ b/chrome/browser/first_run/upgrade_util.cc
+@@ -17,6 +17,11 @@
+ #include "chrome/browser/lifetime/switch_utils.h"
+ #include "chrome/common/chrome_switches.h"
+ #include "content/public/browser/browser_thread.h"
++
++#if BUILDFLAG(IS_LINUX)
++#include "base/environment.h"
++#include "base/files/file_util.h"
++#endif
+ 
+ #if BUILDFLAG(IS_WIN)
+ #include "components/app_launch_prefetch/app_launch_prefetch.h"
+@@ -45,6 +50,17 @@
+     const base::CommandLine& old_cl,
+     browser_shutdown::RestartMode restart_mode) {
+   base::CommandLine new_cl(old_cl.GetProgram());
++#if BUILDFLAG(IS_LINUX)
++  // Bluelium : relancer par le lanceur (AppImage ou helium-wrapper). Le
++  // binaire de l'AppImage montée disparaît à la fermeture, et seule la
++  // nouvelle AppImage contient la mise à jour.
++  if (const std::optional<std::string> wrapper =
++          base::Environment::Create()->GetVar("CHROME_WRAPPER");
++      wrapper && !wrapper->empty() &&
++      base::PathExists(base::FilePath(*wrapper))) {
++    new_cl.SetProgram(base::FilePath(*wrapper));
++  }
++#endif
+   base::CommandLine::SwitchMap switches = old_cl.GetSwitches();
+ 
+   // Remove switches that shouldn't persist across any restart.
+--- a/chrome/browser/upgrade_detector/upgrade_detector_impl.cc
++++ b/chrome/browser/upgrade_detector/upgrade_detector_impl.cc
+@@ -489,11 +489,14 @@
+           FROM_HERE,
+           base::BindOnce(&UpgradeDetectorImpl::StartOutdatedBuildDetector,
+                          weak_factory_.GetWeakPtr()));
+-
++#endif  // BUILDFLAG(ENABLE_UPDATE_NOTIFICATIONS)
++
++#if BUILDFLAG(ENABLE_UPDATE_NOTIFICATIONS) || BUILDFLAG(IS_LINUX)
++  // Bluelium : détecteur de mise à jour actif sous Linux (AppImage).
+   auto* const build_state = g_browser_process->GetBuildState();
+   build_state->AddObserver(this);
+   installed_version_poller_.emplace(build_state);
+-#endif  // BUILDFLAG(ENABLE_UPDATE_NOTIFICATIONS)
++#endif  // BUILDFLAG(ENABLE_UPDATE_NOTIFICATIONS) || BUILDFLAG(IS_LINUX)
+ }
+ 
+ void UpgradeDetectorImpl::Shutdown() {
