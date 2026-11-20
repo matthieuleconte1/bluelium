@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Bluelium : AppImage à partir du paquet bluelium-<version>.tar.zst.
 #   make-appimage.sh <paquet.tar.zst> <dossier de sortie>
-# Produit Bluelium-<version>-x86_64.AppImage (+ .sha256) et
-# Bluelium-x86_64.AppImage.zsync (mise à jour par AppImageUpdate / Gear Lever).
+# Produit Bluelium-<version>-<arch>.AppImage (+ .sha256) et son .zsync
+# (mise à jour par AppImageUpdate / Gear Lever). <arch> : APPIMAGE_ARCH,
+# x86_64 par défaut, ou aarch64 (nom donné par « uname -m », que lit
+# appimage-update).
 # Profil ~/.config/bluelium, copié une fois depuis celui de Helium (AppRun).
 set -Eeuo pipefail
 
@@ -11,6 +13,9 @@ OUTDIR=$2
 HERE=$(cd "$(dirname "$0")" && pwd)
 TOOL=${APPIMAGETOOL:-/root/glyphe/bin/appimagetool}
 REPO=${BLUELIUM_REPO:-matthieuleconte1/bluelium}
+AARCH=${APPIMAGE_ARCH:-x86_64}
+RUNTIME=()
+[ "$AARCH" = x86_64 ] || RUNTIME=(--runtime-file "${APPIMAGE_RUNTIME:-/root/glyphe/bin/runtime-$AARCH}")
 
 NAME=$(basename "$TAR" .tar.zst)      # bluelium-<version>
 VERSION=${NAME#bluelium-}
@@ -35,10 +40,10 @@ for icon in "$APPDIR/bluelium.png" \
 done
 ln -sf bluelium.png "$APPDIR/.DirIcon"
 
-OUT=$OUTDIR/Bluelium-$VERSION-x86_64.AppImage
+OUT=$OUTDIR/Bluelium-$VERSION-$AARCH.AppImage
 cd "$OUTDIR"
-ARCH=x86_64 VERSION=$VERSION "$TOOL" --appimage-extract-and-run --no-appstream \
-  -u "gh-releases-zsync|${REPO%%/*}|${REPO##*/}|latest|Bluelium-*-x86_64.AppImage.zsync" \
+ARCH=$AARCH VERSION=$VERSION "$TOOL" --appimage-extract-and-run --no-appstream "${RUNTIME[@]}" \
+  -u "gh-releases-zsync|${REPO%%/*}|${REPO##*/}|latest|Bluelium-*-$AARCH.AppImage.zsync" \
   "$APPDIR" "$OUT"
 sha256sum "$(basename "$OUT")" > "$OUT.sha256"
 echo "AppImage : $OUT"

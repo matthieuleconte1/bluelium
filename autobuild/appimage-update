@@ -62,7 +62,8 @@ case $version in ''|*[!a-zA-Z0-9._-]*) echo 'Tag de release invalide.' >&2; exit
 [ "$version" != "$current" ] || exit 0
 # Déjà téléchargée, en attente de relance : rien à refaire.
 [ "$(cat "$cache/update-ready" 2>/dev/null)" != "$version" ] || exit 0
-asset=Bluelium-$version-x86_64.AppImage
+# x86_64 ou aarch64 (Asahi Linux…), comme le nom des AppImage publiées.
+asset=Bluelium-$version-$(uname -m).AppImage
 urls=$(grep -o '"browser_download_url"[[:space:]]*:[[:space:]]*"[^"\\]*"' "$work/release.json" |
     sed 's/^[^:]*:[[:space:]]*"//; s/"$//')
 image_url=
