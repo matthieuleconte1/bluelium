@@ -83,4 +83,7 @@ fetch "$image_url" "$work/$asset"
 chmod 755 "$work/$asset"
 # Même système de fichiers : remplacement atomique, instance ouverte conservée.
 mv -f -- "$work/$asset" "$appimage"
+# Signale la version prête au navigateur ouvert (menu « Relancer pour mettre
+# à jour », page À propos). AppRun efface ce fichier une fois la version lancée.
+printf '%s\n' "$version" > "$cache/update-ready"
 printf 'AppImage mise à jour : %s → %s (prochain lancement).\n' "$current" "$version"

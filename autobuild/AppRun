@@ -88,6 +88,15 @@ CONFIG=${XDG_CONFIG_HOME:-$HOME/.config}
 PROFILE=$CONFIG/bluelium
 HELIUM_PROFILE=$CONFIG/net.imput.helium
 export CHROME_DESKTOP=bluelium.desktop
+
+# Version en cours, pour le détecteur de mise à jour du navigateur ; une mise
+# à jour signalée et désormais lancée n'a plus lieu d'être affichée.
+BLUELIUM_VERSION=$(cat "$HERE/opt/bluelium/VERSION" 2>/dev/null || :)
+export BLUELIUM_VERSION
+ready=${XDG_CACHE_HOME:-$HOME/.cache}/bluelium/update-ready
+if [ -n "$BLUELIUM_VERSION" ] && [ "$(cat "$ready" 2>/dev/null)" = "$BLUELIUM_VERSION" ]; then
+    rm -f "$ready"
+fi
 export CHROME_USER_DATA_DIR="$PROFILE"
 
 say() {

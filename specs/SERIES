@@ -62,3 +62,5 @@ instrument-sans-assets.patch   instrument_sans_assets_spec.py linux,mac
 instrument-sans-linux.patch    instrument_sans_linux_spec.py  linux
 instrument-sans-mac.patch      instrument_sans_mac_spec.py    mac
 page-color-omnibox.patch      page_color_omnibox_spec.py
+linux-update.patch            linux_update_spec.py           linux
+linux-identity.patch          linux_identity_spec.py         linux
