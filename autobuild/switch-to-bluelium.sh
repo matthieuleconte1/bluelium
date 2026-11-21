@@ -57,9 +57,12 @@ EOF
 chmod +x "$LAUNCHER"
 
 # 3. Entrée du menu (même nom de fichier : reste le navigateur par défaut).
+#    StartupWMClass=bluelium : nom des fenêtres, pour que le dock les relie au lanceur.
 mkdir -p "$(dirname "$DESKTOP")"
 sed -e "s#^Exec=helium-browser#Exec=$LAUNCHER#" \
-    -e 's#^Name=Helium Browser$#Name=Bluelium#' "$SYSTEM_DESKTOP" > "$DESKTOP"
+    -e 's#^Name=Helium Browser$#Name=Bluelium#' \
+    -e '/^StartupWMClass=/d' \
+    -e '/^\[Desktop Entry\]$/a StartupWMClass=bluelium' "$SYSTEM_DESKTOP" > "$DESKTOP"
 update-desktop-database "$HOME/.local/share/applications" 2>/dev/null || true
 
 # 4. Mise à jour automatique depuis les releases GitHub.
