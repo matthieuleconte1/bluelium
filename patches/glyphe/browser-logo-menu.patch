@@ -1,0 +1,1356 @@
+--- /dev/null
++++ b/chrome/browser/ui/views/frame/browser_logo_menu_button.h
+@@ -0,0 +1,74 @@
++// Copyright 2026 The Bluelium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_UI_VIEWS_FRAME_BROWSER_LOGO_MENU_BUTTON_H_
++#define CHROME_BROWSER_UI_VIEWS_FRAME_BROWSER_LOGO_MENU_BUTTON_H_
++
++#include "base/callback_list.h"
++#include "base/memory/raw_ptr.h"
++#include "chrome/browser/ui/toolbar/app_menu_icon_controller.h"
++#include "ui/base/metadata/metadata_header_macros.h"
++#include "ui/gfx/geometry/rect.h"
++#include "ui/gfx/geometry/size.h"
++#include "ui/gfx/image/image_skia.h"
++#include "ui/views/controls/button/label_button.h"
++
++class BrowserView;
++
++namespace views {
++class MenuButtonController;
++}  // namespace views
++
++// Bluelium : bouton portant le logo produit en haut à gauche de la bande
++// d'onglets (horizontale ou verticale) et ouvrant le menu de l'application.
++class BrowserLogoMenuButton : public views::LabelButton {
++  METADATA_HEADER(BrowserLogoMenuButton, views::LabelButton)
++
++ public:
++  static gfx::Size GetButtonSize();
++
++  explicit BrowserLogoMenuButton(BrowserView* browser_view);
++  BrowserLogoMenuButton(const BrowserLogoMenuButton&) = delete;
++  BrowserLogoMenuButton& operator=(const BrowserLogoMenuButton&) = delete;
++  ~BrowserLogoMenuButton() override;
++
++  views::MenuButtonController* menu_button_controller() const {
++    return menu_button_controller_;
++  }
++
++  // Ouvre le menu comme si l'utilisateur activait le bouton au clavier.
++  void ActivateMenu();
++
++  // Reporte la sévérité (mise à jour disponible, erreur) sous forme de
++  // pastille colorée et met à jour l'info-bulle et le nom accessible.
++  void SetTypeAndSeverity(
++      AppMenuIconController::TypeAndSeverity type_and_severity);
++
++  // views::LabelButton / views::View :
++  gfx::Size CalculatePreferredSize(
++      const views::SizeBounds& available_size) const override;
++  views::ProposedLayout CalculateProposedLayout(
++      const views::SizeBounds& size_bounds) const override;
++  gfx::Rect GetAnchorBoundsInScreen() const override;
++  void AddedToWidget() override;
++  void RemovedFromWidget() override;
++  void OnThemeChanged() override;
++  bool HandleAccessibleAction(const ui::AXActionData& action_data) override;
++
++ private:
++  void ButtonPressed(const ui::Event& event);
++  void UpdateInkDrop();
++  void UpdateLogoImage();
++  void UpdateAccessibleAndTooltip();
++
++  raw_ptr<BrowserView> browser_view_ = nullptr;
++  raw_ptr<views::MenuButtonController> menu_button_controller_ = nullptr;
++  gfx::ImageSkia base_logo_;
++  AppMenuIconController::TypeAndSeverity type_and_severity_{
++      AppMenuIconController::IconType::kNone,
++      AppMenuIconController::Severity::kNone};
++  base::CallbackListSubscription paint_as_active_subscription_;
++};
++
++#endif  // CHROME_BROWSER_UI_VIEWS_FRAME_BROWSER_LOGO_MENU_BUTTON_H_
+--- /dev/null
++++ b/chrome/browser/ui/views/frame/browser_logo_menu_button.cc
+@@ -0,0 +1,310 @@
++// Copyright 2026 The Bluelium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "chrome/browser/ui/views/frame/browser_logo_menu_button.h"
++
++#include <memory>
++#include <optional>
++#include <utility>
++
++#include "base/functional/bind.h"
++#include "cc/paint/paint_flags.h"
++#include "chrome/browser/ui/color/chrome_color_id.h"
++#include "chrome/browser/ui/layout_constants.h"
++#include "chrome/browser/ui/views/frame/browser_view.h"
++#include "chrome/browser/ui/views/frame/toolbar_button_provider.h"
++#include "chrome/browser/ui/views/toolbar/app_menu_control.h"
++#include "chrome/browser/ui/views/toolbar/toolbar_ink_drop_util.h"
++#include "chrome/grit/theme_resources.h"
++#include "skia/ext/image_operations.h"
++#include "third_party/skia/include/core/SkPath.h"
++#include "third_party/skia/include/core/SkRRect.h"
++#include "ui/accessibility/ax_action_data.h"
++#include "ui/accessibility/ax_enums.mojom.h"
++#include "ui/base/metadata/metadata_impl_macros.h"
++#include "ui/base/models/image_model.h"
++#include "ui/base/resource/resource_bundle.h"
++#include "ui/color/color_id.h"
++#include "ui/color/color_provider.h"
++#include "ui/compositor/layer.h"
++#include "ui/events/event.h"
++#include "ui/gfx/canvas.h"
++#include "ui/gfx/geometry/insets.h"
++#include "ui/gfx/geometry/point_f.h"
++#include "ui/gfx/geometry/skia_conversions.h"
++#include "ui/gfx/image/canvas_image_source.h"
++#include "ui/gfx/image/image_skia_operations.h"
++#include "ui/views/accessibility/view_accessibility.h"
++#include "ui/views/animation/ink_drop.h"
++#include "ui/views/controls/button/menu_button_controller.h"
++#include "ui/views/controls/focus_ring.h"
++#include "ui/views/controls/highlight_path_generator.h"
++#include "ui/views/controls/menu/menu_runner.h"
++#include "ui/views/layout/proposed_layout.h"
++#include "ui/views/widget/widget.h"
++
++namespace {
++
++constexpr int kLogoIconSize = 16;
++constexpr int kLogoCanvasSize = 18;
++constexpr int kLogoCornerRadius = 8;
++
++class LogoButtonHighlightPathGenerator : public views::HighlightPathGenerator {
++ public:
++  SkPath GetHighlightPath(const views::View* view) override {
++    const gfx::Rect rect(view->GetContentsBounds());
++    return SkPath::RRect(SkRRect::MakeRectXY(
++        gfx::RectToSkRect(rect), kLogoCornerRadius, kLogoCornerRadius));
++  }
++};
++
++// Bluelium : dessine le logo produit 16 px et, si une mise à jour ou alerte
++// est en attente, une pastille de sévérité dans son angle supérieur droit.
++class LogoWithBadgeImageSource : public gfx::CanvasImageSource {
++ public:
++  LogoWithBadgeImageSource(gfx::ImageSkia logo,
++                           std::optional<SkColor> badge_color,
++                           SkColor ring_color)
++      : gfx::CanvasImageSource(gfx::Size(kLogoCanvasSize, kLogoCanvasSize)),
++        logo_(std::move(logo)),
++        badge_color_(badge_color),
++        ring_color_(ring_color) {}
++
++  void Draw(gfx::Canvas* canvas) override {
++    if (!logo_.isNull()) {
++      const int offset = (kLogoCanvasSize - kLogoIconSize) / 2;
++      canvas->DrawImageInt(logo_, offset, offset);
++    }
++    if (!badge_color_.has_value()) {
++      return;
++    }
++    const gfx::PointF center(kLogoCanvasSize - 3.5f, 3.5f);
++    cc::PaintFlags ring_flags;
++    ring_flags.setAntiAlias(true);
++    ring_flags.setStyle(cc::PaintFlags::kFill_Style);
++    ring_flags.setColor(ring_color_);
++    canvas->DrawCircle(center, 4.0f, ring_flags);
++
++    cc::PaintFlags dot_flags;
++    dot_flags.setAntiAlias(true);
++    dot_flags.setStyle(cc::PaintFlags::kFill_Style);
++    dot_flags.setColor(*badge_color_);
++    canvas->DrawCircle(center, 3.0f, dot_flags);
++  }
++
++ private:
++  gfx::ImageSkia logo_;
++  std::optional<SkColor> badge_color_;
++  SkColor ring_color_;
++};
++
++gfx::ImageSkia LoadProductLogo16() {
++  // IDR_PRODUCT_LOGO_32 dispose des variantes 100 % (32 px) et 200 % (64 px)
++  // sur Linux comme sur macOS, d'où un rendu net à 16 px en 1x et 2x.
++  const gfx::ImageSkia* raw_logo =
++      ui::ResourceBundle::GetSharedInstance().GetImageSkiaNamed(
++          IDR_PRODUCT_LOGO_32);
++  if (!raw_logo || raw_logo->isNull()) {
++    return gfx::ImageSkia();
++  }
++  return gfx::ImageSkiaOperations::CreateResizedImage(
++      *raw_logo, skia::ImageOperations::RESIZE_BEST,
++      gfx::Size(kLogoIconSize, kLogoIconSize));
++}
++
++}  // namespace
++
++// static
++gfx::Size BrowserLogoMenuButton::GetButtonSize() {
++  const int size = GetLayoutConstant(LayoutConstant::kLocationBarHeight);
++  return gfx::Size(size, size);
++}
++
++BrowserLogoMenuButton::BrowserLogoMenuButton(BrowserView* browser_view)
++    : views::LabelButton(PressedCallback()),
++      browser_view_(browser_view),
++      base_logo_(LoadProductLogo16()) {
++  auto menu_button_controller = std::make_unique<views::MenuButtonController>(
++      this,
++      base::BindRepeating(&BrowserLogoMenuButton::ButtonPressed,
++                          base::Unretained(this)),
++      std::make_unique<views::Button::DefaultButtonControllerDelegate>(this));
++  menu_button_controller_ = menu_button_controller.get();
++  SetButtonController(std::move(menu_button_controller));
++
++  SetHorizontalAlignment(gfx::ALIGN_CENTER);
++  SetImageCentered(false);
++  SetFocusBehavior(FocusBehavior::ACCESSIBLE_ONLY);
++  GetViewAccessibility().SetHasPopup(ax::mojom::HasPopup::kMenu);
++
++  views::FocusRing::Get(this)->SetColorId(kColorNewTabButtonFocusRing);
++  views::InkDrop::Get(this)->SetMode(views::InkDropHost::InkDropMode::ON);
++  views::InkDrop::Get(this)->SetLayerRegion(views::LayerRegion::kAbove);
++  views::HighlightPathGenerator::Install(
++      this, std::make_unique<LogoButtonHighlightPathGenerator>());
++
++  SetPaintToLayer();
++  layer()->SetFillsBoundsOpaquely(false);
++
++  UpdateAccessibleAndTooltip();
++  UpdateLogoImage();
++}
++
++BrowserLogoMenuButton::~BrowserLogoMenuButton() = default;
++
++void BrowserLogoMenuButton::ActivateMenu() {
++  menu_button_controller_->Activate(nullptr);
++}
++
++void BrowserLogoMenuButton::SetTypeAndSeverity(
++    AppMenuIconController::TypeAndSeverity type_and_severity) {
++  if (type_and_severity_ == type_and_severity) {
++    return;
++  }
++  type_and_severity_ = type_and_severity;
++  UpdateAccessibleAndTooltip();
++  UpdateLogoImage();
++}
++
++gfx::Size BrowserLogoMenuButton::CalculatePreferredSize(
++    const views::SizeBounds& available_size) const {
++  gfx::Size size = GetButtonSize();
++  const gfx::Insets insets = GetInsets();
++  size.Enlarge(insets.width(), insets.height());
++  return size;
++}
++
++views::ProposedLayout BrowserLogoMenuButton::CalculateProposedLayout(
++    const views::SizeBounds& size_bounds) const {
++  views::ProposedLayout layout =
++      views::LabelButton::CalculateProposedLayout(size_bounds);
++  // Bluelium : centrer le logo sur la zone de survol (marges Fitts exclues),
++  // comme pour le bouton « + » dans newtab_button_spec.py.
++  if (!size_bounds.height().is_bounded()) {
++    return layout;
++  }
++  const gfx::Insets insets = GetInsets();
++  const int content_height = size_bounds.height().value() - insets.height();
++  const views::View* const image = image_container_view();
++  for (auto& child : layout.child_layouts) {
++    if (child.child_view.get() == image) {
++      child.bounds.set_y(insets.top() +
++                         (content_height - child.bounds.height()) / 2);
++    }
++  }
++  return layout;
++}
++
++gfx::Rect BrowserLogoMenuButton::GetAnchorBoundsInScreen() const {
++  gfx::Rect bounds = GetContentsBounds();
++  ConvertRectToScreen(this, &bounds);
++  return bounds;
++}
++
++void BrowserLogoMenuButton::AddedToWidget() {
++  paint_as_active_subscription_ =
++      GetWidget()->RegisterPaintAsActiveChangedCallback(base::BindRepeating(
++          &BrowserLogoMenuButton::UpdateLogoImage, base::Unretained(this)));
++  UpdateInkDrop();
++  UpdateLogoImage();
++}
++
++void BrowserLogoMenuButton::RemovedFromWidget() {
++  paint_as_active_subscription_ = {};
++}
++
++void BrowserLogoMenuButton::OnThemeChanged() {
++  views::LabelButton::OnThemeChanged();
++  UpdateInkDrop();
++  UpdateLogoImage();
++}
++
++bool BrowserLogoMenuButton::HandleAccessibleAction(
++    const ui::AXActionData& action_data) {
++  if (action_data.action == ax::mojom::Action::kExpand) {
++    if (browser_view_) {
++      browser_view_->ShowAppMenuFromLogo(this, views::MenuRunner::NO_FLAGS);
++    }
++    return true;
++  }
++  if (action_data.action == ax::mojom::Action::kCollapse) {
++    if (browser_view_) {
++      if (auto* provider = browser_view_->toolbar_button_provider()) {
++        if (auto* control = provider->GetAppMenuControl();
++            control && control->IsMenuShowing()) {
++          control->CloseMenu();
++        }
++      }
++    }
++    return true;
++  }
++  return views::LabelButton::HandleAccessibleAction(action_data);
++}
++
++void BrowserLogoMenuButton::ButtonPressed(const ui::Event& event) {
++  if (!browser_view_) {
++    return;
++  }
++  const int run_types = event.IsKeyEvent()
++                            ? (views::MenuRunner::SHOULD_SHOW_MNEMONICS |
++                               views::MenuRunner::INVOKED_FROM_KEYBOARD)
++                            : views::MenuRunner::NO_FLAGS;
++  browser_view_->ShowAppMenuFromLogo(this, run_types);
++}
++
++void BrowserLogoMenuButton::UpdateInkDrop() {
++  if (!GetColorProvider() || !GetWidget() || GetWidget()->IsClosed()) {
++    return;
++  }
++  CreateToolbarInkdropCallbacks(this, kColorTabBackgroundInactiveHoverFrameActive,
++                                kColorTabBackgroundActiveFrameActive);
++}
++
++void BrowserLogoMenuButton::UpdateLogoImage() {
++  std::optional<SkColor> badge_color;
++  SkColor ring_color = SK_ColorTRANSPARENT;
++
++  if (const ui::ColorProvider* color_provider = GetColorProvider()) {
++    const bool active = !GetWidget() || GetWidget()->ShouldPaintAsActive();
++    ring_color = color_provider->GetColor(active ? ui::kColorFrameActive
++                                                 : ui::kColorFrameInactive);
++    switch (type_and_severity_.severity) {
++      case AppMenuIconController::Severity::kNone:
++        break;
++      case AppMenuIconController::Severity::kLow:
++        badge_color = color_provider->GetColor(ui::kColorAlertLowSeverity);
++        break;
++      case AppMenuIconController::Severity::kMedium:
++        badge_color =
++            color_provider->GetColor(ui::kColorAlertMediumSeverityIcon);
++        break;
++      case AppMenuIconController::Severity::kHigh:
++        badge_color = color_provider->GetColor(ui::kColorAlertHighSeverity);
++        break;
++    }
++  }
++
++  const ui::ImageModel model = ui::ImageModel::FromImageSkia(
++      gfx::CanvasImageSource::MakeImageSkia<LogoWithBadgeImageSource>(
++          base_logo_, badge_color, ring_color));
++  SetImageModel(views::Button::STATE_NORMAL, model);
++  SetImageModel(views::Button::STATE_HOVERED, model);
++  SetImageModel(views::Button::STATE_PRESSED, model);
++  SetImageModel(views::Button::STATE_DISABLED, model);
++}
++
++void BrowserLogoMenuButton::UpdateAccessibleAndTooltip() {
++  if (type_and_severity_.severity == AppMenuIconController::Severity::kNone) {
++    GetViewAccessibility().SetName(u"Menu Bluelium");
++    SetTooltipText(u"Menu Bluelium");
++  } else {
++    GetViewAccessibility().SetName(
++        AppMenuIconController::GetIconAccessibleName(type_and_severity_.type));
++    SetTooltipText(AppMenuIconController::GetIconTooltip(
++        type_and_severity_.type, type_and_severity_.severity));
++  }
++}
++
++BEGIN_METADATA(BrowserLogoMenuButton)
++END_METADATA
+--- a/chrome/browser/ui/browser_ui_prefs.cc
++++ b/chrome/browser/ui/browser_ui_prefs.cc
+@@ -172,7 +172,8 @@
+   // Bluelium : bouton de profil caché par défaut (réglable).
+   registry->RegisterBooleanPref(prefs::kShowAvatarButton, false);
+   registry->RegisterBooleanPref(prefs::kShowExtensionsButton, true);
+-  registry->RegisterBooleanPref(prefs::kShowMenuButton, true);
++  // Bluelium : bouton « ⋯ » masqué par défaut (remplacé par le logo).
++  registry->RegisterBooleanPref(prefs::kShowMenuButton, false);
+   registry->RegisterBooleanPref(prefs::kShowMediaButton, true);
+   registry->RegisterBooleanPref(prefs::kShowVerticalTabsCollapseButton, true);
+   registry->RegisterBooleanPref(prefs::kShowDynamicNewTabButton, true);
+--- a/chrome/browser/ui/views/toolbar/app_menu.h
++++ b/chrome/browser/ui/views/toolbar/app_menu.h
+@@ -22,6 +22,7 @@
+ #include "ui/base/models/menu_model.h"
+ #include "ui/base/mojom/menu_source_type.mojom.h"
+ #include "ui/views/controls/menu/menu_delegate.h"
++#include "ui/views/controls/menu/menu_types.h"
+ 
+ class AppMenuBookmarkDelegate;
+ class BrowserWindowInterface;
+@@ -50,15 +51,20 @@
+   // Shows the menu relative to the specified controller's button.
+   // TODO(crbug.com/543867698): Specify a reasonable source type instead of
+   // defaulting to kNone.
++  // Bluelium : position d'ancrage configurable (kTopLeft sous le logo).
+   void RunMenu(
+       views::MenuButtonController* host,
+-      ui::mojom::MenuSourceType source_type = ui::mojom::MenuSourceType::kNone);
++      ui::mojom::MenuSourceType source_type = ui::mojom::MenuSourceType::kNone,
++      views::MenuAnchorPosition anchor_position =
++          views::MenuAnchorPosition::kTopRight);
+ 
+   // Shows the menu with an anchor in the parent widget given its bounds.
+   void RunMenu(
+       views::Widget* parent,
+       const gfx::Rect& anchor_screen_bounds,
+-      ui::mojom::MenuSourceType source_type = ui::mojom::MenuSourceType::kNone);
++      ui::mojom::MenuSourceType source_type = ui::mojom::MenuSourceType::kNone,
++      views::MenuAnchorPosition anchor_position =
++          views::MenuAnchorPosition::kTopRight);
+ 
+   // Closes the menu if it is open, otherwise does nothing.
+   void CloseMenu();
+--- a/chrome/browser/ui/views/toolbar/app_menu.cc
++++ b/chrome/browser/ui/views/toolbar/app_menu.cc
+@@ -1044,14 +1044,15 @@
+ }
+ 
+ void AppMenu::RunMenu(views::MenuButtonController* host,
+-                      ui::mojom::MenuSourceType source_type) {
++                      ui::mojom::MenuSourceType source_type,
++                      views::MenuAnchorPosition anchor_position) {
+   base::RecordAction(UserMetricsAction("ShowAppMenu"));
+   UMA_HISTOGRAM_ENUMERATION("WrenchMenu.MenuAction", MENU_ACTION_MENU_OPENED,
+                             LIMIT_MENU_ACTION);
+ 
+   menu_runner_->RunMenuAt(host->button()->GetWidget(), host,
+                           host->button()->GetAnchorBoundsInScreen(),
+-                          views::MenuAnchorPosition::kTopRight, source_type,
++                          anchor_position, source_type,
+                           /*native_view_for_gestures=*/gfx::NativeView(),
+                           /*corners=*/std::nullopt,
+                           "Chrome.AppMenu.MenuHostInitToNextFramePresented");
+@@ -1059,13 +1060,14 @@
+ 
+ void AppMenu::RunMenu(views::Widget* parent,
+                       const gfx::Rect& anchor_screen_bounds,
+-                      ui::mojom::MenuSourceType source_type) {
++                      ui::mojom::MenuSourceType source_type,
++                      views::MenuAnchorPosition anchor_position) {
+   base::RecordAction(UserMetricsAction("ShowAppMenu"));
+   UMA_HISTOGRAM_ENUMERATION("WrenchMenu.MenuAction", MENU_ACTION_MENU_OPENED,
+                             LIMIT_MENU_ACTION);
+ 
+   menu_runner_->RunMenuAt(parent, nullptr, anchor_screen_bounds,
+-                          views::MenuAnchorPosition::kTopRight, source_type,
++                          anchor_position, source_type,
+                           /*native_view_for_gestures=*/gfx::NativeView(),
+                           /*corners=*/std::nullopt,
+                           "Chrome.AppMenu.MenuHostInitToNextFramePresented");
+--- a/chrome/browser/ui/views/app_menu/action_app_menu.h
++++ b/chrome/browser/ui/views/app_menu/action_app_menu.h
+@@ -24,6 +24,7 @@
+ #include "ui/base/mojom/menu_source_type.mojom.h"
+ #include "ui/views/actions/action_view_controller.h"
+ #include "ui/views/controls/menu/menu_delegate.h"
++#include "ui/views/controls/menu/menu_types.h"
+ 
+ class ActionAppMenuManager;
+ class AppMenuSearchBarView;
+@@ -56,12 +57,18 @@
+   ActionAppMenu& operator=(const ActionAppMenu&) = delete;
+   ~ActionAppMenu() override;
+ 
+-  void RunMenu(views::MenuButtonController* host, int run_types);
++  // Bluelium : position d'ancrage configurable (kTopLeft sous le logo).
++  void RunMenu(views::MenuButtonController* host,
++               int run_types,
++               views::MenuAnchorPosition anchor_position =
++                   views::MenuAnchorPosition::kTopRight);
+   void RunMenu(
+       views::Widget* parent,
+       const gfx::Rect& anchor_screen_bounds,
+       int run_types,
+-      ui::mojom::MenuSourceType source_type = ui::mojom::MenuSourceType::kNone);
++      ui::mojom::MenuSourceType source_type = ui::mojom::MenuSourceType::kNone,
++      views::MenuAnchorPosition anchor_position =
++          views::MenuAnchorPosition::kTopRight);
+   bool IsShowing() const;
+ 
+   // AppMenuDragAndDropDelegate::Host:
+@@ -125,7 +132,8 @@
+                views::MenuButtonController* host,
+                const gfx::Rect& anchor_screen_bounds,
+                int run_types,
+-               ui::mojom::MenuSourceType source_type);
++               ui::mojom::MenuSourceType source_type,
++               views::MenuAnchorPosition anchor_position);
+   actions::BaseAction* GetActionForMenuItem(views::MenuItemView* menu) const;
+   views::MenuItemView* GetMenuItemForAction(actions::BaseAction* action) const;
+   AppMenuDragAndDropDelegate* GetDragAndDropDelegate(
+--- a/chrome/browser/ui/views/app_menu/action_app_menu.cc
++++ b/chrome/browser/ui/views/app_menu/action_app_menu.cc
+@@ -212,24 +212,29 @@
+   menu_manager_.reset();
+ }
+ 
+-void ActionAppMenu::RunMenu(views::MenuButtonController* host, int run_types) {
++void ActionAppMenu::RunMenu(views::MenuButtonController* host,
++                            int run_types,
++                            views::MenuAnchorPosition anchor_position) {
+   RunMenu(host->button()->GetWidget(), host,
+           host->button()->GetAnchorBoundsInScreen(), run_types,
+-          ui::mojom::MenuSourceType::kNone);
++          ui::mojom::MenuSourceType::kNone, anchor_position);
+ }
+ 
+ void ActionAppMenu::RunMenu(views::Widget* parent,
+                             const gfx::Rect& anchor_screen_bounds,
+                             int run_types,
+-                            ui::mojom::MenuSourceType source_type) {
+-  RunMenu(parent, nullptr, anchor_screen_bounds, run_types, source_type);
++                            ui::mojom::MenuSourceType source_type,
++                            views::MenuAnchorPosition anchor_position) {
++  RunMenu(parent, nullptr, anchor_screen_bounds, run_types, source_type,
++          anchor_position);
+ }
+ 
+ void ActionAppMenu::RunMenu(views::Widget* parent,
+                             views::MenuButtonController* host,
+                             const gfx::Rect& anchor_screen_bounds,
+                             int run_types,
+-                            ui::mojom::MenuSourceType source_type) {
++                            ui::mojom::MenuSourceType source_type,
++                            views::MenuAnchorPosition anchor_position) {
+   auto root = std::make_unique<views::MenuItemView>(/*delegate=*/this);
+   // Stash the raw pointer before transferring the unique_ptr ownership to
+   // `menu_runner_`. This allows us to reference the root menu item view later.
+@@ -265,7 +270,7 @@
+   metrics_.OnMenuOpened();
+ 
+   menu_runner_->RunMenuAt(parent, host, anchor_screen_bounds,
+-                          views::MenuAnchorPosition::kTopRight, source_type,
++                          anchor_position, source_type,
+                           /*native_view_for_gestures=*/gfx::NativeView(),
+                           /*corners=*/std::nullopt,
+                           "Chrome.AppMenu.MenuHostInitToNextFramePresented");
+--- a/chrome/browser/ui/views/frame/app_menu_button.h
++++ b/chrome/browser/ui/views/frame/app_menu_button.h
+@@ -14,6 +14,7 @@
+ #include "chrome/browser/ui/views/toolbar/toolbar_button.h"
+ #include "chrome/browser/ui/views/toolbar/toolbar_button_menu_highlighter.h"
+ #include "ui/base/metadata/metadata_header_macros.h"
++#include "ui/views/controls/menu/menu_types.h"
+ 
+ class AppMenu;
+ class ActionAppMenu;
+@@ -72,13 +73,20 @@
+   ActionAppMenu* action_app_menu() { return action_menu_.get(); }
+ 
+  protected:
++  // Bluelium : ancre facultative (logo) et position du menu.
+   void RunMenu(std::unique_ptr<AppMenuModel> menu_model,
+                BrowserWindowInterface* browser,
+-               int run_flags);
++               int run_flags,
++               views::MenuButtonController* anchor_host = nullptr,
++               views::MenuAnchorPosition anchor_position =
++                   views::MenuAnchorPosition::kTopRight);
+   // Not using an AppMenuModel because the new Block Style menu hierarchy
+   // is managed by the Actions framework.
+   void RunActionMenu(BrowserWindowInterface* browser_window_interface,
+-                     int run_flags);
++                     int run_flags,
++                     views::MenuButtonController* anchor_host = nullptr,
++                     views::MenuAnchorPosition anchor_position =
++                         views::MenuAnchorPosition::kTopRight);
+ 
+  private:
+   // App model and menu.
+--- a/chrome/browser/ui/views/frame/app_menu_button.cc
++++ b/chrome/browser/ui/views/frame/app_menu_button.cc
+@@ -28,6 +28,7 @@
+ #include "ui/views/bubble/bubble_anchor.h"
+ #include "ui/views/controls/button/menu_button_controller.h"
+ #include "ui/views/view_class_properties.h"
++#include "ui/views/widget/widget.h"
+ 
+ AppMenuButton::AppMenuButton(PressedCallback callback)
+     : ToolbarButton(PressedCallback()) {
+@@ -142,7 +143,9 @@
+ 
+ void AppMenuButton::RunMenu(std::unique_ptr<AppMenuModel> menu_model,
+                             BrowserWindowInterface* browser,
+-                            int run_flags) {
++                            int run_flags,
++                            views::MenuButtonController* anchor_host,
++                            views::MenuAnchorPosition anchor_position) {
+   // |menu_| must be reset before |menu_model_| is destroyed, as per the comment
+   // in the class declaration.
+   menu_.reset();
+@@ -154,21 +157,43 @@
+       browser, menu_model_.get(), run_flags,
+       base::BindRepeating(&AppMenuButton::OnMenuClosed,
+                           weak_ptr_factory_.GetWeakPtr()));
+-  menu_->RunMenu(menu_button_controller_);
++  // Bluelium : ancrer sur le logo si fourni, sinon sur le bouton ou la fenêtre.
++  views::MenuButtonController* host =
++      anchor_host ? anchor_host : menu_button_controller_.get();
++  if (host && host->button() && host->button()->IsDrawn()) {
++    menu_->RunMenu(host, ui::mojom::MenuSourceType::kNone, anchor_position);
++  } else if (views::Widget* widget = GetWidget()) {
++    const gfx::Rect anchor_bounds(
++        widget->GetClientAreaBoundsInScreen().origin(), gfx::Size());
++    menu_->RunMenu(widget, anchor_bounds, ui::mojom::MenuSourceType::kNone,
++                   views::MenuAnchorPosition::kTopLeft);
++  }
+ 
+   observer_list_.Notify(&AppMenuButtonObserver::AppMenuShown);
+ }
+ 
+ void AppMenuButton::RunActionMenu(
+     BrowserWindowInterface* browser_window_interface,
+-    int run_flags) {
++    int run_flags,
++    views::MenuButtonController* anchor_host,
++    views::MenuAnchorPosition anchor_position) {
+   action_menu_.reset();
+ 
+   action_menu_ = std::make_unique<ActionAppMenu>(
+       browser_window_interface,
+       base::BindRepeating(&AppMenuButton::OnMenuClosed,
+                           weak_ptr_factory_.GetWeakPtr()));
+-  action_menu_->RunMenu(menu_button_controller_, run_flags);
++  views::MenuButtonController* host =
++      anchor_host ? anchor_host : menu_button_controller_.get();
++  if (host && host->button() && host->button()->IsDrawn()) {
++    action_menu_->RunMenu(host, run_flags, anchor_position);
++  } else if (views::Widget* widget = GetWidget()) {
++    const gfx::Rect anchor_bounds(
++        widget->GetClientAreaBoundsInScreen().origin(), gfx::Size());
++    action_menu_->RunMenu(widget, anchor_bounds, run_flags,
++                          ui::mojom::MenuSourceType::kNone,
++                          views::MenuAnchorPosition::kTopLeft);
++  }
+ 
+   observer_list_.Notify(&AppMenuButtonObserver::AppMenuShown);
+ }
+--- a/chrome/browser/ui/views/frame/tab_strip_region_view.h
++++ b/chrome/browser/ui/views/frame/tab_strip_region_view.h
+@@ -19,6 +19,7 @@
+ struct TabData;
+ }
+ 
++class BrowserLogoMenuButton;
+ class TabDragContext;
+ class TabDragTarget;
+ class TabHoverCardController;
+@@ -108,6 +109,9 @@
+   // -- Locks --
+   virtual std::unique_ptr<ExpandOnHoverLock> GetExpandOnHoverLock(
+       ExpandOnHoverLockType lock_type) = 0;
++
++  // Bluelium : bouton logo ouvrant le menu d'application, si présent.
++  virtual BrowserLogoMenuButton* GetLogoMenuButton() { return nullptr; }
+ };
+ 
+ #endif  // CHROME_BROWSER_UI_VIEWS_FRAME_TAB_STRIP_REGION_VIEW_H_
+--- a/chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.h
++++ b/chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.h
+@@ -25,6 +25,7 @@
+ class ActionViewController;
+ class Button;
+ }
++class BrowserLogoMenuButton;
+ class NewTabButton;
+ class TabStripActionContainer;
+ class TabStripComboButton;
+@@ -107,6 +108,9 @@
+   void OnGlassFrameEligibilityChanged(bool is_eligible) override;
+ 
+   bool HasLeadingButtons() const;
++  BrowserLogoMenuButton* GetLogoMenuButton() override {
++    return logo_menu_button_;
++  }
+ 
+  private:
+   // Updates the border padding for `new_tab_button_`.  This should be called
+@@ -129,6 +133,7 @@
+   raw_ptr<TabStrip> tab_strip_ = nullptr;
+   raw_ptr<TabStripScrollContainer> tab_strip_scroll_container_ = nullptr;
+   raw_ptr<TabStripComboButton> combo_button_ = nullptr;
++  raw_ptr<BrowserLogoMenuButton> logo_menu_button_ = nullptr;
+   raw_ptr<views::Button> new_tab_button_ = nullptr;
+ 
+   std::unique_ptr<views::ActionViewController> action_view_controller_;
+@@ -158,6 +163,9 @@
+   void ChildPreferredSizeChanged(views::View* child) override;
+ 
+   bool HasLeadingButtons() const;
++  BrowserLogoMenuButton* GetLogoMenuButton() override {
++    return logo_menu_button_;
++  }
+   TabStripComboButton* combo_button() { return combo_button_; }
+ 
+   // TabStripRegionView:
+@@ -180,6 +188,7 @@
+   raw_ptr<TabStripActionContainer> tab_strip_action_container_ = nullptr;
+   raw_ptr<views::View> reserved_grab_handle_space_ = nullptr;
+   raw_ptr<TabStripComboButton> combo_button_ = nullptr;
++  raw_ptr<BrowserLogoMenuButton> logo_menu_button_ = nullptr;
+   raw_ptr<views::Button> new_tab_button_ = nullptr;
+ 
+   std::unique_ptr<views::ActionViewController> action_view_controller_;
+--- a/chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.cc
++++ b/chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.cc
+@@ -24,6 +24,7 @@
+ #include "chrome/browser/ui/tabs/tab_strip_model.h"
+ #include "chrome/browser/ui/tabs/tab_strip_prefs.h"
+ #include "chrome/browser/ui/ui_features.h"
++#include "chrome/browser/ui/views/frame/browser_logo_menu_button.h"
+ #include "chrome/browser/ui/views/frame/browser_view.h"
+ #include "chrome/browser/ui/views/frame/safe_invoke/safe_invoke.h"
+ #include "chrome/browser/ui/views/frame/themed_background.h"
+@@ -232,6 +233,17 @@
+     }
+   }
+ 
++  // Bluelium : logo cliquable ouvrant le menu, à gauche des onglets.
++  if (browser &&
++      browser->GetType() == BrowserWindowInterface::Type::TYPE_NORMAL) {
++    logo_menu_button_ =
++        AddChildView(std::make_unique<BrowserLogoMenuButton>(browser_view));
++    logo_menu_button_->SetProperty(
++        views::kMarginsKey,
++        gfx::Insets::TLBR(0, GetLayoutConstant(LayoutConstant::kTabStripPadding),
++                          0, 2));
++  }
++
+   tab_strip_ = AddChildView(CreateTabStrip(this, browser_view));
+ 
+   // Allow the |tab_strip_| to grow into the free space available in
+@@ -292,6 +304,9 @@
+   if (combo_button_) {
+     RemoveChildViewT(std::exchange(combo_button_, nullptr));
+   }
++  if (logo_menu_button_) {
++    RemoveChildViewT(std::exchange(logo_menu_button_, nullptr));
++  }
+   if (new_tab_button_) {
+     RemoveChildViewT(std::exchange(new_tab_button_, nullptr));
+   }
+@@ -299,6 +314,11 @@
+ 
+ bool HorizontalTabStripRegionViewOld::IsPositionInWindowCaption(
+     const gfx::Point& point) {
++  if (logo_menu_button_ && logo_menu_button_->GetVisible() &&
++      IsHitInView(logo_menu_button_, point)) {
++    return false;
++  }
++
+   if (new_tab_button_ && IsHitInView(new_tab_button_, point)) {
+     return false;
+   }
+@@ -341,6 +361,10 @@
+     children.emplace_back(tab_strip_.get());
+   }
+ 
++  if (logo_menu_button_) {
++    children.emplace_back(logo_menu_button_.get());
++  }
++
+   if (new_tab_button_) {
+     children.emplace_back(new_tab_button_.get());
+   }
+@@ -606,6 +630,9 @@
+ }
+ 
+ bool HorizontalTabStripRegionViewOld::HasLeadingButtons() const {
++  if (logo_menu_button_ && logo_menu_button_->GetVisible()) {
++    return true;
++  }
+   if (combo_button_ && combo_button_->GetVisible() &&
+       ((combo_button_->start_button() &&
+         combo_button_->start_button()->GetVisible()) ||
+@@ -645,6 +672,9 @@
+   if (combo_button_) {
+     UpdateBorderInsetsIfNeeded(combo_button_, border_insets);
+   }
++  if (logo_menu_button_) {
++    UpdateBorderInsetsIfNeeded(logo_menu_button_, border_insets);
++  }
+   if (new_tab_button_) {
+     UpdateBorderInsetsIfNeeded(new_tab_button_, border_insets);
+   }
+@@ -770,6 +800,14 @@
+   std::unique_ptr<TabStripActionContainer> tab_strip_action_container;
+   if (browser &&
+       (browser->GetType() == BrowserWindowInterface::Type::TYPE_NORMAL)) {
++    // Bluelium : logo cliquable ouvrant le menu, à gauche des onglets.
++    logo_menu_button_ =
++        AddChildView(std::make_unique<BrowserLogoMenuButton>(browser_view));
++    logo_menu_button_->SetProperty(
++        views::kMarginsKey,
++        gfx::Insets::TLBR(0, GetLayoutConstant(LayoutConstant::kTabStripPadding),
++                          0, 2));
++
+     combo_button_ = AddChildView(std::make_unique<TabStripComboButton>(
+         browser, TabStripComboButton::Context::kHorizontalTabStrip));
+     combo_button_->SetProperty(views::kCrossAxisAlignmentKey,
+@@ -823,6 +861,9 @@
+   if (combo_button_) {
+     RemoveChildViewT(std::exchange(combo_button_, nullptr));
+   }
++  if (logo_menu_button_) {
++    RemoveChildViewT(std::exchange(logo_menu_button_, nullptr));
++  }
+   if (new_tab_button_) {
+     RemoveChildViewT(std::exchange(new_tab_button_, nullptr));
+   }
+@@ -830,6 +871,10 @@
+ 
+ bool HorizontalTabStripRegionViewNew::IsPositionInWindowCaption(
+     const gfx::Point& point) {
++  if (logo_menu_button_ && logo_menu_button_->GetVisible() &&
++      IsHitInView(logo_menu_button_, point)) {
++    return false;
++  }
+   if (new_tab_button_ && IsHitInView(new_tab_button_, point)) {
+     return false;
+   }
+@@ -855,6 +900,9 @@
+   if (GetDragContext()) {
+     children.emplace_back(GetDragContext());
+   }
++  if (logo_menu_button_) {
++    children.emplace_back(logo_menu_button_.get());
++  }
+   if (new_tab_button_) {
+     children.emplace_back(new_tab_button_.get());
+   }
+@@ -876,6 +924,9 @@
+ }
+ 
+ bool HorizontalTabStripRegionViewNew::HasLeadingButtons() const {
++  if (logo_menu_button_ && logo_menu_button_->GetVisible()) {
++    return true;
++  }
+   if (combo_button_ && combo_button_->GetVisible() &&
+       ((combo_button_->start_button() &&
+         combo_button_->start_button()->GetVisible()) ||
+@@ -1041,7 +1092,8 @@
+       views::kFlexBehaviorKey,
+       views::FlexSpecification(views::MinimumFlexSizeRule::kScaleToZero,
+                                views::MaximumFlexSizeRule::kPreferred));
+-  const size_t index = combo_button_ ? 1 : 0;
++  const size_t index =
++      (logo_menu_button_ ? 1 : 0) + (combo_button_ ? 1 : 0);
+   AddChildViewAt(std::move(view), index);
+   UpdateTabStripMargin();
+ }
+@@ -1059,6 +1111,9 @@
+   const auto border_insets = gfx::Insets::TLBR(top_inset, 0, bottom_inset, 0);
+   if (tab_strip_action_container_) {
+     tab_strip_action_container_->UpdateButtonBorders(border_insets);
++  }
++  if (logo_menu_button_) {
++    UpdateBorderInsetsIfNeeded(logo_menu_button_, border_insets);
+   }
+   if (combo_button_) {
+     UpdateBorderInsetsIfNeeded(combo_button_, border_insets);
+--- a/chrome/browser/ui/views/frame/vertical_tab_strip_region_view.h
++++ b/chrome/browser/ui/views/frame/vertical_tab_strip_region_view.h
+@@ -35,6 +35,7 @@
+ #include "ui/views/focus/focus_manager.h"
+ #include "ui/views/layout/delegating_layout_manager.h"
+ 
++class BrowserLogoMenuButton;
+ class BrowserView;
+ class VerticalTabStripBottomContainer;
+ class VerticalTabStripFocusSwipeController;
+@@ -78,6 +79,9 @@
+   }
+ 
+   bool IsPositionInWindowCaption(const gfx::Point& point) override;
++  BrowserLogoMenuButton* GetLogoMenuButton() override {
++    return logo_menu_button_;
++  }
+ 
+   void SetHasLeadingExclusionForLayout(bool has_leading_exclusion);
+   // How the tab strip is drawn while it floats over the contents.
+@@ -236,6 +240,7 @@
+   // Padding around the content area, set by UpdateInteriorMargin().
+   gfx::Insets interior_margin_;
+ 
++  raw_ptr<BrowserLogoMenuButton> logo_menu_button_ = nullptr;
+   raw_ptr<VerticalTabStripBottomContainer> bottom_button_container_ = nullptr;
+   raw_ptr<views::View> gemini_button_ = nullptr;
+   raw_ptr<views::ResizeArea> resize_area_ = nullptr;
+--- a/chrome/browser/ui/views/frame/vertical_tab_strip_region_view.cc
++++ b/chrome/browser/ui/views/frame/vertical_tab_strip_region_view.cc
+@@ -37,6 +37,7 @@
+ #include "chrome/browser/ui/ui_features.h"
+ #include "chrome/browser/ui/views/animations/tab_strip_animations.h"
+ #include "chrome/browser/ui/views/frame/base_tab_strip_region_view.h"
++#include "chrome/browser/ui/views/frame/browser_logo_menu_button.h"
+ #include "chrome/browser/ui/views/frame/browser_view.h"
+ #include "chrome/browser/ui/view_ids.h"
+ #include "chrome/browser/ui/views/frame/custom_corners_background.h"
+@@ -160,6 +161,23 @@
+   const int region_horizontal_padding =
+       GetLayoutConstant(LayoutConstant::kVerticalTabStripHorizontalPadding);
+ 
++  // Bluelium : logo cliquable ouvrant le menu, tout en haut des onglets verticaux.
++  if (browser_view->browser() &&
++      browser_view->browser()->GetType() ==
++          BrowserWindowInterface::Type::TYPE_NORMAL) {
++    logo_menu_button_ = content_area_view_->AddChildView(
++        std::make_unique<BrowserLogoMenuButton>(browser_view));
++    logo_menu_button_->SetProperty(
++        views::kMarginsKey,
++        gfx::Insets::TLBR(0, region_horizontal_padding,
++                          kBottomContainerGap * 2,
++                          region_horizontal_padding));
++    logo_menu_button_->SetProperty(
++        views::kCrossAxisAlignmentKey,
++        state_controller_->IsCollapsed() ? views::LayoutAlignment::kCenter
++                                         : views::LayoutAlignment::kStart);
++  }
++
+   bottom_button_container_ = content_area_view_->AddChildView(
+       std::make_unique<VerticalTabStripBottomContainer>(
+           state_controller_, root_action_item, browser_view->browser(),
+@@ -941,6 +959,13 @@
+ 
+   resize_area_width_ = collapsed ? kCollapsedResizeAreaWidth : kResizeAreaWidth;
+ 
++  if (logo_menu_button_) {
++    logo_menu_button_->SetProperty(
++        views::kCrossAxisAlignmentKey,
++        collapsed ? views::LayoutAlignment::kCenter
++                  : views::LayoutAlignment::kStart);
++  }
++
+   if (tab_strip_view()) {
+     tab_strip_view()->SetCollapsedState(collapsed);
+   }
+--- a/chrome/browser/ui/views/frame/browser_view.h
++++ b/chrome/browser/ui/views/frame/browser_view.h
+@@ -82,6 +82,7 @@
+ class AppMenuControl;
+ class BookmarkBarController;
+ class BookmarkBarView;
++class BrowserLogoMenuButton;
+ class BrowserWindowInterface;
+ class BrowserViewLayout;
+ class ContentsContainerView;
+@@ -289,6 +290,11 @@
+ 
+   // Returns either the Horizontal or Vertical TabStrip.
+   TabStripRegionView* tab_strip_view() const;
++
++  // Bluelium : logo cliquable ouvrant le menu dans la bande d'onglets.
++  BrowserLogoMenuButton* GetActiveLogoMenuButton() const;
++  std::vector<BrowserLogoMenuButton*> GetLogoMenuButtons() const;
++  void ShowAppMenuFromLogo(BrowserLogoMenuButton* logo_button, int run_types);
+ 
+   // Test only function. When the VerticalTabs feature is enabled,
+   // `vertical_tab_strip_container_` will have a value for normal tabbed
+--- a/chrome/browser/ui/views/frame/browser_view.cc
++++ b/chrome/browser/ui/views/frame/browser_view.cc
+@@ -175,6 +175,7 @@
+ #include "chrome/browser/ui/views/find_bar_owner.h"
+ #include "chrome/browser/ui/views/frame/app_menu_button.h"
+ #include "chrome/browser/ui/views/frame/browser_frame_view.h"
++#include "chrome/browser/ui/views/frame/browser_logo_menu_button.h"
+ #include "chrome/browser/ui/views/frame/browser_native_widget.h"
+ #include "chrome/browser/ui/views/frame/browser_widget.h"
+ #include "chrome/browser/ui/views/frame/contents_container_view.h"
+@@ -4020,6 +4021,44 @@
+   }
+ }
+ 
++BrowserLogoMenuButton* BrowserView::GetActiveLogoMenuButton() const {
++  if (!ShouldDrawTabStrip()) {
++    return nullptr;
++  }
++  TabStripRegionView* region = tab_strip_view();
++  if (!region) {
++    return nullptr;
++  }
++  BrowserLogoMenuButton* button = region->GetLogoMenuButton();
++  return button && button->IsDrawn() ? button : nullptr;
++}
++
++std::vector<BrowserLogoMenuButton*> BrowserView::GetLogoMenuButtons() const {
++  std::vector<BrowserLogoMenuButton*> buttons;
++  if (horizontal_tab_strip_region_view_) {
++    if (auto* button = horizontal_tab_strip_region_view_->GetLogoMenuButton()) {
++      buttons.push_back(button);
++    }
++  }
++  if (vertical_tab_strip_region_view_) {
++    if (auto* button = vertical_tab_strip_region_view_->GetLogoMenuButton()) {
++      buttons.push_back(button);
++    }
++  }
++  return buttons;
++}
++
++void BrowserView::ShowAppMenuFromLogo(BrowserLogoMenuButton* logo_button,
++                                      int run_types) {
++  if (!toolbar_ || !toolbar_->app_menu_button()) {
++    return;
++  }
++  std::unique_ptr<ImmersiveRevealedLock> revealed_lock =
++      ImmersiveModeController::From(browser())->GetRevealedLock(
++          ImmersiveModeController::ANIMATE_REVEAL_NO);
++  toolbar_->app_menu_button()->ShowMenuFromLogo(logo_button, run_types);
++}
++
+ void BrowserView::ShowAppMenu() {
+   auto* control = ToolbarButtonProvider::From(browser_)->GetAppMenuControl();
+   if (!control) {
+--- a/chrome/browser/ui/views/toolbar/toolbar_view.h
++++ b/chrome/browser/ui/views/toolbar/toolbar_view.h
+@@ -195,6 +195,8 @@
+ 
+   // Accessors.
+   BrowserWindowInterface* browser() const { return browser_; }
++  BrowserView* browser_view() const { return browser_view_; }
++  BrowserAppMenuButton* app_menu_button() const { return app_menu_button_; }
+   views::Button* GetChromeLabsButton() const;
+   ExtensionsToolbarDesktop* extensions_container_for_testing() const {
+     return extensions_container_;
+--- a/chrome/browser/ui/views/toolbar/browser_app_menu_button.h
++++ b/chrome/browser/ui/views/toolbar/browser_app_menu_button.h
+@@ -4,6 +4,8 @@
+ 
+ #ifndef CHROME_BROWSER_UI_VIEWS_TOOLBAR_BROWSER_APP_MENU_BUTTON_H_
+ #define CHROME_BROWSER_UI_VIEWS_TOOLBAR_BROWSER_APP_MENU_BUTTON_H_
++
++#include <memory>
+ 
+ #include "base/memory/raw_ptr.h"
+ #include "base/memory/weak_ptr.h"
+@@ -18,6 +20,8 @@
+ #include "ui/gfx/animation/throb_animation.h"
+ #include "ui/views/view.h"
+ 
++class BrowserLogoMenuButton;
++class ExpandOnHoverLock;
+ class ToolbarView;
+ 
+ // The app menu button in the main browser window (as opposed to web app
+@@ -34,8 +38,17 @@
+   // Returns true if a text is set and is visible.
+   bool IsLabelPresentAndVisible() const;
+ 
++  // Bluelium : ouvrir le menu ancré sous le bouton logo.
++  void ShowMenuFromLogo(BrowserLogoMenuButton* logo_button, int run_types);
++
+   // AppMenuControl:
++  views::BubbleAnchor GetAnchor() override;
++  bool IsDrawn() const override;
++  void ShowMenu() override;
+   void ShowMenuWithFlags(int run_types) override;
++  bool HasFocus() const override;
++  void Focus(views::AccessiblePaneView* pane) override;
++  views::View* GetFocusablePaneView() override;
+ 
+   // Opens the app menu immediately during a drag-and-drop operation.
+   // Used only in testing.
+@@ -67,6 +80,11 @@
+  private:
+   void OnTouchUiChanged();
+ 
++  BrowserLogoMenuButton* GetActiveLogoMenuButton() const;
++  void ShowMenuWithFlagsAndAnchor(int run_types,
++                                  views::MenuButtonController* anchor_host,
++                                  views::MenuAnchorPosition anchor_position);
++
+   void ButtonPressed(const ui::Event& event);
+ 
+   void UpdateTextAndHighlightColor();
+@@ -89,6 +107,7 @@
+   const raw_ptr<ToolbarView> toolbar_view_;
+ 
+   user_education::FeaturePromoHandle promo_handle_;
++  std::unique_ptr<ExpandOnHoverLock> expand_on_hover_lock_;
+ 
+   base::CallbackListSubscription subscription_ =
+       ui::TouchUiController::Get()->RegisterCallback(
+--- a/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc
++++ b/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc
+@@ -19,7 +19,12 @@
+ #include "chrome/browser/ui/views/toolbar/app_menu.h"
+ #include "chrome/browser/ui/views/toolbar/toolbar_button.h"
+ #include "chrome/browser/ui/views/toolbar/toolbar_ink_drop_util.h"
++#include "chrome/browser/ui/views/frame/browser_logo_menu_button.h"
++#include "chrome/browser/ui/views/frame/browser_view.h"
++#include "chrome/browser/ui/views/frame/tab_strip_region_view.h"
+ #include "chrome/browser/ui/views/toolbar/toolbar_view.h"
++#include "ui/views/accessible_pane_view.h"
++#include "ui/views/controls/menu/menu_types.h"
+ #include "chrome/grit/browser_resources.h"
+ #include "components/feature_engagement/public/feature_constants.h"
+ #include "third_party/skia/include/core/SkColor.h"
+@@ -72,15 +77,92 @@
+ 
+ BrowserAppMenuButton::~BrowserAppMenuButton() = default;
+ 
++BrowserLogoMenuButton* BrowserAppMenuButton::GetActiveLogoMenuButton() const {
++  BrowserView* browser_view = toolbar_view_->browser_view();
++  return browser_view ? browser_view->GetActiveLogoMenuButton() : nullptr;
++}
++
+ void BrowserAppMenuButton::SetTypeAndSeverity(
+     AppMenuIconController::TypeAndSeverity type_and_severity) {
+   type_and_severity_ = type_and_severity;
+   GetViewAccessibility().SetName(
+       AppMenuIconController::GetIconAccessibleName(type_and_severity_.type));
+   UpdateThemeBasedState();
++  // Bluelium : reporter la pastille de mise à jour / alerte sur le logo.
++  if (BrowserView* browser_view = toolbar_view_->browser_view()) {
++    for (BrowserLogoMenuButton* logo : browser_view->GetLogoMenuButtons()) {
++      logo->SetTypeAndSeverity(type_and_severity);
++    }
++  }
++}
++
++views::BubbleAnchor BrowserAppMenuButton::GetAnchor() {
++  if (views::View::IsDrawn()) {
++    return views::BubbleAnchor(this);
++  }
++  if (BrowserLogoMenuButton* logo = GetActiveLogoMenuButton()) {
++    return views::BubbleAnchor(logo);
++  }
++  return AppMenuButton::GetAnchor();
++}
++
++bool BrowserAppMenuButton::IsDrawn() const {
++  if (views::View::IsDrawn()) {
++    return true;
++  }
++  return GetActiveLogoMenuButton() != nullptr;
++}
++
++void BrowserAppMenuButton::ShowMenu() {
++  // Bluelium : Alt+F / Alt+E et ShowAppMenu ouvrent le menu sous le logo.
++  if (BrowserLogoMenuButton* logo = GetActiveLogoMenuButton()) {
++    logo->ActivateMenu();
++    return;
++  }
++  if (views::View::IsDrawn()) {
++    AppMenuButton::ShowMenu();
++    return;
++  }
++  ShowMenuWithFlags(views::MenuRunner::SHOULD_SHOW_MNEMONICS |
++                    views::MenuRunner::INVOKED_FROM_KEYBOARD);
++}
++
++void BrowserAppMenuButton::ShowMenuFromLogo(BrowserLogoMenuButton* logo_button,
++                                            int run_types) {
++  if (!logo_button || IsMenuShowing()) {
++    return;
++  }
++  BrowserView* browser_view = toolbar_view_->browser_view();
++  if (browser_view && browser_view->tab_strip_view()) {
++    expand_on_hover_lock_ =
++        browser_view->tab_strip_view()->GetExpandOnHoverLock(
++            ExpandOnHoverLockType::kKeepCurrentState);
++  }
++  const bool right_aligned_vertical =
++      browser_view && browser_view->ShouldDrawVerticalTabStrip() &&
++      browser_view->IsVerticalTabStripRightAligned();
++  const views::MenuAnchorPosition anchor_position =
++      right_aligned_vertical ? views::MenuAnchorPosition::kTopRight
++                             : views::MenuAnchorPosition::kTopLeft;
++  ShowMenuWithFlagsAndAnchor(run_types, logo_button->menu_button_controller(),
++                             anchor_position);
+ }
+ 
+ void BrowserAppMenuButton::ShowMenuWithFlags(int run_types) {
++  if (!views::View::IsDrawn()) {
++    if (BrowserLogoMenuButton* logo = GetActiveLogoMenuButton()) {
++      ShowMenuFromLogo(logo, run_types);
++      return;
++    }
++  }
++  ShowMenuWithFlagsAndAnchor(run_types, nullptr,
++                             views::MenuAnchorPosition::kTopRight);
++}
++
++void BrowserAppMenuButton::ShowMenuWithFlagsAndAnchor(
++    int run_types,
++    views::MenuButtonController* anchor_host,
++    views::MenuAnchorPosition anchor_position) {
+   if (IsMenuShowing()) {
+     return;
+   }
+@@ -97,7 +179,7 @@
+   BrowserWindowInterface* browser = toolbar_view_->browser();
+ 
+   if (base::FeatureList::IsEnabled(features::kAppMenuGlowUp)) {
+-    RunActionMenu(browser, run_types);
++    RunActionMenu(browser, run_types, anchor_host, anchor_position);
+     return;
+   }
+ 
+@@ -109,7 +191,43 @@
+   RunMenu(std::make_unique<AppMenuModel>(
+               toolbar_view_, browser, toolbar_view_->app_menu_icon_controller(),
+               alert_item),
+-          browser, run_types);
++          browser, run_types, anchor_host, anchor_position);
++}
++
++bool BrowserAppMenuButton::HasFocus() const {
++  if (views::View::HasFocus()) {
++    return true;
++  }
++  BrowserLogoMenuButton* logo = GetActiveLogoMenuButton();
++  return logo && logo->HasFocus();
++}
++
++void BrowserAppMenuButton::Focus(views::AccessiblePaneView* pane) {
++  if (views::View::IsDrawn()) {
++    AppMenuButton::Focus(pane);
++    return;
++  }
++  if (BrowserLogoMenuButton* logo = GetActiveLogoMenuButton()) {
++    if (BrowserView* browser_view = toolbar_view_->browser_view()) {
++      if (TabStripRegionView* region = browser_view->tab_strip_view()) {
++        region->SetPaneFocus(logo);
++        return;
++      }
++    }
++    logo->RequestFocus();
++    return;
++  }
++  AppMenuButton::Focus(pane);
++}
++
++views::View* BrowserAppMenuButton::GetFocusablePaneView() {
++  if (views::View::IsDrawn()) {
++    return this;
++  }
++  if (BrowserLogoMenuButton* logo = GetActiveLogoMenuButton()) {
++    return logo;
++  }
++  return this;
+ }
+ 
+ void BrowserAppMenuButton::OnMenuClosed() {
+@@ -129,6 +247,7 @@
+         config);
+   }
+ #endif  // BUILDFLAG(GOOGLE_CHROME_BRANDING)
++  expand_on_hover_lock_.reset();
+   AppMenuButton::OnMenuClosed();
+ }
+ 
+--- a/chrome/browser/ui/views/frame/BUILD.gn
++++ b/chrome/browser/ui/views/frame/BUILD.gn
+@@ -472,6 +472,34 @@
+   ]
+ }
+ 
++source_set("browser_logo_menu_button") {
++  public = [ "browser_logo_menu_button.h" ]
++  sources = [ "browser_logo_menu_button.cc" ]
++  public_deps = [
++    "//base",
++    "//chrome/browser/ui/toolbar",
++    "//ui/base/metadata",
++    "//ui/gfx",
++    "//ui/gfx/geometry",
++    "//ui/views",
++  ]
++  deps = [
++    ":browser_view_header",
++    ":toolbar_button_provider",
++    "//cc/paint",
++    "//chrome/app/theme:theme_resources",
++    "//chrome/browser/ui:layout_constants",
++    "//chrome/browser/ui/color:color_headers",
++    "//chrome/browser/ui/views/toolbar",
++    "//skia",
++    "//ui/accessibility",
++    "//ui/base",
++    "//ui/color",
++    "//ui/compositor",
++    "//ui/events",
++  ]
++}
++
+ source_set("horizontal_tab_strip_region_view") {
+   public = [ "horizontal_tab_strip_region_view.h" ]
+   sources = [ "horizontal_tab_strip_region_view.cc" ]
+@@ -489,6 +517,7 @@
+     "//ui/views",
+   ]
+   deps = [
++    ":browser_logo_menu_button",
+     ":browser_view_header",
+     ":safe_invoke",
+     ":themed_background",
+@@ -548,6 +577,7 @@
+     "//ui/views",
+   ]
+   deps = [
++    ":browser_logo_menu_button",
+     ":browser_view_header",
+     ":custom_corners_background",
+     ":frame",
+@@ -586,6 +616,7 @@
+     "//chrome/browser/ui/views/toolbar:app_menu_control",
+     "//chrome/browser/ui/views/toolbar:toolbar_button",
+     "//ui/base/metadata",
++    "//ui/views",
+   ]
+ }
+ 
+@@ -766,6 +797,7 @@
+   deps = [
+     ":app_menu_button",
+     ":browser_frame_view",
++    ":browser_logo_menu_button",
+     ":browser_native_widget",
+     ":browser_view_layout",
+     ":browser_view_layout_delegate_impl",
+--- a/chrome/browser/ui/views/toolbar/BUILD.gn
++++ b/chrome/browser/ui/views/toolbar/BUILD.gn
+@@ -314,7 +314,9 @@
+     "//chrome/browser/ui/views/extensions:extensions_views_utils",
+     "//chrome/browser/ui/views/frame:app_menu_button_observer",
+     "//chrome/browser/ui/views/frame:browser_frame_view",
++    "//chrome/browser/ui/views/frame:browser_logo_menu_button",
+     "//chrome/browser/ui/views/frame:browser_view_header",
++    "//chrome/browser/ui/views/frame:frame",
+     "//chrome/browser/ui/views/frame:custom_corners_background",
+     "//chrome/browser/ui/views/frame:horizontal_tab_strip_region_view",
+     "//chrome/browser/ui/views/frame:toolbar_button_provider",
