@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/chrome/browser/ui/views/frame/browser_logo_menu_button.h
-@@ -0,0 +1,74 @@
+@@ -0,0 +1,73 @@
 +// Copyright 2026 The Bluelium Authors
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -67,7 +67,6 @@
 +
 +  raw_ptr<BrowserView> browser_view_ = nullptr;
 +  raw_ptr<views::MenuButtonController> menu_button_controller_ = nullptr;
-+  gfx::ImageSkia base_logo_;
 +  AppMenuIconController::TypeAndSeverity type_and_severity_{
 +      AppMenuIconController::IconType::kNone,
 +      AppMenuIconController::Severity::kNone};
@@ -77,7 +76,7 @@
 +#endif  // CHROME_BROWSER_UI_VIEWS_FRAME_BROWSER_LOGO_MENU_BUTTON_H_
 --- /dev/null
 +++ b/chrome/browser/ui/views/frame/browser_logo_menu_button.cc
-@@ -0,0 +1,310 @@
+@@ -0,0 +1,333 @@
 +// Copyright 2026 The Bluelium Authors
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -99,6 +98,7 @@
 +#include "chrome/grit/theme_resources.h"
 +#include "skia/ext/image_operations.h"
 +#include "third_party/skia/include/core/SkPath.h"
++#include "third_party/skia/include/core/SkPathBuilder.h"
 +#include "third_party/skia/include/core/SkRRect.h"
 +#include "ui/accessibility/ax_action_data.h"
 +#include "ui/accessibility/ax_enums.mojom.h"
@@ -126,8 +126,8 @@
 +
 +namespace {
 +
-+constexpr int kLogoIconSize = 16;
-+constexpr int kLogoCanvasSize = 18;
++constexpr int kLogoIconSize = 20;
++constexpr int kLogoCanvasSize = 22;
 +constexpr int kLogoCornerRadius = 8;
 +
 +class LogoButtonHighlightPathGenerator : public views::HighlightPathGenerator {
@@ -139,23 +139,56 @@
 +  }
 +};
 +
-+// Bluelium : dessine le logo produit 16 px et, si une mise à jour ou alerte
++// Bluelium : astérisque de la DA (planche « Mode compact »), en aplat de la
++// couleur des boutons de la bande d'onglets, sans fond. Tracé 256 x 256.
++SkPath BlueliumAsteriskPath(float size, float offset) {
++  static constexpr float kPoints[][2] = {
++      {152.62f, 237.85f}, {128.f, 256.f},      {103.38f, 237.85f},
++      {114.568f, 151.248f}, {45.05f, 204.22f}, {17.f, 192.f},
++      {20.425f, 161.635f}, {101.128f, 128.f},  {20.425f, 94.365f},
++      {17.f, 64.f},        {45.05f, 51.78f},   {114.568f, 104.752f},
++      {103.38f, 18.15f},   {128.f, 0.f},       {152.62f, 18.15f},
++      {141.432f, 104.752f}, {210.95f, 51.78f}, {239.f, 64.f},
++      {235.575f, 94.365f}, {154.872f, 128.f},  {235.575f, 161.635f},
++      {239.f, 192.f},      {210.95f, 204.22f}, {141.432f, 151.248f}};
++  const float scale = size / 256.f;
++  SkPathBuilder builder;
++  bool first = true;
++  for (const auto& point : kPoints) {
++    const SkPoint p = SkPoint::Make(offset + point[0] * scale,
++                                    offset + point[1] * scale);
++    if (first) {
++      builder.moveTo(p);
++      first = false;
++    } else {
++      builder.lineTo(p);
++    }
++  }
++  builder.close();
++  return builder.detach();
++}
++
++// Bluelium : dessine l'astérisque 20 px et, si une mise à jour ou alerte
 +// est en attente, une pastille de sévérité dans son angle supérieur droit.
 +class LogoWithBadgeImageSource : public gfx::CanvasImageSource {
 + public:
-+  LogoWithBadgeImageSource(gfx::ImageSkia logo,
++  LogoWithBadgeImageSource(SkColor logo_color,
 +                           std::optional<SkColor> badge_color,
 +                           SkColor ring_color)
 +      : gfx::CanvasImageSource(gfx::Size(kLogoCanvasSize, kLogoCanvasSize)),
-+        logo_(std::move(logo)),
++        logo_color_(logo_color),
 +        badge_color_(badge_color),
 +        ring_color_(ring_color) {}
 +
 +  void Draw(gfx::Canvas* canvas) override {
-+    if (!logo_.isNull()) {
-+      const int offset = (kLogoCanvasSize - kLogoIconSize) / 2;
-+      canvas->DrawImageInt(logo_, offset, offset);
-+    }
++    cc::PaintFlags logo_flags;
++    logo_flags.setAntiAlias(true);
++    logo_flags.setStyle(cc::PaintFlags::kFill_Style);
++    logo_flags.setColor(logo_color_);
++    canvas->DrawPath(
++        BlueliumAsteriskPath(kLogoIconSize,
++                             (kLogoCanvasSize - kLogoIconSize) / 2.f),
++        logo_flags);
 +    if (!badge_color_.has_value()) {
 +      return;
 +    }
@@ -174,24 +207,10 @@
 +  }
 +
 + private:
-+  gfx::ImageSkia logo_;
++  SkColor logo_color_;
 +  std::optional<SkColor> badge_color_;
 +  SkColor ring_color_;
 +};
-+
-+gfx::ImageSkia LoadProductLogo16() {
-+  // IDR_PRODUCT_LOGO_32 dispose des variantes 100 % (32 px) et 200 % (64 px)
-+  // sur Linux comme sur macOS, d'où un rendu net à 16 px en 1x et 2x.
-+  const gfx::ImageSkia* raw_logo =
-+      ui::ResourceBundle::GetSharedInstance().GetImageSkiaNamed(
-+          IDR_PRODUCT_LOGO_32);
-+  if (!raw_logo || raw_logo->isNull()) {
-+    return gfx::ImageSkia();
-+  }
-+  return gfx::ImageSkiaOperations::CreateResizedImage(
-+      *raw_logo, skia::ImageOperations::RESIZE_BEST,
-+      gfx::Size(kLogoIconSize, kLogoIconSize));
-+}
 +
 +}  // namespace
 +
@@ -203,8 +222,7 @@
 +
 +BrowserLogoMenuButton::BrowserLogoMenuButton(BrowserView* browser_view)
 +    : views::LabelButton(PressedCallback()),
-+      browser_view_(browser_view),
-+      base_logo_(LoadProductLogo16()) {
++      browser_view_(browser_view) {
 +  auto menu_button_controller = std::make_unique<views::MenuButtonController>(
 +      this,
 +      base::BindRepeating(&BrowserLogoMenuButton::ButtonPressed,
@@ -344,11 +362,15 @@
 +void BrowserLogoMenuButton::UpdateLogoImage() {
 +  std::optional<SkColor> badge_color;
 +  SkColor ring_color = SK_ColorTRANSPARENT;
++  SkColor logo_color = SK_ColorTRANSPARENT;
 +
 +  if (const ui::ColorProvider* color_provider = GetColorProvider()) {
 +    const bool active = !GetWidget() || GetWidget()->ShouldPaintAsActive();
 +    ring_color = color_provider->GetColor(active ? ui::kColorFrameActive
 +                                                 : ui::kColorFrameInactive);
++    logo_color = color_provider->GetColor(
++        active ? kColorNewTabButtonCRForegroundFrameActive
++               : kColorNewTabButtonCRForegroundFrameInactive);
 +    switch (type_and_severity_.severity) {
 +      case AppMenuIconController::Severity::kNone:
 +        break;
@@ -367,7 +389,7 @@
 +
 +  const ui::ImageModel model = ui::ImageModel::FromImageSkia(
 +      gfx::CanvasImageSource::MakeImageSkia<LogoWithBadgeImageSource>(
-+          base_logo_, badge_color, ring_color));
++          logo_color, badge_color, ring_color));
 +  SetImageModel(views::Button::STATE_NORMAL, model);
 +  SetImageModel(views::Button::STATE_HOVERED, model);
 +  SetImageModel(views::Button::STATE_PRESSED, model);
