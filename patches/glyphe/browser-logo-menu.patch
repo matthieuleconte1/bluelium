@@ -102,7 +102,7 @@
 +#endif  // CHROME_BROWSER_UI_VIEWS_FRAME_BROWSER_LOGO_MENU_BUTTON_H_
 --- /dev/null
 +++ b/chrome/browser/ui/views/frame/browser_logo_menu_button.cc
-@@ -0,0 +1,425 @@
+@@ -0,0 +1,426 @@
 +// Copyright 2026 The Bluelium Authors
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -239,8 +239,10 @@
 +  GetViewAccessibility().SetHasPopup(ax::mojom::HasPopup::kMenu);
 +
 +  views::FocusRing::Get(this)->SetColorId(kColorNewTabButtonFocusRing);
-+  views::InkDrop::Get(this)->SetMode(views::InkDropHost::InkDropMode::ON);
-+  views::InkDrop::Get(this)->SetLayerRegion(views::LayerRegion::kAbove);
++  // Bluelium : pas d'effet d'encre. Peint au-dessus du logo, il l'assombrit
++  // au survol et le recouvre pendant que le menu est ouvert ; l'animation de
++  // l'astérisque sert de retour visuel.
++  views::InkDrop::Get(this)->SetMode(views::InkDropHost::InkDropMode::OFF);
 +  views::HighlightPathGenerator::Install(
 +      this, std::make_unique<LogoButtonHighlightPathGenerator>());
 +
@@ -362,8 +364,7 @@
 +  if (!GetColorProvider() || !GetWidget() || GetWidget()->IsClosed()) {
 +    return;
 +  }
-+  CreateToolbarInkdropCallbacks(this, kColorTabBackgroundInactiveHoverFrameActive,
-+                                kColorTabBackgroundActiveFrameActive);
++  // Bluelium : effet d'encre désactivé (voir le constructeur).
 +}
 +
 +void BrowserLogoMenuButton::UpdateLogoImage() {
