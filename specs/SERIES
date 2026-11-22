@@ -64,3 +64,4 @@ instrument-sans-mac.patch      instrument_sans_mac_spec.py    mac
 page-color-omnibox.patch      page_color_omnibox_spec.py
 linux-update.patch            linux_update_spec.py           linux
 linux-identity.patch          linux_identity_spec.py         linux
+extensions-group.patch        extensions_group_spec.py

@@ -1,0 +1,148 @@
+--- a/chrome/browser/ui/views/extensions/BUILD.gn
++++ b/chrome/browser/ui/views/extensions/BUILD.gn
+@@ -939,7 +939,12 @@
+     "//chrome/browser/ui/views/frame:browser_view_header",
+     "//chrome/browser/ui/views/frame:toolbar_button_provider",
+     "//chrome/browser/ui/views/toolbar",
++    "//cc/paint",
++    "//chrome/browser/ui/color:color_headers",
+     "//chrome/browser/user_education",
+     "//ui/base/dragdrop/mojom",
+-  ]
+-}
++    "//ui/color",
++    "//ui/gfx",
++    "//ui/gfx/geometry",
++  ]
++}
+--- a/chrome/browser/ui/views/extensions/extensions_toolbar_desktop.h
++++ b/chrome/browser/ui/views/extensions/extensions_toolbar_desktop.h
+@@ -185,6 +185,9 @@
+       const ui::DropTargetEvent& event) override;
+   void OnMouseExited(const ui::MouseEvent& event) override;
+   void OnMouseMoved(const ui::MouseEvent& event) override;
++  // Bluelium : pastille de groupe des extensions, rafraîchie au thème.
++  void OnThemeChanged() override;
++  void OnPaintBackground(gfx::Canvas* canvas) override;
+ 
+   // ExtensionsContainerViews:
+   std::optional<extensions::ExtensionId> GetPoppedOutActionId() const override;
+--- a/chrome/browser/ui/views/extensions/extensions_toolbar_desktop.cc
++++ b/chrome/browser/ui/views/extensions/extensions_toolbar_desktop.cc
+@@ -3,6 +3,13 @@
+ // found in the LICENSE file.
+ 
+ #include "chrome/browser/ui/views/extensions/extensions_toolbar_desktop.h"
++#include "cc/paint/paint_flags.h"
++#include "chrome/browser/ui/color/chrome_color_id.h"
++#include "ui/color/bluelium_dark_outline.h"
++#include "ui/color/color_provider.h"
++#include "ui/gfx/canvas.h"
++#include "ui/gfx/color_utils.h"
++#include "ui/gfx/geometry/rect_f.h"
+ 
+ #include <algorithm>
+ #include <memory>
+@@ -75,6 +82,9 @@
+ 
+ // Bluelium : identifiant du composant uBlock fourni par Helium.
+ constexpr char kBlueliumBlockerActionId[] = "blockjmkbacgjkknlgpkjjiijinjdanf";
++// Bluelium : géométrie de la pastille des extensions (rayon Prism 10 px).
++constexpr int kBlueliumGroupHorizontalPadding = 3;
++constexpr float kBlueliumGroupCornerRadius = 10.0f;
+ 
+ class IphWidgetActivationObserver : public views::WidgetObserver {
+  public:
+@@ -257,8 +267,11 @@
+       break;
+   }
+ 
+-  GetTargetLayoutManager()->SetDefault(views::kMarginsKey,
+-                                       gfx::Insets::VH(0, 2));
++  // Bluelium : marge intérieure compacte pour encadrer la pastille.
++  GetTargetLayoutManager()
++      ->SetInteriorMargin(
++          gfx::Insets::VH(0, kBlueliumGroupHorizontalPadding))
++      .SetDefault(views::kMarginsKey, gfx::Insets::VH(0, 2));
+ 
+   UpdateControlsVisibility();
+ 
+@@ -1056,7 +1069,9 @@
+   // This will convert the event coordinate into the index of the icon we want
+   // to display the dragged extension before. We also mirror the event.x() so
+   // that our calculations are consistent with left-to-right.
+-  const int offset_into_icon_area = GetMirroredXInView(event.x());
++  // Bluelium : tenir compte de la marge intérieure gauche de la pastille.
++  const int offset_into_icon_area =
++      GetMirroredXInView(event.x()) - kBlueliumGroupHorizontalPadding;
+   const size_t before_icon_unclamped = WidthToIconCount(offset_into_icon_area);
+ 
+   // Bluelium : les indices du modèle incluent encore le bouclier séparé.
+@@ -1354,6 +1369,55 @@
+ 
+ void ExtensionsToolbarDesktop::OnMouseExited(const ui::MouseEvent& event) {
+   UpdateHoverCard(nullptr, ToolbarActionHoverCardUpdateType::kHover);
++}
++
++void ExtensionsToolbarDesktop::OnThemeChanged() {
++  ToolbarIconContainerView::OnThemeChanged();
++  SchedulePaint();
++}
++
++void ExtensionsToolbarDesktop::OnPaintBackground(gfx::Canvas* canvas) {
++  ToolbarIconContainerView::OnPaintBackground(canvas);
++  const gfx::Rect bounds = GetLocalBounds();
++  if (bounds.IsEmpty()) {
++    return;
++  }
++  const auto* colors = GetColorProvider();
++  if (!colors) {
++    return;
++  }
++  // Bluelium : pastille arrondie regroupant les extensions et le puzzle.
++  const SkColor page_bg =
++      colors->GetColor(kColorGlyphePageColorButtonBackground);
++  const bool has_page_box = SkColorGetA(page_bg) != SK_AlphaTRANSPARENT;
++  cc::PaintFlags flags;
++  flags.setAntiAlias(true);
++  flags.setStyle(cc::PaintFlags::kFill_Style);
++  if (ui::BlueliumDarkOutline() && !has_page_box) {
++    // Bluelium : OLED / Nuit (« Trait fin ») : fond discret + contour fin.
++    flags.setColor(color_utils::AlphaBlend(
++        colors->GetColor(kColorToolbarButtonIcon),
++        colors->GetColor(kColorToolbar), SkAlpha{0x10}));
++    canvas->DrawRoundRect(gfx::RectF(bounds), kBlueliumGroupCornerRadius,
++                          flags);
++    cc::PaintFlags stroke;
++    stroke.setAntiAlias(true);
++    stroke.setStyle(cc::PaintFlags::kStroke_Style);
++    stroke.setStrokeWidth(1.0f);
++    stroke.setColor(colors->GetColor(kColorToolbarSeparatorDefault));
++    gfx::RectF stroke_rect(bounds);
++    stroke_rect.Inset(0.5f);
++    canvas->DrawRoundRect(stroke_rect, kBlueliumGroupCornerRadius - 0.5f,
++                          stroke);
++    return;
++  }
++  flags.setColor(
++      has_page_box
++          ? page_bg
++          : color_utils::AlphaBlend(
++                colors->GetColor(kColorToolbarButtonIcon),
++                colors->GetColor(kColorToolbar), SkAlpha{0x14}));
++  canvas->DrawRoundRect(gfx::RectF(bounds), kBlueliumGroupCornerRadius, flags);
+ }
+ 
+ void ExtensionsToolbarDesktop::OnMouseMoved(const ui::MouseEvent& event) {
+--- a/chrome/browser/ui/views/toolbar/toolbar_view.cc
++++ b/chrome/browser/ui/views/toolbar/toolbar_view.cc
+@@ -679,6 +679,9 @@
+ 
+   if (extensions_container) {
+     extensions_container_ = AddChildView(std::move(extensions_container));
++    // Bluelium : séparer la pastille des extensions des autres boutons.
++    extensions_container_->SetProperty(views::kMarginsKey,
++                                       gfx::Insets::VH(0, 4));
+     extensions_toolbar_coordinator_ =
+         std::make_unique<ExtensionsToolbarCoordinator>(extensions_container_);
+   }
