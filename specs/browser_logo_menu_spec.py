@@ -397,8 +397,8 @@ void BrowserLogoMenuButton::UpdateLogoImage() {
     ring_color = color_provider->GetColor(active ? ui::kColorFrameActive
                                                  : ui::kColorFrameInactive);
     logo_color = color_provider->GetColor(
-        active ? kColorNewTabButtonCRForegroundFrameActive
-               : kColorNewTabButtonCRForegroundFrameInactive);
+        active ? kColorTabForegroundActiveFrameActive
+               : kColorTabForegroundActiveFrameInactive);
     separator_color_ = color_provider->GetColor(
         active ? kColorTabDividerFrameActive : kColorTabDividerFrameInactive);
     switch (type_and_severity_.severity) {
