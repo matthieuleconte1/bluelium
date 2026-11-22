@@ -115,6 +115,8 @@ class BrowserLogoMenuButton : public views::LabelButton {
   bool icon_centered_ = false;
   SkColor logo_color_ = SK_ColorTRANSPARENT;
   SkColor separator_color_ = SK_ColorTRANSPARENT;
+  SkColor pill_fill_color_ = SK_ColorTRANSPARENT;
+  SkColor pill_border_color_ = SK_ColorTRANSPARENT;
   std::optional<SkColor> badge_color_;
   SkColor ring_color_ = SK_ColorTRANSPARENT;
   gfx::SlideAnimation hover_animation_{this};
@@ -156,6 +158,7 @@ class BrowserLogoMenuButton : public views::LabelButton {
 #include "ui/compositor/layer.h"
 #include "ui/events/event.h"
 #include "ui/gfx/canvas.h"
+#include "ui/gfx/color_utils.h"
 #include "ui/gfx/scoped_canvas.h"
 #include "ui/gfx/animation/tween.h"
 #include "ui/gfx/geometry/insets.h"
@@ -174,7 +177,7 @@ class BrowserLogoMenuButton : public views::LabelButton {
 
 namespace {
 
-constexpr int kLogoIconSize = 20;
+constexpr int kLogoIconSize = 18;
 constexpr int kLogoCanvasSize = 22;
 constexpr int kLogoCornerRadius = 8;
 
@@ -225,10 +228,18 @@ constexpr base::TimeDelta kPressDuration = base::Milliseconds(140);
 constexpr float kHoverRotationDegrees = 60.f;
 constexpr float kHoverScale = 0.10f;
 constexpr float kPressScale = 0.12f;
-// Séparateur : trait de 1 px, 16 px de long. Avec la marge gauche du bouton,
-// la marge droite (2 px) et le retrait de l'onglet (3 px), l'astérisque est
-// à 10 px du bord, du séparateur, et le séparateur à 10 px de l'onglet.
-constexpr int kSeparatorGapBefore = 3;
+// Pastille façon Ladybird : astérisque + chevron à l'accent, fond et contour
+// tirés du cadre. 42 x 26 px dans une zone de 44 x 30.
+constexpr int kPillWidth = 42;
+constexpr int kPillHeight = 26;
+constexpr float kPillRadius = 8.f;
+constexpr int kPillLeftPadding = 6;
+constexpr int kChevronGap = 5;
+constexpr float kChevronHalfWidth = 3.5f;
+constexpr float kChevronHoverDrop = 1.5f;
+// Séparateur : trait de 1 px, 16 px de long, à 8 px de la pastille ; avec la
+// marge droite (2 px) et le retrait de l'onglet (3 px), à 9 px de l'onglet.
+constexpr int kSeparatorGapBefore = 8;
 constexpr int kSeparatorGapAfter = 4;
 constexpr int kSeparatorGap = kSeparatorGapAfter;
 constexpr int kSeparatorLength = 16;
@@ -238,8 +249,8 @@ constexpr int kSeparatorExtent = kSeparatorGapBefore + 1 + kSeparatorGapAfter;
 
 // static
 gfx::Size BrowserLogoMenuButton::GetButtonSize() {
-  const int size = GetLayoutConstant(LayoutConstant::kLocationBarHeight);
-  return gfx::Size(size, size);
+  const int height = GetLayoutConstant(LayoutConstant::kLocationBarHeight);
+  return gfx::Size(kPillWidth + 2, height);
 }
 
 BrowserLogoMenuButton::BrowserLogoMenuButton(BrowserView* browser_view)
@@ -400,9 +411,15 @@ void BrowserLogoMenuButton::UpdateLogoImage() {
     const bool active = !GetWidget() || GetWidget()->ShouldPaintAsActive();
     ring_color = color_provider->GetColor(active ? ui::kColorFrameActive
                                                  : ui::kColorFrameInactive);
-    logo_color = color_provider->GetColor(
+    // Bluelium : accent du thème (comme le logo de Ladybird).
+    logo_color = color_provider->GetColor(ui::kColorSysPrimary);
+    const SkColor frame = color_provider->GetColor(
+        active ? ui::kColorFrameActive : ui::kColorFrameInactive);
+    const SkColor ink = color_provider->GetColor(
         active ? kColorTabForegroundActiveFrameActive
                : kColorTabForegroundActiveFrameInactive);
+    pill_fill_color_ = color_utils::AlphaBlend(ink, frame, SkAlpha{0x10});
+    pill_border_color_ = color_utils::AlphaBlend(ink, frame, SkAlpha{0x30});
     separator_color_ = color_provider->GetColor(
         active ? kColorTabDividerFrameActive : kColorTabDividerFrameInactive);
     switch (type_and_severity_.severity) {
@@ -446,17 +463,17 @@ void BrowserLogoMenuButton::SetIconCentered(bool centered) {
 
 gfx::Rect BrowserLogoMenuButton::GetIconBounds() const {
   const gfx::Rect contents = GetContentsBounds();
-  const int side = GetButtonSize().width();
-  int x = contents.x();
-  int y = contents.y();
+  const gfx::Size area = GetButtonSize();
+  int x = contents.x() + 1;
+  int y = contents.y() + (area.height() - kPillHeight) / 2;
   if (separator_side_ == SeparatorSide::kBottom) {
     if (icon_centered_) {
-      x += (contents.width() - side) / 2;
+      x = contents.x() + (contents.width() - kPillWidth) / 2;
     }
   } else {
-    y += (contents.height() - side) / 2;
+    y = contents.y() + (contents.height() - kPillHeight) / 2;
   }
-  return gfx::Rect(x, y, side, side);
+  return gfx::Rect(x, y, kPillWidth, kPillHeight);
 }
 
 void BrowserLogoMenuButton::StateChanged(ButtonState old_state) {
@@ -492,8 +509,6 @@ void BrowserLogoMenuButton::AnimationEnded(const gfx::Animation* animation) {
 
 void BrowserLogoMenuButton::PaintButtonContents(gfx::Canvas* canvas) {
   const gfx::Rect icon = GetIconBounds();
-  const gfx::PointF center(icon.x() + icon.width() / 2.f,
-                           icon.y() + icon.height() / 2.f);
 
   // Séparateur entre le logo et les onglets.
   if (separator_side_ == SeparatorSide::kTrailing) {
@@ -508,9 +523,29 @@ void BrowserLogoMenuButton::PaintButtonContents(gfx::Canvas* canvas) {
                      separator_color_);
   }
 
-  // Astérisque animé.
   const double hover = hover_animation_.GetCurrentValue();
   const double press = press_animation_.GetCurrentValue();
+
+  // Pastille : fond et contour légèrement plus clairs que le cadre.
+  {
+    const gfx::RectF pill(icon);
+    cc::PaintFlags fill;
+    fill.setAntiAlias(true);
+    fill.setColor(pill_fill_color_);
+    canvas->DrawRoundRect(pill, kPillRadius, fill);
+    cc::PaintFlags stroke;
+    stroke.setAntiAlias(true);
+    stroke.setStyle(cc::PaintFlags::kStroke_Style);
+    stroke.setStrokeWidth(1.f);
+    stroke.setColor(pill_border_color_);
+    gfx::RectF stroke_rect = pill;
+    stroke_rect.Inset(0.5f);
+    canvas->DrawRoundRect(stroke_rect, kPillRadius - 0.5f, stroke);
+  }
+
+  // Astérisque animé, à l'accent.
+  const gfx::PointF logo_center(icon.x() + kPillLeftPadding + kLogoIconSize / 2.f,
+                                icon.y() + icon.height() / 2.f);
   const float scale = 1.f + kHoverScale * hover - kPressScale * press;
   cc::PaintFlags logo_flags;
   logo_flags.setAntiAlias(true);
@@ -518,16 +553,38 @@ void BrowserLogoMenuButton::PaintButtonContents(gfx::Canvas* canvas) {
   logo_flags.setColor(logo_color_);
   {
     gfx::ScopedCanvas scoped(canvas);
-    canvas->sk_canvas()->translate(center.x(), center.y());
+    canvas->sk_canvas()->translate(logo_center.x(), logo_center.y());
     canvas->sk_canvas()->rotate(kHoverRotationDegrees * hover);
     canvas->sk_canvas()->scale(scale, scale);
     canvas->DrawPath(BlueliumAsteriskPath(kLogoIconSize), logo_flags);
   }
 
+  // Chevron : descend d'un cran au survol, se retourne menu ouvert.
+  {
+    const float cx = icon.x() + kPillLeftPadding + kLogoIconSize + kChevronGap +
+                     kChevronHalfWidth;
+    const float cy = icon.y() + icon.height() / 2.f + kChevronHoverDrop * hover;
+    gfx::ScopedCanvas scoped(canvas);
+    canvas->sk_canvas()->translate(cx, cy);
+    canvas->sk_canvas()->rotate(180.f * press);
+    SkPathBuilder chevron;
+    chevron.moveTo(-kChevronHalfWidth, -1.75f);
+    chevron.lineTo(0.f, 1.75f);
+    chevron.lineTo(kChevronHalfWidth, -1.75f);
+    cc::PaintFlags chevron_flags;
+    chevron_flags.setAntiAlias(true);
+    chevron_flags.setStyle(cc::PaintFlags::kStroke_Style);
+    chevron_flags.setStrokeWidth(1.75f);
+    chevron_flags.setStrokeCap(cc::PaintFlags::kRound_Cap);
+    chevron_flags.setStrokeJoin(cc::PaintFlags::kRound_Join);
+    chevron_flags.setColor(logo_color_);
+    canvas->DrawPath(chevron.detach(), chevron_flags);
+  }
+
   // Pastille de mise à jour, fixe, en haut à droite du logo.
   if (badge_color_.has_value()) {
-    const gfx::PointF badge(center.x() + kLogoIconSize / 2.f - 1.5f,
-                            center.y() - kLogoIconSize / 2.f + 1.5f);
+    const gfx::PointF badge(logo_center.x() + kLogoIconSize / 2.f - 1.f,
+                            logo_center.y() - kLogoIconSize / 2.f + 1.f);
     cc::PaintFlags ring_flags;
     ring_flags.setAntiAlias(true);
     ring_flags.setColor(ring_color_);
