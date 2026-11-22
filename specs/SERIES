@@ -66,3 +66,4 @@ linux-update.patch            linux_update_spec.py           linux
 linux-identity.patch          linux_identity_spec.py         linux
 wayland-gamma22.patch         wayland_gamma22_spec.py        linux
 extensions-group.patch        extensions_group_spec.py
+split-tab-hover.patch         split_tab_hover_spec.py
