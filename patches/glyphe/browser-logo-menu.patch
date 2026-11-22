@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/chrome/browser/ui/views/frame/browser_logo_menu_button.h
-@@ -0,0 +1,73 @@
+@@ -0,0 +1,99 @@
 +// Copyright 2026 The Bluelium Authors
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -15,6 +15,7 @@
 +#include "ui/gfx/geometry/rect.h"
 +#include "ui/gfx/geometry/size.h"
 +#include "ui/gfx/image/image_skia.h"
++#include "ui/gfx/animation/slide_animation.h"
 +#include "ui/views/controls/button/label_button.h"
 +
 +class BrowserView;
@@ -48,6 +49,15 @@
 +  void SetTypeAndSeverity(
 +      AppMenuIconController::TypeAndSeverity type_and_severity);
 +
++  // Bluelium : séparateur peint par le bouton, à droite (onglets
++  // horizontaux) ou dessous (onglets verticaux).
++  enum class SeparatorSide { kNone, kTrailing, kBottom };
++  void SetSeparatorSide(SeparatorSide side);
++  // Onglets verticaux : logo centré (bande repliée) ou aligné à gauche.
++  void SetIconCentered(bool centered);
++  // Zone carrée du logo (survol, ancrage du menu), hors séparateur.
++  gfx::Rect GetIconBounds() const;
++
 +  // views::LabelButton / views::View :
 +  gfx::Size CalculatePreferredSize(
 +      const views::SizeBounds& available_size) const override;
@@ -58,6 +68,12 @@
 +  void RemovedFromWidget() override;
 +  void OnThemeChanged() override;
 +  bool HandleAccessibleAction(const ui::AXActionData& action_data) override;
++  void StateChanged(ButtonState old_state) override;
++  void PaintButtonContents(gfx::Canvas* canvas) override;
++
++  // views::AnimationDelegateViews (hérité de views::Button) :
++  void AnimationProgressed(const gfx::Animation* animation) override;
++  void AnimationEnded(const gfx::Animation* animation) override;
 +
 + private:
 +  void ButtonPressed(const ui::Event& event);
@@ -71,12 +87,22 @@
 +      AppMenuIconController::IconType::kNone,
 +      AppMenuIconController::Severity::kNone};
 +  base::CallbackListSubscription paint_as_active_subscription_;
++
++  // Bluelium : rendu et animation du logo.
++  SeparatorSide separator_side_ = SeparatorSide::kNone;
++  bool icon_centered_ = false;
++  SkColor logo_color_ = SK_ColorTRANSPARENT;
++  SkColor separator_color_ = SK_ColorTRANSPARENT;
++  std::optional<SkColor> badge_color_;
++  SkColor ring_color_ = SK_ColorTRANSPARENT;
++  gfx::SlideAnimation hover_animation_{this};
++  gfx::SlideAnimation press_animation_{this};
 +};
 +
 +#endif  // CHROME_BROWSER_UI_VIEWS_FRAME_BROWSER_LOGO_MENU_BUTTON_H_
 --- /dev/null
 +++ b/chrome/browser/ui/views/frame/browser_logo_menu_button.cc
-@@ -0,0 +1,333 @@
+@@ -0,0 +1,425 @@
 +// Copyright 2026 The Bluelium Authors
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -110,6 +136,8 @@
 +#include "ui/compositor/layer.h"
 +#include "ui/events/event.h"
 +#include "ui/gfx/canvas.h"
++#include "ui/gfx/scoped_canvas.h"
++#include "ui/gfx/animation/tween.h"
 +#include "ui/gfx/geometry/insets.h"
 +#include "ui/gfx/geometry/point_f.h"
 +#include "ui/gfx/geometry/skia_conversions.h"
@@ -133,15 +161,17 @@
 +class LogoButtonHighlightPathGenerator : public views::HighlightPathGenerator {
 + public:
 +  SkPath GetHighlightPath(const views::View* view) override {
-+    const gfx::Rect rect(view->GetContentsBounds());
++    const gfx::Rect rect(
++        static_cast<const BrowserLogoMenuButton*>(view)->GetIconBounds());
 +    return SkPath::RRect(SkRRect::MakeRectXY(
 +        gfx::RectToSkRect(rect), kLogoCornerRadius, kLogoCornerRadius));
 +  }
 +};
 +
 +// Bluelium : astérisque de la DA (planche « Mode compact »), en aplat de la
-+// couleur des boutons de la bande d'onglets, sans fond. Tracé 256 x 256.
-+SkPath BlueliumAsteriskPath(float size, float offset) {
++// couleur des boutons de la bande d'onglets, sans fond. Tracé 256 x 256,
++// centré sur l'origine pour tourner sur lui-même.
++SkPath BlueliumAsteriskPath(float size) {
 +  static constexpr float kPoints[][2] = {
 +      {152.62f, 237.85f}, {128.f, 256.f},      {103.38f, 237.85f},
 +      {114.568f, 151.248f}, {45.05f, 204.22f}, {17.f, 192.f},
@@ -155,8 +185,8 @@
 +  SkPathBuilder builder;
 +  bool first = true;
 +  for (const auto& point : kPoints) {
-+    const SkPoint p = SkPoint::Make(offset + point[0] * scale,
-+                                    offset + point[1] * scale);
++    const SkPoint p = SkPoint::Make((point[0] - 128.f) * scale,
++                                    (point[1] - 128.f) * scale);
 +    if (first) {
 +      builder.moveTo(p);
 +      first = false;
@@ -168,49 +198,17 @@
 +  return builder.detach();
 +}
 +
-+// Bluelium : dessine l'astérisque 20 px et, si une mise à jour ou alerte
-+// est en attente, une pastille de sévérité dans son angle supérieur droit.
-+class LogoWithBadgeImageSource : public gfx::CanvasImageSource {
-+ public:
-+  LogoWithBadgeImageSource(SkColor logo_color,
-+                           std::optional<SkColor> badge_color,
-+                           SkColor ring_color)
-+      : gfx::CanvasImageSource(gfx::Size(kLogoCanvasSize, kLogoCanvasSize)),
-+        logo_color_(logo_color),
-+        badge_color_(badge_color),
-+        ring_color_(ring_color) {}
-+
-+  void Draw(gfx::Canvas* canvas) override {
-+    cc::PaintFlags logo_flags;
-+    logo_flags.setAntiAlias(true);
-+    logo_flags.setStyle(cc::PaintFlags::kFill_Style);
-+    logo_flags.setColor(logo_color_);
-+    canvas->DrawPath(
-+        BlueliumAsteriskPath(kLogoIconSize,
-+                             (kLogoCanvasSize - kLogoIconSize) / 2.f),
-+        logo_flags);
-+    if (!badge_color_.has_value()) {
-+      return;
-+    }
-+    const gfx::PointF center(kLogoCanvasSize - 3.5f, 3.5f);
-+    cc::PaintFlags ring_flags;
-+    ring_flags.setAntiAlias(true);
-+    ring_flags.setStyle(cc::PaintFlags::kFill_Style);
-+    ring_flags.setColor(ring_color_);
-+    canvas->DrawCircle(center, 4.0f, ring_flags);
-+
-+    cc::PaintFlags dot_flags;
-+    dot_flags.setAntiAlias(true);
-+    dot_flags.setStyle(cc::PaintFlags::kFill_Style);
-+    dot_flags.setColor(*badge_color_);
-+    canvas->DrawCircle(center, 3.0f, dot_flags);
-+  }
-+
-+ private:
-+  SkColor logo_color_;
-+  std::optional<SkColor> badge_color_;
-+  SkColor ring_color_;
-+};
++// Survol : l'astérisque tourne d'une branche (60°, il retombe sur sa forme)
++// en grossissant un peu ; il se déroule à la sortie. Appui : il se tasse.
++constexpr base::TimeDelta kHoverDuration = base::Milliseconds(420);
++constexpr base::TimeDelta kPressDuration = base::Milliseconds(140);
++constexpr float kHoverRotationDegrees = 60.f;
++constexpr float kHoverScale = 0.10f;
++constexpr float kPressScale = 0.12f;
++// Séparateur : 6 px de part et d'autre d'un trait de 1 px, 16 px de long.
++constexpr int kSeparatorGap = 6;
++constexpr int kSeparatorLength = 16;
++constexpr int kSeparatorExtent = kSeparatorGap * 2 + 1;
 +
 +}  // namespace
 +
@@ -223,6 +221,10 @@
 +BrowserLogoMenuButton::BrowserLogoMenuButton(BrowserView* browser_view)
 +    : views::LabelButton(PressedCallback()),
 +      browser_view_(browser_view) {
++  hover_animation_.SetSlideDuration(kHoverDuration);
++  hover_animation_.SetTweenType(gfx::Tween::FAST_OUT_SLOW_IN);
++  press_animation_.SetSlideDuration(kPressDuration);
++  press_animation_.SetTweenType(gfx::Tween::EASE_OUT);
 +  auto menu_button_controller = std::make_unique<views::MenuButtonController>(
 +      this,
 +      base::BindRepeating(&BrowserLogoMenuButton::ButtonPressed,
@@ -268,6 +270,11 @@
 +gfx::Size BrowserLogoMenuButton::CalculatePreferredSize(
 +    const views::SizeBounds& available_size) const {
 +  gfx::Size size = GetButtonSize();
++  if (separator_side_ == SeparatorSide::kTrailing) {
++    size.Enlarge(kSeparatorExtent, 0);
++  } else if (separator_side_ == SeparatorSide::kBottom) {
++    size.Enlarge(0, kSeparatorExtent);
++  }
 +  const gfx::Insets insets = GetInsets();
 +  size.Enlarge(insets.width(), insets.height());
 +  return size;
@@ -295,7 +302,7 @@
 +}
 +
 +gfx::Rect BrowserLogoMenuButton::GetAnchorBoundsInScreen() const {
-+  gfx::Rect bounds = GetContentsBounds();
++  gfx::Rect bounds = GetIconBounds();
 +  ConvertRectToScreen(this, &bounds);
 +  return bounds;
 +}
@@ -371,6 +378,8 @@
 +    logo_color = color_provider->GetColor(
 +        active ? kColorNewTabButtonCRForegroundFrameActive
 +               : kColorNewTabButtonCRForegroundFrameInactive);
++    separator_color_ = color_provider->GetColor(
++        active ? kColorTabDividerFrameActive : kColorTabDividerFrameInactive);
 +    switch (type_and_severity_.severity) {
 +      case AppMenuIconController::Severity::kNone:
 +        break;
@@ -387,13 +396,122 @@
 +    }
 +  }
 +
-+  const ui::ImageModel model = ui::ImageModel::FromImageSkia(
-+      gfx::CanvasImageSource::MakeImageSkia<LogoWithBadgeImageSource>(
-+          logo_color, badge_color, ring_color));
-+  SetImageModel(views::Button::STATE_NORMAL, model);
-+  SetImageModel(views::Button::STATE_HOVERED, model);
-+  SetImageModel(views::Button::STATE_PRESSED, model);
-+  SetImageModel(views::Button::STATE_DISABLED, model);
++  logo_color_ = logo_color;
++  badge_color_ = badge_color;
++  ring_color_ = ring_color;
++  SchedulePaint();
++}
++
++void BrowserLogoMenuButton::SetSeparatorSide(SeparatorSide side) {
++  if (separator_side_ == side) {
++    return;
++  }
++  separator_side_ = side;
++  PreferredSizeChanged();
++  SchedulePaint();
++}
++
++void BrowserLogoMenuButton::SetIconCentered(bool centered) {
++  if (icon_centered_ == centered) {
++    return;
++  }
++  icon_centered_ = centered;
++  SchedulePaint();
++}
++
++gfx::Rect BrowserLogoMenuButton::GetIconBounds() const {
++  const gfx::Rect contents = GetContentsBounds();
++  const int side = GetButtonSize().width();
++  int x = contents.x();
++  int y = contents.y();
++  if (separator_side_ == SeparatorSide::kBottom) {
++    if (icon_centered_) {
++      x += (contents.width() - side) / 2;
++    }
++  } else {
++    y += (contents.height() - side) / 2;
++  }
++  return gfx::Rect(x, y, side, side);
++}
++
++void BrowserLogoMenuButton::StateChanged(ButtonState old_state) {
++  views::LabelButton::StateChanged(old_state);
++  const bool animate = gfx::Animation::ShouldRenderRichAnimation();
++  hover_animation_.SetSlideDuration(animate ? kHoverDuration
++                                            : base::TimeDelta());
++  press_animation_.SetSlideDuration(animate ? kPressDuration
++                                            : base::TimeDelta());
++  const ButtonState state = GetState();
++  if (state == STATE_HOVERED || state == STATE_PRESSED) {
++    hover_animation_.Show();
++  } else {
++    hover_animation_.Hide();
++  }
++  if (state == STATE_PRESSED) {
++    press_animation_.Show();
++  } else {
++    press_animation_.Hide();
++  }
++}
++
++void BrowserLogoMenuButton::AnimationProgressed(
++    const gfx::Animation* animation) {
++  views::LabelButton::AnimationProgressed(animation);
++  SchedulePaint();
++}
++
++void BrowserLogoMenuButton::AnimationEnded(const gfx::Animation* animation) {
++  views::LabelButton::AnimationEnded(animation);
++  SchedulePaint();
++}
++
++void BrowserLogoMenuButton::PaintButtonContents(gfx::Canvas* canvas) {
++  const gfx::Rect icon = GetIconBounds();
++  const gfx::PointF center(icon.x() + icon.width() / 2.f,
++                           icon.y() + icon.height() / 2.f);
++
++  // Séparateur entre le logo et les onglets.
++  if (separator_side_ == SeparatorSide::kTrailing) {
++    canvas->FillRect(gfx::Rect(icon.right() + kSeparatorGap,
++                               icon.CenterPoint().y() - kSeparatorLength / 2,
++                               1, kSeparatorLength),
++                     separator_color_);
++  } else if (separator_side_ == SeparatorSide::kBottom) {
++    const gfx::Rect contents = GetContentsBounds();
++    canvas->FillRect(gfx::Rect(contents.x() + 4, icon.bottom() + kSeparatorGap,
++                               std::max(0, contents.width() - 8), 1),
++                     separator_color_);
++  }
++
++  // Astérisque animé.
++  const double hover = hover_animation_.GetCurrentValue();
++  const double press = press_animation_.GetCurrentValue();
++  const float scale = 1.f + kHoverScale * hover - kPressScale * press;
++  cc::PaintFlags logo_flags;
++  logo_flags.setAntiAlias(true);
++  logo_flags.setStyle(cc::PaintFlags::kFill_Style);
++  logo_flags.setColor(logo_color_);
++  {
++    gfx::ScopedCanvas scoped(canvas);
++    canvas->sk_canvas()->translate(center.x(), center.y());
++    canvas->sk_canvas()->rotate(kHoverRotationDegrees * hover);
++    canvas->sk_canvas()->scale(scale, scale);
++    canvas->DrawPath(BlueliumAsteriskPath(kLogoIconSize), logo_flags);
++  }
++
++  // Pastille de mise à jour, fixe, en haut à droite du logo.
++  if (badge_color_.has_value()) {
++    const gfx::PointF badge(center.x() + kLogoIconSize / 2.f - 1.5f,
++                            center.y() - kLogoIconSize / 2.f + 1.5f);
++    cc::PaintFlags ring_flags;
++    ring_flags.setAntiAlias(true);
++    ring_flags.setColor(ring_color_);
++    canvas->DrawCircle(badge, 4.0f, ring_flags);
++    cc::PaintFlags dot_flags;
++    dot_flags.setAntiAlias(true);
++    dot_flags.setColor(*badge_color_);
++    canvas->DrawCircle(badge, 3.0f, dot_flags);
++  }
 +}
 +
 +void BrowserLogoMenuButton::UpdateAccessibleAndTooltip() {
@@ -412,7 +530,7 @@
 +END_METADATA
 --- a/chrome/browser/ui/browser_ui_prefs.cc
 +++ b/chrome/browser/ui/browser_ui_prefs.cc
-@@ -172,7 +172,8 @@
+@@ -173,7 +173,8 @@
    // Bluelium : bouton de profil caché par défaut (réglable).
    registry->RegisterBooleanPref(prefs::kShowAvatarButton, false);
    registry->RegisterBooleanPref(prefs::kShowExtensionsButton, true);
@@ -756,7 +874,7 @@
  #include "chrome/browser/ui/views/frame/browser_view.h"
  #include "chrome/browser/ui/views/frame/safe_invoke/safe_invoke.h"
  #include "chrome/browser/ui/views/frame/themed_background.h"
-@@ -232,6 +233,17 @@
+@@ -232,6 +233,19 @@
      }
    }
  
@@ -769,12 +887,14 @@
 +        views::kMarginsKey,
 +        gfx::Insets::TLBR(0, GetLayoutConstant(LayoutConstant::kTabStripPadding),
 +                          0, 2));
++    logo_menu_button_->SetSeparatorSide(
++        BrowserLogoMenuButton::SeparatorSide::kTrailing);
 +  }
 +
    tab_strip_ = AddChildView(CreateTabStrip(this, browser_view));
  
    // Allow the |tab_strip_| to grow into the free space available in
-@@ -292,6 +304,9 @@
+@@ -292,6 +306,9 @@
    if (combo_button_) {
      RemoveChildViewT(std::exchange(combo_button_, nullptr));
    }
@@ -784,7 +904,7 @@
    if (new_tab_button_) {
      RemoveChildViewT(std::exchange(new_tab_button_, nullptr));
    }
-@@ -299,6 +314,11 @@
+@@ -299,6 +316,11 @@
  
  bool HorizontalTabStripRegionViewOld::IsPositionInWindowCaption(
      const gfx::Point& point) {
@@ -796,7 +916,7 @@
    if (new_tab_button_ && IsHitInView(new_tab_button_, point)) {
      return false;
    }
-@@ -341,6 +361,10 @@
+@@ -341,6 +363,10 @@
      children.emplace_back(tab_strip_.get());
    }
  
@@ -807,7 +927,7 @@
    if (new_tab_button_) {
      children.emplace_back(new_tab_button_.get());
    }
-@@ -606,6 +630,9 @@
+@@ -606,6 +632,9 @@
  }
  
  bool HorizontalTabStripRegionViewOld::HasLeadingButtons() const {
@@ -817,7 +937,7 @@
    if (combo_button_ && combo_button_->GetVisible() &&
        ((combo_button_->start_button() &&
          combo_button_->start_button()->GetVisible()) ||
-@@ -645,6 +672,9 @@
+@@ -645,6 +674,9 @@
    if (combo_button_) {
      UpdateBorderInsetsIfNeeded(combo_button_, border_insets);
    }
@@ -827,7 +947,7 @@
    if (new_tab_button_) {
      UpdateBorderInsetsIfNeeded(new_tab_button_, border_insets);
    }
-@@ -770,6 +800,14 @@
+@@ -770,6 +802,16 @@
    std::unique_ptr<TabStripActionContainer> tab_strip_action_container;
    if (browser &&
        (browser->GetType() == BrowserWindowInterface::Type::TYPE_NORMAL)) {
@@ -838,11 +958,13 @@
 +        views::kMarginsKey,
 +        gfx::Insets::TLBR(0, GetLayoutConstant(LayoutConstant::kTabStripPadding),
 +                          0, 2));
++    logo_menu_button_->SetSeparatorSide(
++        BrowserLogoMenuButton::SeparatorSide::kTrailing);
 +
      combo_button_ = AddChildView(std::make_unique<TabStripComboButton>(
          browser, TabStripComboButton::Context::kHorizontalTabStrip));
      combo_button_->SetProperty(views::kCrossAxisAlignmentKey,
-@@ -823,6 +861,9 @@
+@@ -823,6 +865,9 @@
    if (combo_button_) {
      RemoveChildViewT(std::exchange(combo_button_, nullptr));
    }
@@ -852,7 +974,7 @@
    if (new_tab_button_) {
      RemoveChildViewT(std::exchange(new_tab_button_, nullptr));
    }
-@@ -830,6 +871,10 @@
+@@ -830,6 +875,10 @@
  
  bool HorizontalTabStripRegionViewNew::IsPositionInWindowCaption(
      const gfx::Point& point) {
@@ -863,7 +985,7 @@
    if (new_tab_button_ && IsHitInView(new_tab_button_, point)) {
      return false;
    }
-@@ -855,6 +900,9 @@
+@@ -855,6 +904,9 @@
    if (GetDragContext()) {
      children.emplace_back(GetDragContext());
    }
@@ -873,7 +995,7 @@
    if (new_tab_button_) {
      children.emplace_back(new_tab_button_.get());
    }
-@@ -876,6 +924,9 @@
+@@ -876,6 +928,9 @@
  }
  
  bool HorizontalTabStripRegionViewNew::HasLeadingButtons() const {
@@ -883,7 +1005,7 @@
    if (combo_button_ && combo_button_->GetVisible() &&
        ((combo_button_->start_button() &&
          combo_button_->start_button()->GetVisible()) ||
-@@ -1041,7 +1092,8 @@
+@@ -1041,7 +1096,8 @@
        views::kFlexBehaviorKey,
        views::FlexSpecification(views::MinimumFlexSizeRule::kScaleToZero,
                                 views::MaximumFlexSizeRule::kPreferred));
@@ -893,7 +1015,7 @@
    AddChildViewAt(std::move(view), index);
    UpdateTabStripMargin();
  }
-@@ -1059,6 +1111,9 @@
+@@ -1059,6 +1115,9 @@
    const auto border_insets = gfx::Insets::TLBR(top_inset, 0, bottom_inset, 0);
    if (tab_strip_action_container_) {
      tab_strip_action_container_->UpdateButtonBorders(border_insets);
@@ -941,7 +1063,7 @@
  #include "chrome/browser/ui/views/frame/browser_view.h"
  #include "chrome/browser/ui/view_ids.h"
  #include "chrome/browser/ui/views/frame/custom_corners_background.h"
-@@ -160,6 +161,23 @@
+@@ -160,6 +161,25 @@
    const int region_horizontal_padding =
        GetLayoutConstant(LayoutConstant::kVerticalTabStripHorizontalPadding);
  
@@ -954,26 +1076,25 @@
 +    logo_menu_button_->SetProperty(
 +        views::kMarginsKey,
 +        gfx::Insets::TLBR(0, region_horizontal_padding,
-+                          kBottomContainerGap * 2,
++                          kBottomContainerGap,
 +                          region_horizontal_padding));
++    // Bluelium : pleine largeur pour le séparateur sous le logo.
++    logo_menu_button_->SetSeparatorSide(
++        BrowserLogoMenuButton::SeparatorSide::kBottom);
 +    logo_menu_button_->SetProperty(
-+        views::kCrossAxisAlignmentKey,
-+        state_controller_->IsCollapsed() ? views::LayoutAlignment::kCenter
-+                                         : views::LayoutAlignment::kStart);
++        views::kCrossAxisAlignmentKey, views::LayoutAlignment::kStretch);
++    logo_menu_button_->SetIconCentered(state_controller_->IsCollapsed());
 +  }
 +
    bottom_button_container_ = content_area_view_->AddChildView(
        std::make_unique<VerticalTabStripBottomContainer>(
            state_controller_, root_action_item, browser_view->browser(),
-@@ -941,6 +959,13 @@
+@@ -941,6 +961,10 @@
  
    resize_area_width_ = collapsed ? kCollapsedResizeAreaWidth : kResizeAreaWidth;
  
 +  if (logo_menu_button_) {
-+    logo_menu_button_->SetProperty(
-+        views::kCrossAxisAlignmentKey,
-+        collapsed ? views::LayoutAlignment::kCenter
-+                  : views::LayoutAlignment::kStart);
++    logo_menu_button_->SetIconCentered(collapsed);
 +  }
 +
    if (tab_strip_view()) {
