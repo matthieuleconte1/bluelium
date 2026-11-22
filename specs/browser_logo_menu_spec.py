@@ -225,10 +225,14 @@ constexpr base::TimeDelta kPressDuration = base::Milliseconds(140);
 constexpr float kHoverRotationDegrees = 60.f;
 constexpr float kHoverScale = 0.10f;
 constexpr float kPressScale = 0.12f;
-// Séparateur : 6 px de part et d'autre d'un trait de 1 px, 16 px de long.
-constexpr int kSeparatorGap = 6;
+// Séparateur : trait de 1 px, 16 px de long. Avec la marge gauche du bouton,
+// la marge droite (2 px) et le retrait de l'onglet (3 px), l'astérisque est
+// à 10 px du bord, du séparateur, et le séparateur à 10 px de l'onglet.
+constexpr int kSeparatorGapBefore = 3;
+constexpr int kSeparatorGapAfter = 4;
+constexpr int kSeparatorGap = kSeparatorGapAfter;
 constexpr int kSeparatorLength = 16;
-constexpr int kSeparatorExtent = kSeparatorGap * 2 + 1;
+constexpr int kSeparatorExtent = kSeparatorGapBefore + 1 + kSeparatorGapAfter;
 
 }  // namespace
 
@@ -493,7 +497,7 @@ void BrowserLogoMenuButton::PaintButtonContents(gfx::Canvas* canvas) {
 
   // Séparateur entre le logo et les onglets.
   if (separator_side_ == SeparatorSide::kTrailing) {
-    canvas->FillRect(gfx::Rect(icon.right() + kSeparatorGap,
+    canvas->FillRect(gfx::Rect(icon.right() + kSeparatorGapBefore,
                                icon.CenterPoint().y() - kSeparatorLength / 2,
                                1, kSeparatorLength),
                      separator_color_);
@@ -944,7 +948,7 @@ EDITS = [
      '        AddChildView(std::make_unique<BrowserLogoMenuButton>(browser_view));\n'
      '    logo_menu_button_->SetProperty(\n'
      '        views::kMarginsKey,\n'
-     '        gfx::Insets::TLBR(0, GetLayoutConstant(LayoutConstant::kTabStripPadding),\n'
+     '        gfx::Insets::TLBR(0, GetLayoutConstant(LayoutConstant::kTabStripPadding) + 1,\n'
      '                          0, 2));\n'
      '    logo_menu_button_->SetSeparatorSide(\n'
      '        BrowserLogoMenuButton::SeparatorSide::kTrailing);\n'
@@ -1068,7 +1072,7 @@ EDITS = [
      '        AddChildView(std::make_unique<BrowserLogoMenuButton>(browser_view));\n'
      '    logo_menu_button_->SetProperty(\n'
      '        views::kMarginsKey,\n'
-     '        gfx::Insets::TLBR(0, GetLayoutConstant(LayoutConstant::kTabStripPadding),\n'
+     '        gfx::Insets::TLBR(0, GetLayoutConstant(LayoutConstant::kTabStripPadding) + 1,\n'
      '                          0, 2));\n'
      '    logo_menu_button_->SetSeparatorSide(\n'
      '        BrowserLogoMenuButton::SeparatorSide::kTrailing);\n'

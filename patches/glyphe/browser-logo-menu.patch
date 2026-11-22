@@ -102,7 +102,7 @@
 +#endif  // CHROME_BROWSER_UI_VIEWS_FRAME_BROWSER_LOGO_MENU_BUTTON_H_
 --- /dev/null
 +++ b/chrome/browser/ui/views/frame/browser_logo_menu_button.cc
-@@ -0,0 +1,426 @@
+@@ -0,0 +1,430 @@
 +// Copyright 2026 The Bluelium Authors
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -205,10 +205,14 @@
 +constexpr float kHoverRotationDegrees = 60.f;
 +constexpr float kHoverScale = 0.10f;
 +constexpr float kPressScale = 0.12f;
-+// Séparateur : 6 px de part et d'autre d'un trait de 1 px, 16 px de long.
-+constexpr int kSeparatorGap = 6;
++// Séparateur : trait de 1 px, 16 px de long. Avec la marge gauche du bouton,
++// la marge droite (2 px) et le retrait de l'onglet (3 px), l'astérisque est
++// à 10 px du bord, du séparateur, et le séparateur à 10 px de l'onglet.
++constexpr int kSeparatorGapBefore = 3;
++constexpr int kSeparatorGapAfter = 4;
++constexpr int kSeparatorGap = kSeparatorGapAfter;
 +constexpr int kSeparatorLength = 16;
-+constexpr int kSeparatorExtent = kSeparatorGap * 2 + 1;
++constexpr int kSeparatorExtent = kSeparatorGapBefore + 1 + kSeparatorGapAfter;
 +
 +}  // namespace
 +
@@ -473,7 +477,7 @@
 +
 +  // Séparateur entre le logo et les onglets.
 +  if (separator_side_ == SeparatorSide::kTrailing) {
-+    canvas->FillRect(gfx::Rect(icon.right() + kSeparatorGap,
++    canvas->FillRect(gfx::Rect(icon.right() + kSeparatorGapBefore,
 +                               icon.CenterPoint().y() - kSeparatorLength / 2,
 +                               1, kSeparatorLength),
 +                     separator_color_);
@@ -886,7 +890,7 @@
 +        AddChildView(std::make_unique<BrowserLogoMenuButton>(browser_view));
 +    logo_menu_button_->SetProperty(
 +        views::kMarginsKey,
-+        gfx::Insets::TLBR(0, GetLayoutConstant(LayoutConstant::kTabStripPadding),
++        gfx::Insets::TLBR(0, GetLayoutConstant(LayoutConstant::kTabStripPadding) + 1,
 +                          0, 2));
 +    logo_menu_button_->SetSeparatorSide(
 +        BrowserLogoMenuButton::SeparatorSide::kTrailing);
@@ -957,7 +961,7 @@
 +        AddChildView(std::make_unique<BrowserLogoMenuButton>(browser_view));
 +    logo_menu_button_->SetProperty(
 +        views::kMarginsKey,
-+        gfx::Insets::TLBR(0, GetLayoutConstant(LayoutConstant::kTabStripPadding),
++        gfx::Insets::TLBR(0, GetLayoutConstant(LayoutConstant::kTabStripPadding) + 1,
 +                          0, 2));
 +    logo_menu_button_->SetSeparatorSide(
 +        BrowserLogoMenuButton::SeparatorSide::kTrailing);
