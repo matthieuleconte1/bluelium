@@ -68,3 +68,4 @@ wayland-gamma22.patch         wayland_gamma22_spec.py        linux
 extensions-group.patch        extensions_group_spec.py
 split-tab-hover.patch         split_tab_hover_spec.py
 browser-logo-menu.patch       browser_logo_menu_spec.py
+toolbar-declutter.patch       toolbar_declutter_spec.py

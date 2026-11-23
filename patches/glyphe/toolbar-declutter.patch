@@ -1,0 +1,260 @@
+--- a/chrome/browser/ui/extensions/extension_action_view_model.cc
++++ b/chrome/browser/ui/extensions/extension_action_view_model.cc
+@@ -6,6 +6,7 @@
+ 
+ #include <memory>
+ #include <string>
++#include <string_view>
+ #include <utility>
+ 
+ #include "base/check_op.h"
+@@ -15,6 +16,7 @@
+ #include "base/memory/ptr_util.h"
+ #include "base/metrics/histogram_functions.h"
+ #include "base/strings/strcat.h"
++#include "base/strings/string_number_conversions.h"
+ #include "base/strings/string_util.h"
+ #include "base/strings/utf_string_conversions.h"
+ #include "chrome/browser/extensions/api/side_panel/side_panel_service.h"
+@@ -296,12 +298,22 @@
+ 
+ std::u16string ExtensionActionViewModel::GetGlypheBadgeText(
+     content::WebContents* web_contents) const {
++  // Bluelium : n'afficher le compteur du bloqueur que s'il est > 0.
+   if (!ExtensionIsValid() || !web_contents) {
+-    return u"0";
++    return std::u16string();
+   }
+   const std::string text = extension_action_->GetDisplayBadgeText(
+       sessions::SessionTabHelper::IdForTab(web_contents).id());
+-  return text.empty() ? u"0" : base::UTF8ToUTF16(text);
++  const std::string_view trimmed =
++      base::TrimWhitespaceASCII(text, base::TRIM_ALL);
++  if (trimmed.empty()) {
++    return std::u16string();
++  }
++  int count = 0;
++  if (base::StringToInt(trimmed, &count) && count <= 0) {
++    return std::u16string();
++  }
++  return base::UTF8ToUTF16(trimmed);
+ }
+ 
+ std::u16string ExtensionActionViewModel::GetActionName() const {
+--- a/chrome/browser/ui/views/toolbar/toolbar_action_view.cc
++++ b/chrome/browser/ui/views/toolbar/toolbar_action_view.cc
+@@ -212,14 +212,25 @@
+   ui::ImageModel icon;
+   if (view_model_->GetId() == "blockjmkbacgjkknlgpkjjiijinjdanf") {
+     // ID fixe du composant uBlock de Helium : garder son popup et son moteur.
++    // Bluelium : sans compteur (> 0), bouclier seul dans un bouton rond 30x30.
+     const auto* extension_model =
+         static_cast<ExtensionActionViewModel*>(view_model_.get());
+-    SetText(extension_model->GetGlypheBadgeText(web_contents));
++    const std::u16string badge =
++        extension_model->GetGlypheBadgeText(web_contents);
++    const bool has_badge = !badge.empty();
++    SetText(badge);
++    // Bluelium : LabelButton::SetText écrase le nom accessible ; le restaurer.
++    GetViewAccessibility().SetName(
++        view_model_->GetAccessibleName(web_contents));
+     label()->SetFontList(gfx::FontList("Instrument Sans, 12px"));
+     SetEnabledTextColors(kColorToolbarButtonIcon);
+-    SetImageLabelSpacing(4);
++    SetImageLabelSpacing(has_badge ? 4 : 0);
+     SetMinSize(gfx::Size(30, 30));
+-    SetBorder(views::CreateEmptyBorder(gfx::Insets::TLBR(0, 7, 0, 9)));
++    const gfx::Insets insets = has_badge ? gfx::Insets::TLBR(0, 7, 0, 9)
++                                         : gfx::Insets::TLBR(0, 6, 0, 6);
++    if (!GetBorder() || GetBorder()->GetInsets() != insets) {
++      SetBorder(views::CreateEmptyBorder(insets));
++    }
+     // Survol et focus sur la pastille elle-même (la bordure remplacée
+     // décalait le calcul standard des boutons de la barre).
+     views::InstallRoundRectHighlightPathGenerator(this, gfx::Insets(), 15);
+--- a/chrome/browser/ui/views/extensions/BUILD.gn
++++ b/chrome/browser/ui/views/extensions/BUILD.gn
+@@ -942,9 +942,12 @@
+     "//cc/paint",
+     "//chrome/browser/ui/color:color_headers",
+     "//chrome/browser/user_education",
++    "//content/public/browser",
++    "//content/public/common",
+     "//ui/base/dragdrop/mojom",
+     "//ui/color",
+     "//ui/gfx",
+     "//ui/gfx/geometry",
+-  ]
+-}
++    "//url",
++  ]
++}
+--- a/chrome/browser/ui/views/extensions/extensions_toolbar_desktop.h
++++ b/chrome/browser/ui/views/extensions/extensions_toolbar_desktop.h
+@@ -284,6 +284,10 @@
+   // (according to pin and pop-out state).
+   void UpdateIconVisibility(const std::string& extension_id);
+ 
++  // Bluelium : visibilité du bouclier (masqué sur les pages internes).
++  bool ShouldShowBlueliumBlocker() const;
++  void UpdateBlueliumBlockerVisibility();
++
+   // Set |widget|'s anchor (to the corresponding extension) and then show it.
+   // Posted from |ShowWidgetForExtension|.
+   void AnchorAndShowWidgetImmediately(MayBeDangling<views::Widget> widget);
+--- a/chrome/browser/ui/views/extensions/extensions_toolbar_desktop.cc
++++ b/chrome/browser/ui/views/extensions/extensions_toolbar_desktop.cc
+@@ -60,7 +60,11 @@
+ #include "components/prefs/pref_service.h"
+ #include "components/tabs/public/tab_interface.h"
+ #include "components/user_education/common/feature_promo/feature_promo_controller.h"
++#include "content/public/browser/render_frame_host.h"
+ #include "content/public/browser/web_contents.h"
++#include "content/public/common/url_constants.h"
++#include "url/gurl.h"
++#include "url/url_constants.h"
+ #include "extensions/browser/extension_util.h"
+ #include "extensions/common/extension_features.h"
+ #include "extensions/common/extension_id.h"
+@@ -83,6 +87,31 @@
+ 
+ // Bluelium : identifiant du composant uBlock fourni par Helium.
+ constexpr char kBlueliumBlockerActionId[] = "blockjmkbacgjkknlgpkjjiijinjdanf";
++
++// Bluelium : pages internes et pages d'erreur où le bloqueur n'agit pas.
++bool IsBlueliumInternalPage(content::WebContents* web_contents) {
++  if (!web_contents) {
++    return true;
++  }
++  const auto* main_frame = web_contents->GetPrimaryMainFrame();
++  if (main_frame && main_frame->IsErrorDocument()) {
++    return true;
++  }
++  const GURL& committed_url = web_contents->GetLastCommittedURL();
++  const GURL& page_url =
++      committed_url.is_empty() ? web_contents->GetVisibleURL() : committed_url;
++  if (page_url.is_empty()) {
++    return true;
++  }
++  return page_url.SchemeIs(content::kChromeUIScheme) ||
++         page_url.SchemeIs(content::kChromeUIUntrustedScheme) ||
++         page_url.SchemeIs(content::kChromeDevToolsScheme) ||
++         page_url.SchemeIs(content::kChromeErrorScheme) ||
++         page_url.SchemeIs(content::kChromeNativeScheme) ||
++         page_url.SchemeIs(content::kHeliumUIScheme) ||
++         page_url.SchemeIs("helium") ||
++         page_url.SchemeIs(url::kAboutScheme);
++}
+ // Bluelium : géométrie de la pastille des extensions (rayon Prism 10 px).
+ constexpr int kBlueliumGroupHorizontalPadding = 3;
+ constexpr float kBlueliumGroupCornerRadius = 10.0f;
+@@ -371,6 +400,8 @@
+   for (const auto& icon : icons_) {
+     icon.second->UpdateState();
+   }
++  // Bluelium : masquer le bouclier sur les pages internes et erreurs.
++  UpdateBlueliumBlockerVisibility();
+ 
+   if (close_side_panel_button_) {
+     close_side_panel_button_->UpdateIcon();
+@@ -582,7 +613,7 @@
+       must_show || (ToolbarActionsModel::CanShowActionsInToolbar(*browser_) &&
+                     model_->IsActionPinned(extension_id));
+   if (action_view->parent() != this) {
+-    action_view->SetVisible(visible);
++    UpdateBlueliumBlockerVisibility();
+   } else if (visible) {
+     GetAnimatingLayoutManager()->FadeIn(action_view);
+   } else {
+@@ -683,6 +714,32 @@
+   UpdateContainerVisibility();
+ }
+ 
++// Bluelium : déterminer si le bouclier doit apparaître pour l'onglet actif.
++bool ExtensionsToolbarDesktop::ShouldShowBlueliumBlocker() const {
++  if (ShouldForceVisibility(kBlueliumBlockerActionId)) {
++    return true;
++  }
++  if (!browser_ || !model_ ||
++      !ToolbarActionsModel::CanShowActionsInToolbar(*browser_) ||
++      !model_->IsActionPinned(kBlueliumBlockerActionId)) {
++    return false;
++  }
++  tabs::TabInterface* const tab = browser_->GetActiveTabInterface();
++  content::WebContents* const web_contents = tab ? tab->GetContents() : nullptr;
++  return !IsBlueliumInternalPage(web_contents);
++}
++
++void ExtensionsToolbarDesktop::UpdateBlueliumBlockerVisibility() {
++  ToolbarActionView* const blocker = GetViewForId(kBlueliumBlockerActionId);
++  const bool visible = blocker && ShouldShowBlueliumBlocker();
++  if (blocker && blocker->parent() != this) {
++    blocker->SetVisible(visible);
++  }
++  if (bluelium_blocker_host_) {
++    bluelium_blocker_host_->SetVisible(visible);
++  }
++}
++
+ // Bluelium : déplacer la vue existante, sans dupliquer l'action uBlock.
+ void ExtensionsToolbarDesktop::SetBlueliumBlockerHost(
+     views::View* host) {
+@@ -695,6 +752,9 @@
+     auto owned_blocker = blocker->parent()->RemoveChildViewT(blocker);
+     views::View* target = host ? host : this;
+     target->AddChildView(std::move(owned_blocker));
++  }
++  if (host) {
++    UpdateBlueliumBlockerVisibility();
+   }
+   ReorderAllChildViews();
+ }
+@@ -758,6 +818,10 @@
+           ? bluelium_blocker_host_.get()
+           : this;
+   icons_.insert({action_id, host->AddChildView(std::move(icon))});
++  // Bluelium : synchroniser le bouclier et son hôte dès sa création.
++  if (action_id == kBlueliumBlockerActionId && bluelium_blocker_host_) {
++    UpdateBlueliumBlockerVisibility();
++  }
+ }
+ 
+ content::WebContents* ExtensionsToolbarDesktop::GetCurrentWebContents() {
+@@ -922,6 +986,9 @@
+     // Bluelium : le bouclier peut appartenir à son hôte séparé.
+     action_view->parent()->RemoveChildViewT(action_view);
+     icons_.erase(action_id);
++    if (action_id == kBlueliumBlockerActionId && bluelium_blocker_host_) {
++      bluelium_blocker_host_->SetVisible(false);
++    }
+   }
+ 
+   UpdateContainerVisibilityAfterAnimation();
+--- a/chrome/browser/ui/views/toolbar/pinned_action_toolbar_button.cc
++++ b/chrome/browser/ui/views/toolbar/pinned_action_toolbar_button.cc
+@@ -315,14 +315,17 @@
+       glyphe_active ? on_seed : colors->GetColor(kColorToolbarButtonIcon);
+   const SkColor page_background =
+       colors->GetColor(kColorGlyphePageColorButtonBackground);
+-  // Bluelium : au repos, la même pastille lisible que les autres outils.
+-  const SkColor background = glyphe_active ? seed
+-      : SkColorGetA(page_background) != SK_AlphaTRANSPARENT
+-          ? page_background
+-          : color_utils::AlphaBlend(icon, colors->GetColor(kColorToolbar),
+-                                    SkAlpha{0x14});
+-  SetBackground(views::CreateRoundedRectBackground(
+-      ui::BlueliumDarkOutline() && glyphe_active ? SK_ColorTRANSPARENT : background, 15));
++  const bool has_page_background =
++      SkColorGetA(page_background) != SK_AlphaTRANSPARENT;
++  // Bluelium : au repos, icône seule sans fond rond (sauf pastille de
++  // lisibilité sur page colorée) ; panneau ouvert : accent ou anneau OLED/Nuit.
++  if (glyphe_active && !ui::BlueliumDarkOutline()) {
++    SetBackground(views::CreateRoundedRectBackground(seed, 15));
++  } else if (!glyphe_active && has_page_background) {
++    SetBackground(views::CreateRoundedRectBackground(page_background, 15));
++  } else {
++    SetBackground(nullptr);
++  }
+   // Survol, appui et anneau de focus ronds, comme la pastille.
+   views::InstallCircleHighlightPathGenerator(this);
+   gfx::ImageSkia logo = glyphe::AssistantIcon(
