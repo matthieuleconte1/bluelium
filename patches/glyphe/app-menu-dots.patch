@@ -1,0 +1,35 @@
+--- /dev/null
++++ b/chrome/app/vector_icons/bluelium_more.icon
+@@ -0,0 +1,5 @@
++// Bluelium : menu « ⋯ », trois points ronds horizontaux.
++CANVAS_DIMENSIONS, 20,
++CIRCLE, 4.5, 10, 1.75,
++CIRCLE, 10, 10, 1.75,
++CIRCLE, 15.5, 10, 1.75
+--- a/chrome/app/vector_icons/BUILD.gn
++++ b/chrome/app/vector_icons/BUILD.gn
+@@ -217,6 +217,7 @@
+     "mobile_check.icon",
+     "more_tools_menu_old.icon",
+     "more_vert.icon",
++    "bluelium_more.icon",
+     "move_group.icon",
+     "move_group_to_new_window_refresh_old.icon",
+     "my_location_filled.icon",
+--- a/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc
++++ b/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc
+@@ -151,12 +151,8 @@
+ }
+ 
+ void BrowserAppMenuButton::UpdateIcon() {
+-  const gfx::VectorIcon& icon =
+-      ui::TouchUiController::Get()->touch_ui()
+-          ? features::IsRoundedIconsEnabled() ? kMoreVertIcon
+-                                              : kBrowserToolsTouchOldIcon
+-      : features::IsRoundedIconsEnabled() ? kMoreVertIcon
+-                                          : kBrowserToolsChromeRefreshOldIcon;
++  // Bluelium : trois points ronds horizontaux, en tactile comme à la souris.
++  const gfx::VectorIcon& icon = kBlueliumMoreIcon;
+   const int icon_size = GetIconSize();
+ 
+   for (auto state : kButtonStates) {
