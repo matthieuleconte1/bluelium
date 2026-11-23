@@ -15,8 +15,9 @@ considère en sRGB par morceaux, vers ce gamma 2.2 (le code de Chromium le
 signale, sa seule parade est --force-color-profile).
 
 Correction, en deux points :
-- un écran décrit en primaires sRGB + gamma 2.2 est traité comme un écran
-  sRGB SDR : aucune conversion des pages ;
+- un écran décrit en gamma 2.2 (quelles que soient ses primaires : BT.2020 en
+  HDR, point blanc chaud avec la Couleur de nuit) est traité comme un écran
+  SDR à courbe sRGB : aucune conversion de courbe des pages ;
 - une surface en sRGB est déclarée en gamma 2.2 quand le compositeur la gère
   (KWin ne propose pas la courbe « srgb »).
 Résultat identique à --disable-features=WaylandWpColorManagerV1, mesuré égal
@@ -35,12 +36,13 @@ EDITS = [
    '  bool is_hdr = self->hdr_max_luminance_relative_ > 1.f;\n',
    '  self->hdr_max_luminance_relative_ = max_lum / self->sdr_max_luminance_nits_;\n'
    '\n'
-   '  // Bluelium : un écran sRGB décrit en gamma 2.2 (KWin, mutter) est un écran\n'
-   '  // sRGB. Sans cela, Chromium convertit les pages du sRGB par morceaux vers\n'
-   '  // le gamma 2.2 et éclaircit les sombres, là où Firefox et le compositeur\n'
-   '  // affichent les valeurs telles quelles.\n'
-   '  if (self->pending_primary_id_ == gfx::ColorSpace::PrimaryID::BT709 &&\n'
-   '      self->pending_transfer_id_ == gfx::ColorSpace::TransferID::GAMMA22) {\n'
+   '  // Bluelium : un écran décrit en gamma 2.2 (KWin, mutter) affiche le sRGB\n'
+   '  // tel quel. Sans cela, Chromium convertit les pages du sRGB par morceaux\n'
+   '  // vers le gamma 2.2 et éclaircit les sombres, là où Firefox et le\n'
+   '  // compositeur affichent les valeurs telles quelles. Toutes primaires :\n'
+   '  // KWin donne des primaires élargies en HDR (BT.2020) et un point blanc\n'
+   '  // chaud avec la Couleur de nuit.\n'
+   '  if (self->pending_transfer_id_ == gfx::ColorSpace::TransferID::GAMMA22) {\n'
    '    self->pending_transfer_id_ = gfx::ColorSpace::TransferID::SRGB;\n'
    '    self->hdr_max_luminance_relative_ = 1.f;\n'
    '  }\n'
