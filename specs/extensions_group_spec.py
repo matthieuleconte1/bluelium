@@ -49,7 +49,8 @@ EDITS = [
      '#include "ui/color/color_provider.h"\n'
      '#include "ui/gfx/canvas.h"\n'
      '#include "ui/gfx/color_utils.h"\n'
-     '#include "ui/gfx/geometry/rect_f.h"\n'),
+     '#include "ui/gfx/geometry/rect_f.h"\n'
+     '#include <algorithm>\n'),
     (E,
      '// Bluelium : identifiant du composant uBlock fourni par Helium.\n'
      'constexpr char kBlueliumBlockerActionId[] = "blockjmkbacgjkknlgpkjjiijinjdanf";\n',
@@ -85,6 +86,13 @@ EDITS = [
      '  }\n'
      '  const auto* colors = GetColorProvider();\n'
      '  if (!colors) {\n'
+     '    return;\n'
+     '  }\n'
+     '  // Bluelium : pas de pastille autour du puzzle seul ; elle n\'apparaît\n'
+     '  // qu\'à partir d\'une extension épinglée (visible dans la barre).\n'
+     '  if (std::ranges::none_of(icons_, [](const auto& icon) {\n'
+     '        return icon.second && icon.second->GetVisible();\n'
+     '      })) {\n'
      '    return;\n'
      '  }\n'
      '  // Bluelium : pastille arrondie regroupant les extensions et le puzzle.\n'
@@ -131,4 +139,10 @@ EDITS = [
      '    extensions_container_->SetProperty(views::kMarginsKey,\n'
      '                                       gfx::Insets::VH(0, 4));\n'
      '    extensions_toolbar_coordinator_ =\n'),
+    # Bluelium : la pastille délimite déjà les extensions ; le séparateur
+    # entre elles et le bouton IA (reference_finishing_spec.py) est en trop.
+    (TB,
+     '  glyphe_separator->SetColorId(kColorToolbarSeparatorDefault);\n',
+     '  glyphe_separator->SetColorId(kColorToolbarSeparatorDefault);\n'
+     '  glyphe_separator->SetVisible(false);  // Bluelium : épuration\n'),
 ]
