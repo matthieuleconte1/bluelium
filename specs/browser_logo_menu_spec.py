@@ -157,6 +157,10 @@ class BrowserLogoMenuButton : public views::LabelButton {
 #include "ui/color/color_provider.h"
 #include "ui/compositor/layer.h"
 #include "ui/events/event.h"
+#include <algorithm>
+#include <cmath>
+#include <numbers>
+
 #include "ui/gfx/canvas.h"
 #include "ui/gfx/color_utils.h"
 #include "ui/gfx/scoped_canvas.h"
@@ -177,7 +181,6 @@ class BrowserLogoMenuButton : public views::LabelButton {
 
 namespace {
 
-constexpr int kLogoIconSize = 18;
 constexpr int kLogoCanvasSize = 22;
 constexpr int kLogoCornerRadius = 8;
 
@@ -191,52 +194,20 @@ class LogoButtonHighlightPathGenerator : public views::HighlightPathGenerator {
   }
 };
 
-// Bluelium : astérisque de la DA (planche « Mode compact »), en aplat de la
-// couleur des boutons de la bande d'onglets, sans fond. Tracé 256 x 256,
-// centré sur l'origine pour tourner sur lui-même.
-SkPath BlueliumAsteriskPath(float size) {
-  static constexpr float kPoints[][2] = {
-      {152.62f, 237.85f}, {128.f, 256.f},      {103.38f, 237.85f},
-      {114.568f, 151.248f}, {45.05f, 204.22f}, {17.f, 192.f},
-      {20.425f, 161.635f}, {101.128f, 128.f},  {20.425f, 94.365f},
-      {17.f, 64.f},        {45.05f, 51.78f},   {114.568f, 104.752f},
-      {103.38f, 18.15f},   {128.f, 0.f},       {152.62f, 18.15f},
-      {141.432f, 104.752f}, {210.95f, 51.78f}, {239.f, 64.f},
-      {235.575f, 94.365f}, {154.872f, 128.f},  {235.575f, 161.635f},
-      {239.f, 192.f},      {210.95f, 204.22f}, {141.432f, 151.248f}};
-  const float scale = size / 256.f;
-  SkPathBuilder builder;
-  bool first = true;
-  for (const auto& point : kPoints) {
-    const SkPoint p = SkPoint::Make((point[0] - 128.f) * scale,
-                                    (point[1] - 128.f) * scale);
-    if (first) {
-      builder.moveTo(p);
-      first = false;
-    } else {
-      builder.lineTo(p);
-    }
-  }
-  builder.close();
-  return builder.detach();
-}
-
-// Survol : l'astérisque tourne d'une branche (60°, il retombe sur sa forme)
-// en grossissant un peu ; il se déroule à la sortie. Appui : il se tasse.
+// Survol : les trois points font une vague, l'un après l'autre. Appui et menu
+// ouvert : ils se resserrent.
 constexpr base::TimeDelta kHoverDuration = base::Milliseconds(420);
 constexpr base::TimeDelta kPressDuration = base::Milliseconds(140);
-constexpr float kHoverRotationDegrees = 60.f;
-constexpr float kHoverScale = 0.10f;
-constexpr float kPressScale = 0.12f;
-// Pastille façon Ladybird : astérisque + chevron à l'accent, fond et contour
-// tirés du cadre. 42 x 26 px dans une zone de 44 x 30.
-constexpr int kPillWidth = 42;
+constexpr float kDotRadius = 2.25f;
+constexpr float kDotSpacing = 7.f;
+constexpr float kDotWaveHeight = 2.5f;
+constexpr float kDotWaveStagger = 0.25f;
+constexpr float kDotPressSqueeze = 1.5f;
+// Pastille façon Ladybird : trois points à l'accent, fond et contour tirés du
+// cadre. 34 x 26 px dans une zone de 36 x 30.
+constexpr int kPillWidth = 34;
 constexpr int kPillHeight = 26;
 constexpr float kPillRadius = 8.f;
-constexpr int kPillLeftPadding = 6;
-constexpr int kChevronGap = 5;
-constexpr float kChevronHalfWidth = 3.5f;
-constexpr float kChevronHoverDrop = 1.5f;
 // Séparateur : trait de 1 px, 16 px de long, à 8 px de la pastille ; avec la
 // marge droite (2 px) et le retrait de l'onglet (3 px), à 9 px de l'onglet.
 constexpr int kSeparatorGapBefore = 8;
@@ -411,7 +382,7 @@ void BrowserLogoMenuButton::UpdateLogoImage() {
     const bool active = !GetWidget() || GetWidget()->ShouldPaintAsActive();
     ring_color = color_provider->GetColor(active ? ui::kColorFrameActive
                                                  : ui::kColorFrameInactive);
-    // Bluelium : accent du thème (comme le logo de Ladybird).
+    // Bluelium : points à l'accent du thème.
     logo_color = color_provider->GetColor(ui::kColorSysPrimary);
     const SkColor frame = color_provider->GetColor(
         active ? ui::kColorFrameActive : ui::kColorFrameInactive);
@@ -543,48 +514,27 @@ void BrowserLogoMenuButton::PaintButtonContents(gfx::Canvas* canvas) {
     canvas->DrawRoundRect(stroke_rect, kPillRadius - 0.5f, stroke);
   }
 
-  // Astérisque animé, à l'accent.
-  const gfx::PointF logo_center(icon.x() + kPillLeftPadding + kLogoIconSize / 2.f,
+  // Trois points à l'accent : vague au survol, resserrés à l'appui.
+  const gfx::PointF dots_center(icon.x() + icon.width() / 2.f,
                                 icon.y() + icon.height() / 2.f);
-  const float scale = 1.f + kHoverScale * hover - kPressScale * press;
-  cc::PaintFlags logo_flags;
-  logo_flags.setAntiAlias(true);
-  logo_flags.setStyle(cc::PaintFlags::kFill_Style);
-  logo_flags.setColor(logo_color_);
-  {
-    gfx::ScopedCanvas scoped(canvas);
-    canvas->sk_canvas()->translate(logo_center.x(), logo_center.y());
-    canvas->sk_canvas()->rotate(kHoverRotationDegrees * hover);
-    canvas->sk_canvas()->scale(scale, scale);
-    canvas->DrawPath(BlueliumAsteriskPath(kLogoIconSize), logo_flags);
-  }
-
-  // Chevron : descend d'un cran au survol, se retourne menu ouvert.
-  {
-    const float cx = icon.x() + kPillLeftPadding + kLogoIconSize + kChevronGap +
-                     kChevronHalfWidth;
-    const float cy = icon.y() + icon.height() / 2.f + kChevronHoverDrop * hover;
-    gfx::ScopedCanvas scoped(canvas);
-    canvas->sk_canvas()->translate(cx, cy);
-    canvas->sk_canvas()->rotate(180.f * press);
-    SkPathBuilder chevron;
-    chevron.moveTo(-kChevronHalfWidth, -1.75f);
-    chevron.lineTo(0.f, 1.75f);
-    chevron.lineTo(kChevronHalfWidth, -1.75f);
-    cc::PaintFlags chevron_flags;
-    chevron_flags.setAntiAlias(true);
-    chevron_flags.setStyle(cc::PaintFlags::kStroke_Style);
-    chevron_flags.setStrokeWidth(1.75f);
-    chevron_flags.setStrokeCap(cc::PaintFlags::kRound_Cap);
-    chevron_flags.setStrokeJoin(cc::PaintFlags::kRound_Join);
-    chevron_flags.setColor(logo_color_);
-    canvas->DrawPath(chevron.detach(), chevron_flags);
+  const float spacing = kDotSpacing - kDotPressSqueeze * press;
+  cc::PaintFlags dot_flags;
+  dot_flags.setAntiAlias(true);
+  dot_flags.setStyle(cc::PaintFlags::kFill_Style);
+  dot_flags.setColor(logo_color_);
+  for (int i = 0; i < 3; ++i) {
+    const double span = 1.0 - 2 * kDotWaveStagger;
+    const double local =
+        std::clamp((hover - i * kDotWaveStagger) / span, 0.0, 1.0);
+    const float lift = kDotWaveHeight * std::sin(local * std::numbers::pi);
+    canvas->DrawCircle(
+        gfx::PointF(dots_center.x() + (i - 1) * spacing, dots_center.y() - lift),
+        kDotRadius, dot_flags);
   }
 
   // Pastille de mise à jour, fixe, en haut à droite du logo.
   if (badge_color_.has_value()) {
-    const gfx::PointF badge(logo_center.x() + kLogoIconSize / 2.f - 1.f,
-                            logo_center.y() - kLogoIconSize / 2.f + 1.f);
+    const gfx::PointF badge(icon.right() - 4.f, icon.y() + 4.f);
     cc::PaintFlags ring_flags;
     ring_flags.setAntiAlias(true);
     ring_flags.setColor(ring_color_);
