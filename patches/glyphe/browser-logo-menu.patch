@@ -1,4 +1,12 @@
 --- /dev/null
++++ b/chrome/app/vector_icons/bluelium_more.icon
+@@ -0,0 +1,5 @@
++// Bluelium : menu « ⋯ », trois points ronds horizontaux.
++CANVAS_DIMENSIONS, 20,
++CIRCLE, 4.5, 10, 1.75,
++CIRCLE, 10, 10, 1.75,
++CIRCLE, 15.5, 10, 1.75
+--- /dev/null
 +++ b/chrome/browser/ui/views/frame/browser_logo_menu_button.h
 @@ -0,0 +1,101 @@
 +// Copyright 2026 The Bluelium Authors
@@ -104,7 +112,7 @@
 +#endif  // CHROME_BROWSER_UI_VIEWS_FRAME_BROWSER_LOGO_MENU_BUTTON_H_
 --- /dev/null
 +++ b/chrome/browser/ui/views/frame/browser_logo_menu_button.cc
-@@ -0,0 +1,435 @@
+@@ -0,0 +1,485 @@
 +// Copyright 2026 The Bluelium Authors
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -137,10 +145,6 @@
 +#include "ui/color/color_provider.h"
 +#include "ui/compositor/layer.h"
 +#include "ui/events/event.h"
-+#include <algorithm>
-+#include <cmath>
-+#include <numbers>
-+
 +#include "ui/gfx/canvas.h"
 +#include "ui/gfx/color_utils.h"
 +#include "ui/gfx/scoped_canvas.h"
@@ -161,6 +165,7 @@
 +
 +namespace {
 +
++constexpr int kLogoIconSize = 18;
 +constexpr int kLogoCanvasSize = 22;
 +constexpr int kLogoCornerRadius = 8;
 +
@@ -174,20 +179,52 @@
 +  }
 +};
 +
-+// Survol : les trois points font une vague, l'un après l'autre. Appui et menu
-+// ouvert : ils se resserrent.
++// Bluelium : astérisque de la DA (planche « Mode compact »), en aplat de la
++// couleur des boutons de la bande d'onglets, sans fond. Tracé 256 x 256,
++// centré sur l'origine pour tourner sur lui-même.
++SkPath BlueliumAsteriskPath(float size) {
++  static constexpr float kPoints[][2] = {
++      {152.62f, 237.85f}, {128.f, 256.f},      {103.38f, 237.85f},
++      {114.568f, 151.248f}, {45.05f, 204.22f}, {17.f, 192.f},
++      {20.425f, 161.635f}, {101.128f, 128.f},  {20.425f, 94.365f},
++      {17.f, 64.f},        {45.05f, 51.78f},   {114.568f, 104.752f},
++      {103.38f, 18.15f},   {128.f, 0.f},       {152.62f, 18.15f},
++      {141.432f, 104.752f}, {210.95f, 51.78f}, {239.f, 64.f},
++      {235.575f, 94.365f}, {154.872f, 128.f},  {235.575f, 161.635f},
++      {239.f, 192.f},      {210.95f, 204.22f}, {141.432f, 151.248f}};
++  const float scale = size / 256.f;
++  SkPathBuilder builder;
++  bool first = true;
++  for (const auto& point : kPoints) {
++    const SkPoint p = SkPoint::Make((point[0] - 128.f) * scale,
++                                    (point[1] - 128.f) * scale);
++    if (first) {
++      builder.moveTo(p);
++      first = false;
++    } else {
++      builder.lineTo(p);
++    }
++  }
++  builder.close();
++  return builder.detach();
++}
++
++// Survol : l'astérisque tourne d'une branche (60°, il retombe sur sa forme)
++// en grossissant un peu ; il se déroule à la sortie. Appui : il se tasse.
 +constexpr base::TimeDelta kHoverDuration = base::Milliseconds(420);
 +constexpr base::TimeDelta kPressDuration = base::Milliseconds(140);
-+constexpr float kDotRadius = 2.25f;
-+constexpr float kDotSpacing = 7.f;
-+constexpr float kDotWaveHeight = 2.5f;
-+constexpr float kDotWaveStagger = 0.25f;
-+constexpr float kDotPressSqueeze = 1.5f;
-+// Pastille façon Ladybird : trois points à l'accent, fond et contour tirés du
-+// cadre. 34 x 26 px dans une zone de 36 x 30.
-+constexpr int kPillWidth = 34;
++constexpr float kHoverRotationDegrees = 60.f;
++constexpr float kHoverScale = 0.10f;
++constexpr float kPressScale = 0.12f;
++// Pastille façon Ladybird : astérisque + chevron à l'accent, fond et contour
++// tirés du cadre. 42 x 26 px dans une zone de 44 x 30.
++constexpr int kPillWidth = 42;
 +constexpr int kPillHeight = 26;
 +constexpr float kPillRadius = 8.f;
++constexpr int kPillLeftPadding = 6;
++constexpr int kChevronGap = 5;
++constexpr float kChevronHalfWidth = 3.5f;
++constexpr float kChevronHoverDrop = 1.5f;
 +// Séparateur : trait de 1 px, 16 px de long, à 8 px de la pastille ; avec la
 +// marge droite (2 px) et le retrait de l'onglet (3 px), à 9 px de l'onglet.
 +constexpr int kSeparatorGapBefore = 8;
@@ -362,7 +399,7 @@
 +    const bool active = !GetWidget() || GetWidget()->ShouldPaintAsActive();
 +    ring_color = color_provider->GetColor(active ? ui::kColorFrameActive
 +                                                 : ui::kColorFrameInactive);
-+    // Bluelium : points à l'accent du thème.
++    // Bluelium : accent du thème (comme le logo de Ladybird).
 +    logo_color = color_provider->GetColor(ui::kColorSysPrimary);
 +    const SkColor frame = color_provider->GetColor(
 +        active ? ui::kColorFrameActive : ui::kColorFrameInactive);
@@ -494,27 +531,48 @@
 +    canvas->DrawRoundRect(stroke_rect, kPillRadius - 0.5f, stroke);
 +  }
 +
-+  // Trois points à l'accent : vague au survol, resserrés à l'appui.
-+  const gfx::PointF dots_center(icon.x() + icon.width() / 2.f,
++  // Astérisque animé, à l'accent.
++  const gfx::PointF logo_center(icon.x() + kPillLeftPadding + kLogoIconSize / 2.f,
 +                                icon.y() + icon.height() / 2.f);
-+  const float spacing = kDotSpacing - kDotPressSqueeze * press;
-+  cc::PaintFlags dot_flags;
-+  dot_flags.setAntiAlias(true);
-+  dot_flags.setStyle(cc::PaintFlags::kFill_Style);
-+  dot_flags.setColor(logo_color_);
-+  for (int i = 0; i < 3; ++i) {
-+    const double span = 1.0 - 2 * kDotWaveStagger;
-+    const double local =
-+        std::clamp((hover - i * kDotWaveStagger) / span, 0.0, 1.0);
-+    const float lift = kDotWaveHeight * std::sin(local * std::numbers::pi);
-+    canvas->DrawCircle(
-+        gfx::PointF(dots_center.x() + (i - 1) * spacing, dots_center.y() - lift),
-+        kDotRadius, dot_flags);
++  const float scale = 1.f + kHoverScale * hover - kPressScale * press;
++  cc::PaintFlags logo_flags;
++  logo_flags.setAntiAlias(true);
++  logo_flags.setStyle(cc::PaintFlags::kFill_Style);
++  logo_flags.setColor(logo_color_);
++  {
++    gfx::ScopedCanvas scoped(canvas);
++    canvas->sk_canvas()->translate(logo_center.x(), logo_center.y());
++    canvas->sk_canvas()->rotate(kHoverRotationDegrees * hover);
++    canvas->sk_canvas()->scale(scale, scale);
++    canvas->DrawPath(BlueliumAsteriskPath(kLogoIconSize), logo_flags);
++  }
++
++  // Chevron : descend d'un cran au survol, se retourne menu ouvert.
++  {
++    const float cx = icon.x() + kPillLeftPadding + kLogoIconSize + kChevronGap +
++                     kChevronHalfWidth;
++    const float cy = icon.y() + icon.height() / 2.f + kChevronHoverDrop * hover;
++    gfx::ScopedCanvas scoped(canvas);
++    canvas->sk_canvas()->translate(cx, cy);
++    canvas->sk_canvas()->rotate(180.f * press);
++    SkPathBuilder chevron;
++    chevron.moveTo(-kChevronHalfWidth, -1.75f);
++    chevron.lineTo(0.f, 1.75f);
++    chevron.lineTo(kChevronHalfWidth, -1.75f);
++    cc::PaintFlags chevron_flags;
++    chevron_flags.setAntiAlias(true);
++    chevron_flags.setStyle(cc::PaintFlags::kStroke_Style);
++    chevron_flags.setStrokeWidth(1.75f);
++    chevron_flags.setStrokeCap(cc::PaintFlags::kRound_Cap);
++    chevron_flags.setStrokeJoin(cc::PaintFlags::kRound_Join);
++    chevron_flags.setColor(logo_color_);
++    canvas->DrawPath(chevron.detach(), chevron_flags);
 +  }
 +
 +  // Pastille de mise à jour, fixe, en haut à droite du logo.
 +  if (badge_color_.has_value()) {
-+    const gfx::PointF badge(icon.right() - 4.f, icon.y() + 4.f);
++    const gfx::PointF badge(logo_center.x() + kLogoIconSize / 2.f - 1.f,
++                            logo_center.y() - kLogoIconSize / 2.f + 1.f);
 +    cc::PaintFlags ring_flags;
 +    ring_flags.setAntiAlias(true);
 +    ring_flags.setColor(ring_color_);
@@ -540,18 +598,202 @@
 +
 +BEGIN_METADATA(BrowserLogoMenuButton)
 +END_METADATA
---- a/chrome/browser/ui/browser_ui_prefs.cc
-+++ b/chrome/browser/ui/browser_ui_prefs.cc
-@@ -173,7 +173,8 @@
-   // Bluelium : bouton de profil caché par défaut (réglable).
-   registry->RegisterBooleanPref(prefs::kShowAvatarButton, false);
-   registry->RegisterBooleanPref(prefs::kShowExtensionsButton, true);
--  registry->RegisterBooleanPref(prefs::kShowMenuButton, true);
-+  // Bluelium : bouton « ⋯ » masqué par défaut (remplacé par le logo).
-+  registry->RegisterBooleanPref(prefs::kShowMenuButton, false);
-   registry->RegisterBooleanPref(prefs::kShowMediaButton, true);
-   registry->RegisterBooleanPref(prefs::kShowVerticalTabsCollapseButton, true);
-   registry->RegisterBooleanPref(prefs::kShowDynamicNewTabButton, true);
+--- a/chrome/app/vector_icons/BUILD.gn
++++ b/chrome/app/vector_icons/BUILD.gn
+@@ -217,6 +217,7 @@
+     "mobile_check.icon",
+     "more_tools_menu_old.icon",
+     "more_vert.icon",
++    "bluelium_more.icon",
+     "move_group.icon",
+     "move_group_to_new_window_refresh_old.icon",
+     "my_location_filled.icon",
+--- a/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc
++++ b/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc
+@@ -19,7 +19,12 @@
+ #include "chrome/browser/ui/views/toolbar/app_menu.h"
+ #include "chrome/browser/ui/views/toolbar/toolbar_button.h"
+ #include "chrome/browser/ui/views/toolbar/toolbar_ink_drop_util.h"
++#include "chrome/browser/ui/views/frame/browser_logo_menu_button.h"
++#include "chrome/browser/ui/views/frame/browser_view.h"
++#include "chrome/browser/ui/views/frame/tab_strip_region_view.h"
+ #include "chrome/browser/ui/views/toolbar/toolbar_view.h"
++#include "ui/views/accessible_pane_view.h"
++#include "ui/views/controls/menu/menu_types.h"
+ #include "chrome/grit/browser_resources.h"
+ #include "components/feature_engagement/public/feature_constants.h"
+ #include "third_party/skia/include/core/SkColor.h"
+@@ -72,15 +77,92 @@
+ 
+ BrowserAppMenuButton::~BrowserAppMenuButton() = default;
+ 
++BrowserLogoMenuButton* BrowserAppMenuButton::GetActiveLogoMenuButton() const {
++  BrowserView* browser_view = toolbar_view_->browser_view();
++  return browser_view ? browser_view->GetActiveLogoMenuButton() : nullptr;
++}
++
+ void BrowserAppMenuButton::SetTypeAndSeverity(
+     AppMenuIconController::TypeAndSeverity type_and_severity) {
+   type_and_severity_ = type_and_severity;
+   GetViewAccessibility().SetName(
+       AppMenuIconController::GetIconAccessibleName(type_and_severity_.type));
+   UpdateThemeBasedState();
++  // Bluelium : reporter la pastille de mise à jour / alerte sur le logo.
++  if (BrowserView* browser_view = toolbar_view_->browser_view()) {
++    for (BrowserLogoMenuButton* logo : browser_view->GetLogoMenuButtons()) {
++      logo->SetTypeAndSeverity(type_and_severity);
++    }
++  }
++}
++
++views::BubbleAnchor BrowserAppMenuButton::GetAnchor() {
++  if (views::View::IsDrawn()) {
++    return views::BubbleAnchor(this);
++  }
++  if (BrowserLogoMenuButton* logo = GetActiveLogoMenuButton()) {
++    return views::BubbleAnchor(logo);
++  }
++  return AppMenuButton::GetAnchor();
++}
++
++bool BrowserAppMenuButton::IsDrawn() const {
++  if (views::View::IsDrawn()) {
++    return true;
++  }
++  return GetActiveLogoMenuButton() != nullptr;
++}
++
++void BrowserAppMenuButton::ShowMenu() {
++  // Bluelium : Alt+F / Alt+E et ShowAppMenu ouvrent le menu sous le logo.
++  if (BrowserLogoMenuButton* logo = GetActiveLogoMenuButton()) {
++    logo->ActivateMenu();
++    return;
++  }
++  if (views::View::IsDrawn()) {
++    AppMenuButton::ShowMenu();
++    return;
++  }
++  ShowMenuWithFlags(views::MenuRunner::SHOULD_SHOW_MNEMONICS |
++                    views::MenuRunner::INVOKED_FROM_KEYBOARD);
++}
++
++void BrowserAppMenuButton::ShowMenuFromLogo(BrowserLogoMenuButton* logo_button,
++                                            int run_types) {
++  if (!logo_button || IsMenuShowing()) {
++    return;
++  }
++  BrowserView* browser_view = toolbar_view_->browser_view();
++  if (browser_view && browser_view->tab_strip_view()) {
++    expand_on_hover_lock_ =
++        browser_view->tab_strip_view()->GetExpandOnHoverLock(
++            ExpandOnHoverLockType::kKeepCurrentState);
++  }
++  const bool right_aligned_vertical =
++      browser_view && browser_view->ShouldDrawVerticalTabStrip() &&
++      browser_view->IsVerticalTabStripRightAligned();
++  const views::MenuAnchorPosition anchor_position =
++      right_aligned_vertical ? views::MenuAnchorPosition::kTopRight
++                             : views::MenuAnchorPosition::kTopLeft;
++  ShowMenuWithFlagsAndAnchor(run_types, logo_button->menu_button_controller(),
++                             anchor_position);
+ }
+ 
+ void BrowserAppMenuButton::ShowMenuWithFlags(int run_types) {
++  if (!views::View::IsDrawn()) {
++    if (BrowserLogoMenuButton* logo = GetActiveLogoMenuButton()) {
++      ShowMenuFromLogo(logo, run_types);
++      return;
++    }
++  }
++  ShowMenuWithFlagsAndAnchor(run_types, nullptr,
++                             views::MenuAnchorPosition::kTopRight);
++}
++
++void BrowserAppMenuButton::ShowMenuWithFlagsAndAnchor(
++    int run_types,
++    views::MenuButtonController* anchor_host,
++    views::MenuAnchorPosition anchor_position) {
+   if (IsMenuShowing()) {
+     return;
+   }
+@@ -97,7 +179,7 @@
+   BrowserWindowInterface* browser = toolbar_view_->browser();
+ 
+   if (base::FeatureList::IsEnabled(features::kAppMenuGlowUp)) {
+-    RunActionMenu(browser, run_types);
++    RunActionMenu(browser, run_types, anchor_host, anchor_position);
+     return;
+   }
+ 
+@@ -109,7 +191,43 @@
+   RunMenu(std::make_unique<AppMenuModel>(
+               toolbar_view_, browser, toolbar_view_->app_menu_icon_controller(),
+               alert_item),
+-          browser, run_types);
++          browser, run_types, anchor_host, anchor_position);
++}
++
++bool BrowserAppMenuButton::HasFocus() const {
++  if (views::View::HasFocus()) {
++    return true;
++  }
++  BrowserLogoMenuButton* logo = GetActiveLogoMenuButton();
++  return logo && logo->HasFocus();
++}
++
++void BrowserAppMenuButton::Focus(views::AccessiblePaneView* pane) {
++  if (views::View::IsDrawn()) {
++    AppMenuButton::Focus(pane);
++    return;
++  }
++  if (BrowserLogoMenuButton* logo = GetActiveLogoMenuButton()) {
++    if (BrowserView* browser_view = toolbar_view_->browser_view()) {
++      if (TabStripRegionView* region = browser_view->tab_strip_view()) {
++        region->SetPaneFocus(logo);
++        return;
++      }
++    }
++    logo->RequestFocus();
++    return;
++  }
++  AppMenuButton::Focus(pane);
++}
++
++views::View* BrowserAppMenuButton::GetFocusablePaneView() {
++  if (views::View::IsDrawn()) {
++    return this;
++  }
++  if (BrowserLogoMenuButton* logo = GetActiveLogoMenuButton()) {
++    return logo;
++  }
++  return this;
+ }
+ 
+ void BrowserAppMenuButton::OnMenuClosed() {
+@@ -129,6 +247,7 @@
+         config);
+   }
+ #endif  // BUILDFLAG(GOOGLE_CHROME_BRANDING)
++  expand_on_hover_lock_.reset();
+   AppMenuButton::OnMenuClosed();
+ }
+ 
+@@ -157,12 +276,14 @@
+                                               : kBrowserToolsTouchOldIcon
+       : features::IsRoundedIconsEnabled() ? kMoreVertIcon
+                                           : kBrowserToolsChromeRefreshOldIcon;
++  // Bluelium : trois points ronds horizontaux, en tactile comme à la souris.
++  const gfx::VectorIcon& bluelium_icon = kBlueliumMoreIcon;
+   const int icon_size = GetIconSize();
+ 
+   for (auto state : kButtonStates) {
+     SkColor icon_color = GetForegroundColor(state);
+     ui::ImageModel model =
+-        ui::ImageModel::FromVectorIcon(icon, icon_color, icon_size);
++        ui::ImageModel::FromVectorIcon(bluelium_icon, icon_color, icon_size);
+     SetImageModel(state, model);
+   }
+ }
 --- a/chrome/browser/ui/views/toolbar/app_menu.h
 +++ b/chrome/browser/ui/views/toolbar/app_menu.h
 @@ -22,6 +22,7 @@
@@ -1258,176 +1500,6 @@
  
    base::CallbackListSubscription subscription_ =
        ui::TouchUiController::Get()->RegisterCallback(
---- a/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc
-+++ b/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc
-@@ -19,7 +19,12 @@
- #include "chrome/browser/ui/views/toolbar/app_menu.h"
- #include "chrome/browser/ui/views/toolbar/toolbar_button.h"
- #include "chrome/browser/ui/views/toolbar/toolbar_ink_drop_util.h"
-+#include "chrome/browser/ui/views/frame/browser_logo_menu_button.h"
-+#include "chrome/browser/ui/views/frame/browser_view.h"
-+#include "chrome/browser/ui/views/frame/tab_strip_region_view.h"
- #include "chrome/browser/ui/views/toolbar/toolbar_view.h"
-+#include "ui/views/accessible_pane_view.h"
-+#include "ui/views/controls/menu/menu_types.h"
- #include "chrome/grit/browser_resources.h"
- #include "components/feature_engagement/public/feature_constants.h"
- #include "third_party/skia/include/core/SkColor.h"
-@@ -72,15 +77,92 @@
- 
- BrowserAppMenuButton::~BrowserAppMenuButton() = default;
- 
-+BrowserLogoMenuButton* BrowserAppMenuButton::GetActiveLogoMenuButton() const {
-+  BrowserView* browser_view = toolbar_view_->browser_view();
-+  return browser_view ? browser_view->GetActiveLogoMenuButton() : nullptr;
-+}
-+
- void BrowserAppMenuButton::SetTypeAndSeverity(
-     AppMenuIconController::TypeAndSeverity type_and_severity) {
-   type_and_severity_ = type_and_severity;
-   GetViewAccessibility().SetName(
-       AppMenuIconController::GetIconAccessibleName(type_and_severity_.type));
-   UpdateThemeBasedState();
-+  // Bluelium : reporter la pastille de mise à jour / alerte sur le logo.
-+  if (BrowserView* browser_view = toolbar_view_->browser_view()) {
-+    for (BrowserLogoMenuButton* logo : browser_view->GetLogoMenuButtons()) {
-+      logo->SetTypeAndSeverity(type_and_severity);
-+    }
-+  }
-+}
-+
-+views::BubbleAnchor BrowserAppMenuButton::GetAnchor() {
-+  if (views::View::IsDrawn()) {
-+    return views::BubbleAnchor(this);
-+  }
-+  if (BrowserLogoMenuButton* logo = GetActiveLogoMenuButton()) {
-+    return views::BubbleAnchor(logo);
-+  }
-+  return AppMenuButton::GetAnchor();
-+}
-+
-+bool BrowserAppMenuButton::IsDrawn() const {
-+  if (views::View::IsDrawn()) {
-+    return true;
-+  }
-+  return GetActiveLogoMenuButton() != nullptr;
-+}
-+
-+void BrowserAppMenuButton::ShowMenu() {
-+  // Bluelium : Alt+F / Alt+E et ShowAppMenu ouvrent le menu sous le logo.
-+  if (BrowserLogoMenuButton* logo = GetActiveLogoMenuButton()) {
-+    logo->ActivateMenu();
-+    return;
-+  }
-+  if (views::View::IsDrawn()) {
-+    AppMenuButton::ShowMenu();
-+    return;
-+  }
-+  ShowMenuWithFlags(views::MenuRunner::SHOULD_SHOW_MNEMONICS |
-+                    views::MenuRunner::INVOKED_FROM_KEYBOARD);
-+}
-+
-+void BrowserAppMenuButton::ShowMenuFromLogo(BrowserLogoMenuButton* logo_button,
-+                                            int run_types) {
-+  if (!logo_button || IsMenuShowing()) {
-+    return;
-+  }
-+  BrowserView* browser_view = toolbar_view_->browser_view();
-+  if (browser_view && browser_view->tab_strip_view()) {
-+    expand_on_hover_lock_ =
-+        browser_view->tab_strip_view()->GetExpandOnHoverLock(
-+            ExpandOnHoverLockType::kKeepCurrentState);
-+  }
-+  const bool right_aligned_vertical =
-+      browser_view && browser_view->ShouldDrawVerticalTabStrip() &&
-+      browser_view->IsVerticalTabStripRightAligned();
-+  const views::MenuAnchorPosition anchor_position =
-+      right_aligned_vertical ? views::MenuAnchorPosition::kTopRight
-+                             : views::MenuAnchorPosition::kTopLeft;
-+  ShowMenuWithFlagsAndAnchor(run_types, logo_button->menu_button_controller(),
-+                             anchor_position);
- }
- 
- void BrowserAppMenuButton::ShowMenuWithFlags(int run_types) {
-+  if (!views::View::IsDrawn()) {
-+    if (BrowserLogoMenuButton* logo = GetActiveLogoMenuButton()) {
-+      ShowMenuFromLogo(logo, run_types);
-+      return;
-+    }
-+  }
-+  ShowMenuWithFlagsAndAnchor(run_types, nullptr,
-+                             views::MenuAnchorPosition::kTopRight);
-+}
-+
-+void BrowserAppMenuButton::ShowMenuWithFlagsAndAnchor(
-+    int run_types,
-+    views::MenuButtonController* anchor_host,
-+    views::MenuAnchorPosition anchor_position) {
-   if (IsMenuShowing()) {
-     return;
-   }
-@@ -97,7 +179,7 @@
-   BrowserWindowInterface* browser = toolbar_view_->browser();
- 
-   if (base::FeatureList::IsEnabled(features::kAppMenuGlowUp)) {
--    RunActionMenu(browser, run_types);
-+    RunActionMenu(browser, run_types, anchor_host, anchor_position);
-     return;
-   }
- 
-@@ -109,7 +191,43 @@
-   RunMenu(std::make_unique<AppMenuModel>(
-               toolbar_view_, browser, toolbar_view_->app_menu_icon_controller(),
-               alert_item),
--          browser, run_types);
-+          browser, run_types, anchor_host, anchor_position);
-+}
-+
-+bool BrowserAppMenuButton::HasFocus() const {
-+  if (views::View::HasFocus()) {
-+    return true;
-+  }
-+  BrowserLogoMenuButton* logo = GetActiveLogoMenuButton();
-+  return logo && logo->HasFocus();
-+}
-+
-+void BrowserAppMenuButton::Focus(views::AccessiblePaneView* pane) {
-+  if (views::View::IsDrawn()) {
-+    AppMenuButton::Focus(pane);
-+    return;
-+  }
-+  if (BrowserLogoMenuButton* logo = GetActiveLogoMenuButton()) {
-+    if (BrowserView* browser_view = toolbar_view_->browser_view()) {
-+      if (TabStripRegionView* region = browser_view->tab_strip_view()) {
-+        region->SetPaneFocus(logo);
-+        return;
-+      }
-+    }
-+    logo->RequestFocus();
-+    return;
-+  }
-+  AppMenuButton::Focus(pane);
-+}
-+
-+views::View* BrowserAppMenuButton::GetFocusablePaneView() {
-+  if (views::View::IsDrawn()) {
-+    return this;
-+  }
-+  if (BrowserLogoMenuButton* logo = GetActiveLogoMenuButton()) {
-+    return logo;
-+  }
-+  return this;
- }
- 
- void BrowserAppMenuButton::OnMenuClosed() {
-@@ -129,6 +247,7 @@
-         config);
-   }
- #endif  // BUILDFLAG(GOOGLE_CHROME_BRANDING)
-+  expand_on_hover_lock_.reset();
-   AppMenuButton::OnMenuClosed();
- }
- 
 --- a/chrome/browser/ui/views/frame/BUILD.gn
 +++ b/chrome/browser/ui/views/frame/BUILD.gn
 @@ -472,6 +472,34 @@
