@@ -1,0 +1,467 @@
+<meta charset="utf-8">
+<title>Bluelium 0.22.4.1-gb1b581e</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Mise en page : notes de version sobres. Une colonne ; chaque nouveauté
+   majeure a sa démo interactive à côté du texte, le reste tient en une ligne. */
+:root {
+  --bg: #f6f7fa;
+  --surface: #ffffff;
+  --ink: #171b2e;
+  --muted: #5f6579;
+  --line: #e3e6ee;
+  --accent: #4c5fe8;
+  --accent-soft: #eceeff;
+  --stage: #eef0f6;
+  --mini-ink: #d3d8e5;
+  --page-a: #fbf1e6;
+  --page-b: #eef1fb;
+  --on-accent: #ffffff;
+  --font-body: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --spring: cubic-bezier(.2, .8, .2, 1);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f111a; --surface: #171a26; --ink: #e8eaf3; --muted: #9a9fb5; --line: #262a3a;
+    --accent: #8f9cff; --accent-soft: #1f2447; --stage: #12141f; --mini-ink: #343a52;
+    --page-a: #2a2430; --page-b: #1f2436; --on-accent: #0f111a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f111a; --surface: #171a26; --ink: #e8eaf3; --muted: #9a9fb5; --line: #262a3a;
+  --accent: #8f9cff; --accent-soft: #1f2447; --stage: #12141f; --mini-ink: #343a52;
+  --page-a: #2a2430; --page-b: #1f2436; --on-accent: #0f111a;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 16px/1.6 var(--font-body); -webkit-font-smoothing: antialiased; }
+p { margin: 0; }
+a { color: var(--accent); }
+button { font: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 8px; }
+.wrap {
+  max-width: 920px; margin: 0 auto; display: grid; gap: 64px;
+  padding-block: 64px 80px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+/* En-tête */
+header { display: grid; gap: 14px; max-width: 640px; }
+.brand { display: flex; align-items: center; gap: 9px; font-weight: 600; font-size: 15px; }
+.brand svg { width: 20px; height: 20px; color: var(--accent); }
+h1 { margin: 0; font: 600 clamp(34px, 6vw, 48px)/1.08 var(--font-body); letter-spacing: -0.025em; text-wrap: balance; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; color: var(--muted); font-size: 14px; }
+.ver { font: 500 12.5px/1 var(--font-mono); padding: 6px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
+.lede { font-size: 18px; color: var(--muted); }
+
+/* Nouveautés */
+.feature {
+  display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 40px; align-items: center;
+}
+.feature.flip .demo { order: 2; }
+.feature-text { display: grid; gap: 12px; align-content: center; min-width: 0; }
+.label { font: 500 12px/1 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+h2 { margin: 0; font: 600 26px/1.2 var(--font-body); letter-spacing: -0.015em; text-wrap: balance; }
+h3 { margin: 0; font: 600 18px/1.3 var(--font-body); }
+.feature-text p { color: var(--muted); }
+.hint { font-size: 13.5px; color: var(--muted); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.kbd { font: 500 12px/1 var(--font-mono); padding: 5px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+
+.demo {
+  background: var(--stage); border: 1px solid var(--line); border-radius: 22px;
+  padding: 28px; display: grid; gap: 18px; justify-items: center; min-width: 0;
+}
+
+/* Démo 1 : geste retour */
+.win {
+  width: 100%; max-width: 460px; aspect-ratio: 16 / 10;
+  border-radius: 14px; background: var(--surface); border: 1px solid var(--line);
+  box-shadow: 0 30px 60px -34px rgba(20, 30, 80, .45), 0 2px 6px -2px rgba(20, 30, 80, .12);
+  overflow: hidden; display: grid; grid-template-rows: 34px 1fr; position: relative;
+}
+.bar { display: flex; align-items: center; gap: 6px; padding: 0 12px; border-bottom: 1px solid var(--line); }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--mini-ink); }
+.url {
+  margin-left: 10px; flex: 1; min-width: 0; height: 20px; border-radius: 10px; background: var(--stage);
+  font: 500 11px/20px var(--font-mono); color: var(--muted); padding: 0 10px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  transition: color .2s;
+}
+.page { position: relative; touch-action: pan-y; cursor: grab; user-select: none; -webkit-user-select: none; outline: none; }
+.page.dragging { cursor: grabbing; }
+.page:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); }
+.layer { position: absolute; inset: 0; padding: 20px 22px; display: grid; gap: 10px; align-content: start; }
+.layer.top { transition: opacity .2s cubic-bezier(.4, 0, .2, 1); }
+.layer .img { height: 62px; border-radius: 10px; }
+.skin-a { background: var(--page-a); }
+.skin-a .img { background: linear-gradient(120deg, #ffb37a, #ff7aa8); }
+.skin-b { background: var(--page-b); }
+.skin-b .img { background: linear-gradient(120deg, #6f86ff, #a77bff); }
+.line { height: 9px; border-radius: 5px; background: var(--mini-ink); }
+.line.t { height: 15px; width: 52%; }
+.pill {
+  position: absolute; top: 50%; left: 0; width: 50px; height: 50px; margin-top: -25px;
+  border-radius: 50%; display: grid; place-items: center; overflow: hidden; pointer-events: none;
+  background: var(--surface); color: var(--accent);
+  box-shadow: 0 10px 26px -8px rgba(20, 30, 80, .5), inset 0 0 0 1.5px var(--line);
+  transform: translateX(-62px); will-change: transform;
+}
+.pill .fill { position: absolute; inset: 0; border-radius: 50%; background: var(--accent); transform: scale(0); }
+.pill svg { width: 22px; height: 22px; position: relative; transition: color .12s; }
+.pill.armed svg { color: var(--on-accent); }
+.pill.pop { animation: pop .2s var(--spring) forwards; }
+@keyframes pop { from { opacity: 1; scale: 1.05; } to { opacity: 0; scale: 1.2; } }
+.ring {
+  position: absolute; top: 50%; left: 0; width: 50px; height: 50px; margin-top: -25px; border-radius: 50%;
+  border: 2px solid var(--accent); opacity: 0; pointer-events: none;
+}
+.ring.go { animation: ring .45s var(--spring); }
+@keyframes ring { from { opacity: .7; scale: 1; } to { opacity: 0; scale: 1.9; } }
+
+/* Trackpad sous la fenêtre */
+.pad {
+  width: 168px; height: 104px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line);
+  position: relative; box-shadow: inset 0 1px 0 rgba(255,255,255,.4);
+}
+.finger {
+  position: absolute; top: 34px; width: 22px; height: 22px; border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 22%, transparent); border: 1.5px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  transform: translateX(var(--fx, 0px)); opacity: var(--fo, .35); transition: opacity .2s;
+}
+.finger:nth-child(1) { left: 40px; top: 30px; }
+.finger:nth-child(2) { left: 70px; top: 44px; }
+.pad-row { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; justify-content: center; }
+.pad-meta { display: grid; gap: 6px; font-size: 13px; color: var(--muted); min-width: 150px; }
+.meter { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.meter i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 3px; }
+.state { font: 500 12px/1 var(--font-mono); color: var(--ink); }
+
+/* Démo 2 : icônes lisibles */
+.omni-wrap { width: 100%; max-width: 420px; display: grid; gap: 16px; }
+.omni {
+  height: 44px; border-radius: 22px; display: flex; align-items: center; gap: 12px; padding: 0 16px;
+  background: var(--c, #6b7f9e); transition: background .5s var(--spring);
+  box-shadow: 0 16px 34px -22px rgba(20, 30, 80, .55);
+}
+.omni svg { width: 18px; height: 18px; flex: none; color: var(--ic, #fff); transition: color .35s; }
+.omni .addr { flex: 1; min-width: 0; font: 500 13px/1 var(--font-body); color: var(--ic, #fff); opacity: .92; transition: color .35s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ratio { justify-self: center; font: 500 12px/1 var(--font-mono); color: var(--muted); }
+.ratio b { color: var(--ink); font-weight: 500; }
+.ratio .ok { color: #1f9d5c; } .ratio .ko { color: #d0503f; }
+.swatches { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.swatches button {
+  width: 28px; height: 28px; border-radius: 50%; border: 0; cursor: pointer; background: var(--c);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); transition: transform .25s var(--spring);
+}
+.swatches button:hover { transform: scale(1.12); }
+.swatches button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--stage), 0 0 0 4px var(--accent); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; gap: 2px; justify-self: center; background: var(--surface); }
+.seg button { border: 0; background: transparent; color: var(--muted); font-size: 13px; font-weight: 500; padding: 6px 14px; border-radius: 999px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
+
+/* Également */
+.also { display: grid; gap: 18px; }
+.also-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 14px; }
+.also-list li { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px; display: grid; gap: 6px; align-content: start; }
+.also-list h3 { font-size: 16px; }
+.also-list p { color: var(--muted); font-size: 14.5px; }
+.plat { font: 500 11px/1 var(--font-mono); color: var(--muted); }
+
+/* Historique */
+.history { display: grid; gap: 14px; }
+details { border-top: 1px solid var(--line); }
+details:last-of-type { border-bottom: 1px solid var(--line); }
+summary { list-style: none; cursor: pointer; padding: 14px 2px; display: flex; gap: 14px; align-items: baseline; flex-wrap: wrap; }
+summary::-webkit-details-marker { display: none; }
+summary .v { font: 500 13px/1 var(--font-mono); }
+summary .d { color: var(--muted); font-size: 14px; }
+summary .w { flex: 1 1 200px; min-width: 0; }
+summary::after { content: "+"; color: var(--muted); margin-left: auto; font-size: 20px; line-height: 1; transition: transform .25s var(--spring); }
+details[open] summary::after { transform: rotate(45deg); }
+details ul { margin: 0 0 16px; padding-left: 20px; color: var(--muted); display: grid; gap: 4px; font-size: 15px; }
+
+footer { display: flex; flex-wrap: wrap; gap: 12px 20px; justify-content: space-between; align-items: center; color: var(--muted); font-size: 14px; border-top: 1px solid var(--line); padding-top: 22px; }
+.btn { font-weight: 600; font-size: 14.5px; color: var(--on-accent); background: var(--accent); border-radius: 999px; padding: 11px 18px; text-decoration: none; }
+
+@media (max-width: 760px) {
+  .feature { grid-template-columns: 1fr; gap: 22px; }
+  .feature.flip .demo { order: 0; }
+  .demo { padding: 18px; }
+  .wrap { gap: 52px; padding-block: 40px 64px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* Démo 1 : diviser en superposant */
+.split { width: 100%; max-width: 460px; aspect-ratio: 16 / 10; border-radius: 14px; overflow: hidden; position: relative;
+  background: var(--surface); border: 1px solid var(--line); box-shadow: 0 30px 60px -34px rgba(20, 30, 80, .45);
+  display: grid; grid-template-rows: 38px 1fr; user-select: none; -webkit-user-select: none; }
+.strip { display: flex; align-items: center; gap: 6px; padding: 0 10px; background: var(--stage); border-bottom: 1px solid var(--line); position: relative; }
+.tab { height: 26px; width: 118px; border-radius: 8px; display: flex; align-items: center; gap: 7px; padding: 0 10px; flex: none;
+  font: 500 11.5px/1 var(--font-body); color: var(--muted); background: transparent; position: relative; overflow: hidden; }
+.tab i { width: 12px; height: 12px; border-radius: 4px; background: var(--fav); flex: none; }
+.tab.on { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(20, 30, 80, .12); }
+.tab.grab { cursor: grab; touch-action: none; z-index: 2; }
+.tab.grab.dragging { cursor: grabbing; box-shadow: 0 10px 24px -8px rgba(20, 30, 80, .5); transition: none; }
+.tab.grab:not(.dragging) { transition: transform .35s var(--spring); }
+.tab .prog { position: absolute; left: 0; bottom: 0; height: 2px; width: 0; background: var(--accent); }
+.tab.target { box-shadow: inset 0 0 0 1.5px var(--accent); }
+.tab.paired { background: var(--accent-soft); color: var(--accent); }
+.panes { display: grid; grid-template-columns: 1fr 0fr; gap: 0; padding: 0; transition: grid-template-columns .45s var(--spring), gap .45s var(--spring), padding .45s var(--spring); min-height: 0; }
+.panes.on { grid-template-columns: 1fr 1fr; gap: 8px; padding: 8px; }
+.pane { border-radius: 0; overflow: hidden; display: grid; gap: 9px; align-content: start; padding: 16px; min-width: 0; transition: border-radius .45s var(--spring); }
+.panes.on .pane { border-radius: 10px; }
+.panes:not(.on) .pane + .pane { padding: 0; }
+.pane .img { height: 48px; border-radius: 8px; }
+.split-state { font-size: 13px; color: var(--muted); min-height: 20px; text-align: center; }
+
+/* Démo 2 : couleurs exactes */
+.tones { width: 100%; max-width: 440px; display: grid; gap: 14px; }
+.tone-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.tone { display: grid; gap: 8px; justify-items: center; }
+.tone b { width: 100%; aspect-ratio: 1; border-radius: 12px; background: var(--c); box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); transition: background-color .35s var(--spring); }
+.tone span { font: 500 11.5px/1 var(--font-mono); color: var(--muted); }
+.tone span.lift { color: #d0503f; }
+
+/* Démo 3 : barre épurée */
+.tbar-wrap { width: 100%; max-width: 460px; display: grid; gap: 16px; }
+.tbar { height: 46px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); display: flex; align-items: center; gap: 4px; padding: 0 8px;
+  box-shadow: 0 20px 40px -28px rgba(20, 30, 80, .45); }
+.tbar .ico { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; color: var(--muted); flex: none; position: relative; }
+.tbar .ico svg { width: 16px; height: 16px; }
+.tbar .ico.dim { opacity: .45; }
+.tbar .omn { flex: 1; min-width: 0; height: 30px; border-radius: 15px; background: var(--stage); font: 500 11.5px/30px var(--font-body); color: var(--muted); padding: 0 12px; margin: 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tbar .badge { position: absolute; right: 1px; bottom: 1px; min-width: 13px; height: 13px; border-radius: 7px; background: var(--muted); color: var(--surface); font: 600 9px/13px var(--font-body); text-align: center; padding: 0 3px; }
+.tbar .ai.round { background: var(--accent-soft); color: var(--accent); border-radius: 50%; }
+.tbar .ext { display: flex; gap: 2px; align-items: center; }
+.tbar .ext.grp { background: var(--stage); border-radius: 10px; padding: 0 2px; }
+.tbar .ext i { width: 14px; height: 14px; border-radius: 4px; background: var(--fav); display: block; }
+.tbar .sep { width: 1px; height: 18px; background: var(--line); margin: 0 3px; flex: none; }
+</style>
+<div class="wrap">
+  <header>
+    <div class="brand"><svg viewBox="0 0 256 256" aria-hidden="true"><path fill="currentColor" d="M152.62 237.85L128 256L103.38 237.85L114.568 151.248L45.05 204.22L17 192L20.425 161.635L101.128 128L20.425 94.365L17 64L45.05 51.78L114.568 104.752L103.38 18.15L128 0L152.62 18.15L141.432 104.752L210.95 51.78L239 64L235.575 94.365L154.872 128L235.575 161.635L239 192L210.95 204.22L141.432 151.248L152.62 237.85Z"/></svg> Bluelium</div>
+    <h1>Quoi de neuf dans Bluelium</h1>
+    <div class="meta">
+      <span class="ver">0.22.4.1-gb1b581e</span>
+      <span>26 novembre 2026</span>
+      <span>Basé sur Helium 0.22.4.1 · Chromium 158</span>
+    </div>
+    <p class="lede">Une barre d’outils épurée, la vue divisée d’un simple glisser et des couleurs fidèles sur les écrans HDR.</p>
+  </header>
+
+  <section class="feature" aria-labelledby="f1">
+    <div class="demo">
+      <div class="split" id="split">
+        <div class="strip" id="strip">
+          <div class="tab on grab" id="tA" style="--fav:#ff8a5c" role="button" tabindex="0" aria-label="Onglet Recettes : glissez-le sur l’onglet Carte"><i></i>Recettes<span class="prog" id="prog"></span></div>
+          <div class="tab" id="tB" style="--fav:#6f86ff"><i></i>Carte</div>
+        </div>
+        <div class="panes" id="panes">
+          <div class="pane skin-a"><div class="img"></div><div class="line t"></div><div class="line"></div><div class="line" style="width:80%"></div></div>
+          <div class="pane skin-b"><div class="img"></div><div class="line t"></div><div class="line"></div><div class="line" style="width:64%"></div></div>
+        </div>
+      </div>
+      <p class="split-state" id="sstate" aria-live="polite">Glissez « Recettes » sur « Carte » et gardez-le dessus.</p>
+    </div>
+    <div class="feature-text">
+      <span class="label">Linux</span>
+      <h2 id="f1">Diviser en superposant deux onglets</h2>
+      <p>Faites glisser un onglet sur un autre et gardez-le dessus un court instant : les deux pages s’ouvrent côte à côte. Le bouton Diviser quitte la barre d’outils, et le geste se désactive dans Personnaliser.</p>
+      <p class="hint">Essayez : glissez l’onglet, ou <span class="kbd">Entrée</span> sur l’onglet.</p>
+    </div>
+  </section>
+
+  <section class="feature flip" aria-labelledby="f2">
+    <div class="demo">
+      <div class="tones">
+        <div class="tone-row" id="tones"></div>
+        <div class="seg" id="toneseg" role="group" aria-label="Rendu"><button type="button" aria-pressed="false">Avant</button><button type="button" aria-pressed="true">Maintenant</button></div>
+      </div>
+    </div>
+    <div class="feature-text">
+      <span class="label">Linux</span>
+      <h2 id="f2">Des noirs vraiment noirs</h2>
+      <p>Sous Wayland, avec un écran HDR ou la Couleur de nuit, Bluelium éclaircissait les tons sombres des pages. Les couleurs s’affichent maintenant telles que le site les a choisies, comme dans les autres navigateurs.</p>
+      <p class="hint">Essayez : comparez Avant et Maintenant.</p>
+    </div>
+  </section>
+
+  <section class="feature" aria-labelledby="f3">
+    <div class="demo">
+      <div class="tbar-wrap">
+        <div class="tbar" id="tbar" aria-label="Barre d’outils"></div>
+        <div class="seg" id="barseg" role="group" aria-label="Barre"><button type="button" aria-pressed="false">Avant</button><button type="button" aria-pressed="true">Maintenant</button></div>
+      </div>
+    </div>
+    <div class="feature-text">
+      <span class="label">Linux</span>
+      <h2 id="f3">Une barre d’outils épurée</h2>
+      <p>Les extensions épinglées se regroupent dans une pastille avec leur menu. Le bloqueur ne montre plus de compteur à zéro, le bouton IA perd son fond rond et le menu prend trois points arrondis.</p>
+      <p class="hint">Essayez : passez d’Avant à Maintenant.</p>
+    </div>
+  </section>
+
+  <section class="also" aria-labelledby="also">
+    <h2 id="also">Également</h2>
+    <ul class="also-list">
+      <li><span class="plat">Linux</span><h3>Nouvel onglet reconnaissable</h3><p>L’onglet s’appelle « Nouvel onglet » et porte une icône maison.</p></li>
+      <li><span class="plat">Linux</span><h3>Pages internes plus calmes</h3><p>Sur les pages du navigateur, le bloqueur et l’adresse s’effacent de la barre.</p></li>
+      <li><span class="plat">Linux</span><h3>Helium 0.22.4.1</h3><p>Bluelium suit la dernière version de Helium, toujours sur Chromium 158.</p></li>
+    </ul>
+  </section>
+
+  <section class="history" aria-labelledby="hist">
+    <h2 id="hist">Versions précédentes</h2>
+    <div>
+      <details>
+        <summary><span class="v">0.22.1.1-g40cee60</span><span class="d">20 nov.</span><span class="w">Helium 22, Shimmer en français (Linux)</span></summary>
+        <ul><li>Nouvel onglet en français, jeu Paquet perdu, pages internes à vos couleurs.</li><li>Mise à jour annoncée dans le navigateur, identité propre à côté de Helium.</li></ul>
+      </details>
+      <details>
+        <summary><span class="v">0.22.1.1-gd0116bd</span><span class="d">20 nov.</span><span class="w">Helium 22, Shimmer en français (macOS)</span></summary>
+        <ul><li>Nouvel onglet en français, jeu Paquet perdu, pages internes à vos couleurs.</li><li>Barre d’adresse lisible, police Instrument Sans.</li></ul>
+      </details>
+      <details>
+        <summary><span class="v">0.21.2.1-gc03092a</span><span class="d">16 nov.</span><span class="w">Lecteur PDF, couleurs en dégradé</span></summary>
+        <ul><li>Nouveau lecteur PDF aux couleurs de Bluelium.</li><li>Changements de couleur de l’interface en dégradé fluide.</li><li>Mises à jour automatiques sur Mac.</li></ul>
+      </details>
+      <details>
+        <summary><span class="v">0.21.2.1-g655a096</span><span class="d">15 nov.</span><span class="w">Geste retour plus calme, nom Bluelium</span></summary>
+        <ul><li>Geste retour « pastille et fondu » sur Mac.</li><li>Icônes de la barre d’adresse lisibles sur toutes les couleurs.</li><li>Le nom Bluelium dans toute l’interface, nouveau .dmg.</li></ul>
+      </details>
+      <details>
+        <summary><span class="v">0.21.3.1-gc9c926d</span><span class="d">14 nov.</span><span class="w">Mise à jour automatique sous Linux</span></summary>
+        <ul><li>L’AppImage se met à jour d’elle-même depuis GitHub.</li></ul>
+      </details>
+      <details>
+        <summary><span class="v">0.21.2.1-g6fc51da</span><span class="d">13 nov.</span><span class="w">Première version macOS, mode Nuit rouge</span></summary>
+        <ul><li>Version macOS pour Apple Silicon.</li><li>Mode Nuit rouge et filtre chaud.</li></ul>
+      </details>
+    </div>
+  </section>
+
+  <footer>
+    <span>Bluelium est un projet personnel basé sur Helium.</span>
+    <a class="btn" href="https://github.com/matthieuleconte1/bluelium/releases" target="_blank" rel="noopener">Toutes les versions</a>
+  </footer>
+</div>
+
+<script>
+(function () {
+  function segment(el, onPick) {
+    var bs = el.querySelectorAll('button');
+    Array.prototype.forEach.call(bs, function (b, i) {
+      b.addEventListener('click', function () {
+        Array.prototype.forEach.call(bs, function (x, k) { x.setAttribute('aria-pressed', String(k === i)); });
+        onPick(i);
+      });
+    });
+  }
+
+  /* Démo 1 : glisser un onglet sur un autre, 400 ms au-dessus pour diviser. */
+  var tA = document.getElementById('tA'), tB = document.getElementById('tB'), prog = document.getElementById('prog'),
+      panes = document.getElementById('panes'), sstate = document.getElementById('sstate');
+  var HOLD = 400, start = null, hoverAt = 0, raf = 0, split = false;
+  function over() {
+    var a = tA.getBoundingClientRect(), b = tB.getBoundingClientRect(), c = a.left + a.width / 2;
+    return c > b.left + b.width * .25 && c < b.right - b.width * .25;
+  }
+  function tick(ts) {
+    if (start === null) return;
+    if (over()) {
+      tB.classList.add('target');
+      if (!hoverAt) hoverAt = ts;
+      var p = Math.min(1, (ts - hoverAt) / HOLD);
+      prog.style.width = (p * 100) + '%';
+      if (p >= 1 && !split) { sstate.textContent = 'Relâchez pour diviser.'; }
+    } else {
+      tB.classList.remove('target'); hoverAt = 0; prog.style.width = '0';
+      if (!split) sstate.textContent = 'Gardez-le sur « Carte ».';
+    }
+    raf = requestAnimationFrame(tick);
+  }
+  function setSplit(on) {
+    split = on;
+    panes.classList.toggle('on', on);
+    tB.classList.toggle('paired', on); tA.classList.toggle('paired', on);
+    sstate.textContent = on ? 'Vue divisée. Cliquez sur un onglet pour revenir.' : 'Glissez « Recettes » sur « Carte » et gardez-le dessus.';
+  }
+  tA.addEventListener('pointerdown', function (e) {
+    if (split) { setSplit(false); return; }
+    start = e.clientX; hoverAt = 0; tA.setPointerCapture(e.pointerId); tA.classList.add('dragging');
+    cancelAnimationFrame(raf); raf = requestAnimationFrame(tick);
+  });
+  tA.addEventListener('pointermove', function (e) {
+    if (start === null) return;
+    var x = Math.max(0, Math.min(e.clientX - start, 200));
+    tA.dataset.x = x; tA.style.transform = 'translateX(' + x + 'px)';
+  });
+  function end() {
+    if (start === null) return;
+    var armed = parseFloat(prog.style.width) >= 100;
+    start = null; cancelAnimationFrame(raf);
+    tA.classList.remove('dragging'); tB.classList.remove('target');
+    tA.style.transform = ''; tA.dataset.x = 0; prog.style.width = '0';
+    if (armed) setSplit(true); else sstate.textContent = 'Gardez-le un instant sur « Carte » avant de relâcher.';
+  }
+  tA.addEventListener('pointerup', end);
+  tA.addEventListener('pointercancel', end);
+  tB.addEventListener('click', function () { if (split) setSplit(false); });
+  tA.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSplit(!split); } });
+
+  /* Démo 2 : valeurs mesurées avant et après la correction. */
+  var TONES = [['#080604', '#100e0c'], ['#111111', '#181818'], ['#202020', '#262626'], ['#404040', '#424242']];
+  var tones = document.getElementById('tones');
+  TONES.forEach(function (t) {
+    var d = document.createElement('div'); d.className = 'tone';
+    d.innerHTML = '<b></b><span></span>'; tones.appendChild(d);
+  });
+  function showTones(after) {
+    Array.prototype.forEach.call(tones.children, function (d, i) {
+      var v = after ? TONES[i][0] : TONES[i][1];
+      d.firstChild.style.setProperty('--c', v);
+      d.lastChild.textContent = v; d.lastChild.classList.toggle('lift', !after);
+    });
+  }
+  showTones(true);
+  segment(document.getElementById('toneseg'), function (i) { showTones(i === 1); });
+
+  /* Démo 3 : la barre d'outils avant et après. */
+  var I = {
+    back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+    fwd: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>',
+    reload: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12a7 7 0 1 1-2.1-5"/><path d="M19 4v4h-4"/></svg>',
+    shield: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z"/></svg>',
+    puzzle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19.439 7.85c-.049.322.059.648.289.878l1.568 1.568c.47.47.706 1.087.706 1.704s-.235 1.233-.706 1.704l-1.611 1.611a.98.98 0 0 1-.837.276c-.47-.07-.802-.48-.968-.925a2.501 2.501 0 1 0-3.214 3.214c.446.166.855.497.925.968a.979.979 0 0 1-.276.837l-1.61 1.61a2.404 2.404 0 0 1-1.705.707 2.402 2.402 0 0 1-1.704-.706l-1.568-1.568a1.026 1.026 0 0 0-.877-.29c-.493.074-.84.504-1.02.968a2.5 2.5 0 1 1-3.237-3.237c.464-.18.894-.527.967-1.02a1.026 1.026 0 0 0-.289-.877l-1.568-1.568A2.402 2.402 0 0 1 1.998 12c0-.617.236-1.234.706-1.704L4.23 8.77c.24-.24.581-.353.917-.303.515.077.877.528 1.073 1.01a2.5 2.5 0 1 0 3.259-3.259c-.482-.196-.933-.558-1.01-1.073-.05-.336.062-.676.303-.917l1.525-1.525A2.402 2.402 0 0 1 12 1.998c.617 0 1.234.236 1.704.706l1.568 1.568c.23.23.556.338.877.29.493-.074.84-.504 1.02-.968a2.5 2.5 0 1 1 3.237 3.237c-.464.18-.894.527-.967 1.02Z"/></svg>',
+    ai: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>',
+    vdots: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg>',
+    hdots: '<svg viewBox="0 0 20 20" fill="currentColor"><circle cx="4.5" cy="10" r="1.75"/><circle cx="10" cy="10" r="1.75"/><circle cx="15.5" cy="10" r="1.75"/></svg>'
+  };
+  var exts = '<span class="ico"><i style="--fav:#ff8a5c"></i></span><span class="ico"><i style="--fav:#2fb37f"></i></span>';
+  var tbar = document.getElementById('tbar');
+  function showBar(after) {
+    var h = '<span class="ico">' + I.back + '</span><span class="ico dim">' + I.fwd + '</span><span class="ico">' + I.reload + '</span>' +
+            '<span class="omn">exemple.fr</span>';
+    if (after) {
+      h += '<span class="ico">' + I.shield + '</span>' +
+           '<span class="ext grp">' + exts + '<span class="ico">' + I.puzzle + '</span></span>' +
+           '<span class="ico">' + I.ai + '</span><span class="ico">' + I.hdots + '</span>';
+    } else {
+      h += '<span class="ico">' + I.shield + '<span class="badge">0</span></span>' +
+           '<span class="ext">' + exts + '<span class="ico">' + I.puzzle + '</span></span>' +
+           '<span class="sep"></span><span class="ico ai round">' + I.ai + '</span><span class="ico">' + I.vdots + '</span>';
+    }
+    tbar.innerHTML = h;
+  }
+  showBar(true);
+  segment(document.getElementById('barseg'), function (i) { showBar(i === 1); });
+})();
+</script>
