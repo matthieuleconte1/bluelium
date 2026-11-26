@@ -21,6 +21,8 @@
 #   JOBS               tâches de compilation en parallèle (défaut : 8, 18 Go de RAM)
 #   PGO                false pour couper le profil PGO (défaut : true, comme Helium)
 #   PATCH_ONLY=1       s'arrête après la série Bluelium (vérifie qu'elle s'applique)
+#   CONFIGURE_ONLY=1   s'arrête après gn gen, avant la compilation (build en
+#                      plusieurs étapes, voir .github/workflows/build-macos.yml)
 #   SKIP_FETCH=1       garde build/src tel quel et relance seulement gn + compilation
 #   MIN_FREE_GB        espace minimal exigé (défaut : 100)
 #   PUBLISH=1          publie le .dmg sur GitHub (voir package-macos.sh)
@@ -121,6 +123,15 @@ PY
   fi
   cat "$WORK/series.log"
   echo "$VERSION" > "$WORK/series.version"
+  # Ce qui décrit le build, pour l'emballer et le publier plus tard (CI).
+  cat > "$WORK/meta.env" <<META
+VERSION=$VERSION
+HELIUM_TAG=$TAG
+SERIE=$(python3 "$B/tools/couleur.py" "$B" --serie)
+NOM="$(python3 "$B/tools/couleur.py" "$B" --nom)"
+ARCH=$ARCH
+HOST_ARCH=$(uname -m)
+META
 else
   # shellcheck source=/dev/null
   source "$W/devutils/shared.sh"
@@ -150,6 +161,11 @@ sparkle_automatic_checks=true
 sparkle_check_interval=21600
 GN
 gn_gen
+if [ "${CONFIGURE_ONLY:-0}" = 1 ]; then
+  trap - ERR
+  echo "=== configuré (CONFIGURE_ONLY) : $VERSION, compilation à lancer"
+  exit 0
+fi
 helium_build -j "$JOBS" ${KEEP_GOING:+-k 0} || die "la compilation a échoué pour $VERSION"
 
 # 6. Paquet Bluelium.app + .dmg (et publication si PUBLISH=1).

@@ -302,6 +302,47 @@ reprend ensuite avec `SKIP_FETCH=1`.
 </details>
 
 <details>
+<summary><b>macOS sur GitHub Actions</b> (auto-build, sans Mac allumé)</summary>
+
+<br>
+
+Le workflow `Build macOS` (`.github/workflows/build-macos.yml`) tourne chaque
+nuit. Il construit la dernière version de helium-macos avec la série de
+`main`, si elle n'est pas déjà publiée. Comme pour Helium, la compilation est
+découpée en étapes de moins de 6 h qui se passent l'arbre de build. Il faut
+compter 15 à 20 h au total.
+
+Le `.dmg` n'est publié que si `docs/patch-notes/<version>.html` est dans
+`main`. Sinon, il reste 14 jours dans le run (artefact `macos-paquet`, pour
+le tester), et une issue l'annonce. Une fois la page poussée, relancer le
+workflow avec **publier** = l'id du run.
+
+En cas d'échec, l'état de la compilation est gardé : le workflow se relance
+une fois tout seul depuis cet état, puis ouvre une issue (étiquette
+`auto-build-macos`), fermée au build suivant publié. On peut aussi relancer à
+la main avec **reprendre** = l'id du run.
+
+Secrets du dépôt, une fois (Settings → Secrets and variables → Actions) :
+
+```sh
+# Trousseau → « Bluelium Code Signing » → Exporter… → bluelium.p12 (avec mot de passe)
+base64 -i bluelium.p12 | gh secret set MACOS_SIGN_P12
+gh secret set MACOS_SIGN_P12_PASSWORD        # le mot de passe de l'export
+gh secret set SPARKLE_PRIVATE_KEY < ~/.config/bluelium/sparkle-private-key
+```
+
+**Mac en renfort.** Un Mac à soi (même Intel) peut faire le build à la place
+des runners GitHub, sans la limite de 6 h : l'installer comme
+[runner auto-hébergé](https://docs.github.com/actions/hosting-your-own-runners)
+du dépôt, puis mettre la variable de dépôt `MACOS_RUNNER` à
+`["self-hosted","macOS"]` (ou la donner dans le champ **runner** d'un
+lancement). Il lui faut les prérequis ci-dessus, `gh`, et environ 120 Go
+libres. Une reprise doit tourner sur le même type de machine (Intel ou Apple
+Silicon) que le build d'origine.
+
+</details>
+
+<details>
 <summary><b>Linux</b> (environ 250 Go de disque, 32 Go de RAM ou plus)</summary>
 
 <br>

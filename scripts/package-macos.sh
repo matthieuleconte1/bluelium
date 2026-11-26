@@ -10,6 +10,12 @@
 #                     release v<version>-macos, non marquée « latest » pour que
 #                     la mise à jour Linux (releases/latest) ne la voie pas.
 #   BLUELIUM_REPO     dépôt GitHub (défaut : matthieuleconte1/bluelium)
+#   BLUELIUM_SERIE    commit de la série (défaut : tools/couleur.py --serie)
+#   BLUELIUM_REQUIRE_SIGN=1  échoue au lieu de signer ad hoc (CI : une
+#                     signature ad hoc casserait les mises à jour Sparkle)
+#
+# Sortie : le .dmg, son .sha256, appcast-<arch>.xml et release-tag-<arch>.txt
+# (tag GitHub visé), que scripts/publish-macos.sh publie.
 #
 # Sans identité Developer ID, l'appli est signée ad hoc, comme les builds non
 # signés de Helium : au premier lancement d'un .dmg téléchargé, ouvrir avec
@@ -60,6 +66,10 @@ if [ -n "${MACOS_CERTIFICATE_NAME:-}" ]; then
 elif security find-identity -p codesigning | grep -q "\"$SIGN_IDENTITY\""; then
   codesign --force --deep --sign "$SIGN_IDENTITY" "$APP"
 else
+  if [ "${BLUELIUM_REQUIRE_SIGN:-0}" = 1 ]; then
+    echo "Certificat « $SIGN_IDENTITY » absent : signature refusée (BLUELIUM_REQUIRE_SIGN=1)" >&2
+    exit 1
+  fi
   echo "ATTENTION : certificat « $SIGN_IDENTITY » absent, signature ad hoc" >&2
   codesign --force --deep --sign - "$APP"
 fi
@@ -95,7 +105,7 @@ echo "SHA-256 : $(cut -d' ' -f1 "$DMG.sha256")"
 # (compte « bluelium »), outils Sparkle téléchargés une fois et vérifiés.
 REPO=${BLUELIUM_REPO:-matthieuleconte1/bluelium}
 B=$(cd "$(dirname "$0")/.." && pwd)
-SERIE=$(python3 "$B/tools/couleur.py" "$B" --serie)
+SERIE=${BLUELIUM_SERIE:-$(python3 "$B/tools/couleur.py" "$B" --serie)}
 if NOTES=$(gh release view "v$VERSION" --repo "$REPO" --json body -q .body 2>/dev/null); then
   # Release Linux de la même version : même série attendue (même couleur
   # peut venir d'une autre série, voir tools/couleur.py).
@@ -151,25 +161,9 @@ else
   echo "ATTENTION : signature Sparkle impossible (clé « bluelium » absente du trousseau ?)" >&2
 fi
 
+echo "$TAG" > "$DEST/release-tag-$ARCH.txt"
+
 if [ "${PUBLISH:-0}" = 1 ]; then
   [ -n "$APPCAST" ] || { echo "Pas d'appcast : publication annulée" >&2; exit 1; }
-  if [ "$TAG" = "v$VERSION" ]; then
-    gh release upload "v$VERSION" "$DMG" "$DMG.sha256" --repo "$REPO" --clobber
-    echo "Ajouté à la release v$VERSION"
-  else
-    gh release create "v$VERSION-macos" "$DMG" "$DMG.sha256" --repo "$REPO" \
-      --latest=false --title "Bluelium $VERSION (macOS)" \
-      --notes "Construit sur Helium macOS $(echo "$VERSION" | cut -d- -f1), série $SERIE ($(python3 "$B/tools/couleur.py" "$B" --nom)). macOS $ARCH, signé avec le certificat auto-signé Bluelium.
-
-Installation : voir le README. Les versions suivantes s'installent ensuite toutes seules (Sparkle)."
-    echo "Release v$VERSION-macos publiée"
-  fi
-  # L'appcast vit dans une release fixe « appcast », jamais « latest ».
-  if ! gh release view appcast --repo "$REPO" >/dev/null 2>&1; then
-    gh release create appcast --repo "$REPO" --latest=false --prerelease \
-      --title "Appcast (mises à jour macOS)" \
-      --notes "Fichiers lus par la mise à jour intégrée de Bluelium. Ne pas supprimer."
-  fi
-  gh release upload appcast "$APPCAST" --repo "$REPO" --clobber
-  echo "Appcast publié : $TAG"
+  BLUELIUM_SERIE=$SERIE "$B/scripts/publish-macos.sh" "$DEST"
 fi

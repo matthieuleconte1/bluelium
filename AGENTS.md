@@ -23,7 +23,10 @@ l'auto-build qui publie depuis `main`) doit avoir sa page de notes de version.
   marcher. Ce qui n'a pas été testé n'y figure pas.
 - **Quand :** la page est commitée avec les changements, avant de publier. Pour
   Linux, l'auto-build publie `main` chaque nuit : la page doit être dans le même
-  push que les changements.
+  push que les changements. Pour macOS, le workflow `Build macOS` construit
+  d'abord, puis attend la page : il ne publie que si
+  `docs/patch-notes/<version>.html` est dans `main` (l'issue « prêt » dit
+  comment le relancer).
 
 - **Validation :** montrer la page à Matthieu (aperçu ou artifact) et attendre
   son accord avant de publier. Pas de publication sans ce feu vert.

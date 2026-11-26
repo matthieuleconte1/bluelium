@@ -1,0 +1,112 @@
+# Bluelium : une étape de la compilation macOS (appelée par build-macos.yml).
+#
+# Reprend l'état laissé par l'étape précédente (artefact macos-etat), compile
+# tant que le job a du temps, puis renvoie l'état (status=running) ou, si la
+# compilation est finie, fait le paquet signé (artefact macos-paquet).
+name: Étape de build macOS
+
+on:
+  workflow_call:
+    inputs:
+      runner:
+        description: Runner, en JSON (ex. ["macos-latest"])
+        required: true
+        type: string
+      minutes:
+        description: Durée maximale du job
+        required: true
+        type: number
+      helium_tag:
+        required: true
+        type: string
+      source_run:
+        description: Run d'où vient l'état (vide = ce run)
+        required: false
+        type: string
+        default: ''
+    outputs:
+      status:
+        value: ${{ jobs.etape.outputs.status }}
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  etape:
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    timeout-minutes: ${{ inputs.minutes }}
+    outputs:
+      status: ${{ steps.build.outputs.status }}
+    env:
+      BLUELIUM_MAC_WORK: ${{ github.workspace }}/work
+    steps:
+      - id: debut
+        run: echo "epoch=$(date +%s)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          path: bluelium
+          persist-credentials: false
+      - uses: ./bluelium/.github/actions/macos-env
+        with:
+          helium_tag: ${{ inputs.helium_tag }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: macos-etat
+          path: ${{ github.workspace }}/etat-recu
+          run-id: ${{ inputs.source_run || github.run_id }}
+          github-token: ${{ github.token }}
+      - id: deballe
+        run: bluelium/scripts/ci-macos/unpack.sh "$GITHUB_WORKSPACE/etat-recu"
+      - id: build
+        run: |
+          bluelium/scripts/ci-macos/phase.sh '${{ steps.debut.outputs.epoch }}' '${{ inputs.minutes }}' \
+            2>&1 | tee -a "$BLUELIUM_MAC_WORK/build-macos.log"
+          exit "${PIPESTATUS[0]}"
+
+      # Compilation finie : paquet signé, publié plus tard par build-macos.yml.
+      - if: steps.build.outputs.status == 'finished'
+        env:
+          MACOS_SIGN_P12: ${{ secrets.MACOS_SIGN_P12 }}
+          MACOS_SIGN_P12_PASSWORD: ${{ secrets.MACOS_SIGN_P12_PASSWORD }}
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: bluelium/scripts/ci-macos/keychain.sh
+      - id: paquet
+        if: steps.build.outputs.status == 'finished'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BLUELIUM_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          . "$BLUELIUM_MAC_WORK/meta.env"
+          OUT="$BLUELIUM_MAC_WORK/helium-macos/build/src/out/Default"
+          rm -rf "$BLUELIUM_MAC_WORK/releases"
+          BLUELIUM_VERSION=$VERSION BLUELIUM_ARCH=$ARCH BLUELIUM_SERIE=$SERIE \
+            BLUELIUM_REQUIRE_SIGN=1 PUBLISH=0 \
+            bluelium/scripts/package-macos.sh "$OUT" "$BLUELIUM_MAC_WORK/releases"
+          [ -f "$BLUELIUM_MAC_WORK/releases/appcast-$ARCH.xml" ] \
+            || { echo "::error::appcast non signé (clé Sparkle ?)"; exit 1; }
+          cp "$BLUELIUM_MAC_WORK/meta.env" "$BLUELIUM_MAC_WORK/releases/"
+      - if: steps.paquet.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-paquet
+          path: ${{ env.BLUELIUM_MAC_WORK }}/releases/
+          retention-days: 14
+          overwrite: true
+
+      # Pas fini (ou paquet raté) : l'état pour l'étape suivante ou une reprise.
+      - if: >-
+          !cancelled() && steps.deballe.outcome == 'success' &&
+          (steps.build.outputs.status != 'finished' || steps.paquet.outcome != 'success')
+        run: bluelium/scripts/ci-macos/pack.sh "$GITHUB_WORKSPACE/etat"
+      - if: >-
+          !cancelled() && steps.deballe.outcome == 'success' &&
+          (steps.build.outputs.status != 'finished' || steps.paquet.outcome != 'success')
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-etat
+          path: ${{ github.workspace }}/etat/
+          retention-days: 5
+          compression-level: 0
+          overwrite: true

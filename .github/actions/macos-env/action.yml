@@ -1,0 +1,39 @@
+name: Environnement de build macOS
+description: >
+  Outils pour compiler Bluelium macOS. Sur un runner GitHub : Python 3.13,
+  coreutils, zstd, wget, place sur le disque et le Xcode choisi par
+  helium-macos pour cette version. Sur un Mac à soi (self-hosted), vérifie
+  seulement que les outils sont là, sans rien supprimer.
+inputs:
+  helium_tag:
+    description: Version de helium-macos (choisit le Xcode)
+    required: true
+runs:
+  using: composite
+  steps:
+    - if: runner.environment == 'github-hosted'
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.13'
+    - if: runner.environment == 'github-hosted'
+      shell: bash
+      env:
+        HELIUM_TAG: ${{ inputs.helium_tag }}
+      run: |
+        set -euxo pipefail
+        sudo rm -rf "${ANDROID_HOME:-/nonexistent}"
+        sudo mdutil -a -i off || true
+        brew install coreutils zstd wget --overwrite
+        pip3 install requests pillow --break-system-packages
+        # Le Xcode que Helium utilise pour cette version (supprime les autres).
+        curl -sfL -o "$RUNNER_TEMP/xcode.sh" \
+          "https://raw.githubusercontent.com/imputnet/helium-macos/$HELIUM_TAG/.github/scripts/github_prepare_xcode.sh"
+        bash -eux "$RUNNER_TEMP/xcode.sh"
+        df -h /
+    - if: runner.environment != 'github-hosted'
+      shell: bash
+      run: |
+        for tool in greadlink gsync zstd wget python3 git gh; do
+          command -v "$tool" >/dev/null || { echo "::error::$tool manquant sur ce Mac"; exit 1; }
+        done
+        df -h "$GITHUB_WORKSPACE"

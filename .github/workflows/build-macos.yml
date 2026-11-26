@@ -1,0 +1,405 @@
+# Bluelium : auto-build macOS (Apple Silicon) sur GitHub Actions.
+#
+# Chaque nuit, construit la dernière version stable de helium-macos avec la
+# série Bluelium de main, si cette version n'est pas déjà publiée. Comme
+# Helium : un job prépare les sources, puis jusqu'à 10 étapes de moins de
+# 6 h se passent l'arbre de build (artefact macos-etat) jusqu'à la fin de la
+# compilation ; la dernière fait le paquet signé (artefact macos-paquet).
+#
+# Publication : seulement si docs/patch-notes/<version>.html est dans main
+# (règle d'AGENTS.md). Sinon le paquet attend 14 jours dans le run, une issue
+# le signale ; après avoir poussé la page, relancer avec « publier » = l'id
+# du run.
+#
+# Renforts :
+# - Reprise : un échec en cours de route garde l'état ; le bilan relance
+#   seul une fois le build depuis cet état (« reprendre »), puis ouvre une
+#   issue (étiquette auto-build-macos), fermée au build suivant réussi.
+# - Mac à soi : variable de dépôt MACOS_RUNNER (ex. ["self-hosted","macOS"])
+#   ou champ « runner » : le build tourne dessus, sans la limite de 6 h.
+#
+# Secrets : MACOS_SIGN_P12 (certificat « Bluelium Code Signing », .p12 en
+# base64), MACOS_SIGN_P12_PASSWORD, SPARKLE_PRIVATE_KEY. Voir le README.
+name: Build macOS
+
+on:
+  schedule:
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Version de helium-macos (vide = dernière stable)'
+        required: false
+      force:
+        description: 'Reconstruire même si déjà publié'
+        type: boolean
+        default: false
+      runner:
+        description: 'Runner (vide = variable MACOS_RUNNER, sinon macos-latest)'
+        required: false
+      reprendre:
+        description: "Id d'un run dont reprendre la compilation"
+        required: false
+      publier:
+        description: "Id d'un run dont publier le paquet (après ajout de la page)"
+        required: false
+      tentative:
+        description: 'Numéro de reprise automatique (interne)'
+        required: false
+        default: '0'
+
+permissions:
+  contents: write
+  issues: write
+  actions: write
+
+concurrency:
+  group: build-macos
+  cancel-in-progress: false
+
+jobs:
+  choix:
+    runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.choix.outputs.mode }}
+      tag: ${{ steps.choix.outputs.tag }}
+      version: ${{ steps.choix.outputs.version }}
+      runner: ${{ steps.choix.outputs.runner }}
+      minutes: ${{ steps.choix.outputs.minutes }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: choix
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TAG_DEMANDE: ${{ inputs.tag }}
+          FORCE: ${{ inputs.force }}
+          RUNNER: ${{ inputs.runner || vars.MACOS_RUNNER || 'macos-latest' }}
+          REPRENDRE: ${{ inputs.reprendre }}
+          PUBLIER: ${{ inputs.publier }}
+          SIGNATURE: ${{ secrets.MACOS_SIGN_P12 != '' && secrets.SPARKLE_PRIVATE_KEY != '' }}
+        run: |
+          set -euo pipefail
+          # Sans eux, des heures de compilation finiraient sur un paquet refusé.
+          if [ "$SIGNATURE" != true ]; then
+            echo "::error::secrets MACOS_SIGN_P12 / SPARKLE_PRIVATE_KEY absents (voir le README)"
+            exit 1
+          fi
+          case "$RUNNER" in
+            \[*) echo "runner=$RUNNER" >> "$GITHUB_OUTPUT" ;;
+            *)   echo "runner=[\"$RUNNER\"]" >> "$GITHUB_OUTPUT" ;;
+          esac
+          # Un Mac à soi n'a pas la limite de 6 h par job.
+          case "$RUNNER" in
+            *self-hosted*) echo "minutes=2880" >> "$GITHUB_OUTPUT" ;;
+            *)             echo "minutes=360" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+          if [ -n "$PUBLIER" ]; then
+            echo "mode=publier" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          TAG=${TAG_DEMANDE:-$(python3 tools/helium-tag.py latest imputnet/helium-macos)}
+          VERSION="$TAG-$(python3 tools/couleur.py)"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Bluelium macOS $VERSION" | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ -n "$REPRENDRE" ]; then
+            echo "mode=reprendre" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+
+          if [ "$FORCE" != true ]; then
+            if gh release view "v$VERSION-macos" --repo "$REPO" >/dev/null 2>&1 \
+               || gh release view "v$VERSION" --repo "$REPO" --json assets -q '.assets[].name' 2>/dev/null \
+                  | grep -q -- "-macos-arm64.dmg$"; then
+              echo "Déjà publié : rien à faire." | tee -a "$GITHUB_STEP_SUMMARY"
+              echo "mode=rien" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+            # Déjà construit, en attente de sa page de patch note.
+            if gh issue list --repo "$REPO" --label auto-build-macos --state open \
+                 --search "\"macOS $VERSION prêt\" in:title" --json number -q '.[].number' | grep -q .; then
+              echo "Déjà construit, en attente de la page de patch note (voir l'issue)." | tee -a "$GITHUB_STEP_SUMMARY"
+              echo "mode=rien" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+          fi
+          echo "mode=construire" >> "$GITHUB_OUTPUT"
+
+  preparation:
+    needs: choix
+    if: needs.choix.outputs.mode == 'construire'
+    runs-on: ${{ fromJSON(needs.choix.outputs.runner) }}
+    timeout-minutes: ${{ fromJSON(needs.choix.outputs.minutes) }}
+    env:
+      BLUELIUM_MAC_WORK: ${{ github.workspace }}/work
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: bluelium
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./bluelium/.github/actions/macos-env
+        with:
+          helium_tag: ${{ needs.choix.outputs.tag }}
+      - name: Sources Helium + série Bluelium, configuration
+        env:
+          HELIUM_TAG: ${{ needs.choix.outputs.tag }}
+          CONFIGURE_ONLY: '1'
+          MIN_FREE_GB: '30'
+        run: |
+          bluelium/scripts/build-macos.sh arm64
+          . "$BLUELIUM_MAC_WORK/meta.env"
+          [ "$VERSION" = '${{ needs.choix.outputs.version }}' ] \
+            || { echo "::error::version $VERSION au lieu de ${{ needs.choix.outputs.version }}"; exit 1; }
+      - run: bluelium/scripts/ci-macos/pack.sh "$GITHUB_WORKSPACE/etat"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-etat
+          path: ${{ github.workspace }}/etat/
+          retention-days: 5
+          compression-level: 0
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-serie
+          path: |
+            ${{ env.BLUELIUM_MAC_WORK }}/series.log
+            ${{ env.BLUELIUM_MAC_WORK }}/patches-*/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  etape_01:
+    needs: [choix, preparation]
+    if: >-
+      !cancelled() && (needs.preparation.result == 'success' ||
+      (needs.choix.outputs.mode == 'reprendre' && needs.preparation.result == 'skipped'))
+    uses: ./.github/workflows/build-macos-phase.yml
+    secrets: inherit
+    with:
+      runner: ${{ needs.choix.outputs.runner }}
+      minutes: ${{ fromJSON(needs.choix.outputs.minutes) }}
+      helium_tag: ${{ needs.choix.outputs.tag }}
+      source_run: ${{ needs.choix.outputs.mode == 'reprendre' && inputs.reprendre || '' }}
+  etape_02:
+    needs: [choix, etape_01]
+    if: needs.etape_01.outputs.status == 'running'
+    uses: ./.github/workflows/build-macos-phase.yml
+    secrets: inherit
+    with:
+      runner: ${{ needs.choix.outputs.runner }}
+      minutes: ${{ fromJSON(needs.choix.outputs.minutes) }}
+      helium_tag: ${{ needs.choix.outputs.tag }}
+  etape_03:
+    needs: [choix, etape_02]
+    if: needs.etape_02.outputs.status == 'running'
+    uses: ./.github/workflows/build-macos-phase.yml
+    secrets: inherit
+    with:
+      runner: ${{ needs.choix.outputs.runner }}
+      minutes: ${{ fromJSON(needs.choix.outputs.minutes) }}
+      helium_tag: ${{ needs.choix.outputs.tag }}
+  etape_04:
+    needs: [choix, etape_03]
+    if: needs.etape_03.outputs.status == 'running'
+    uses: ./.github/workflows/build-macos-phase.yml
+    secrets: inherit
+    with:
+      runner: ${{ needs.choix.outputs.runner }}
+      minutes: ${{ fromJSON(needs.choix.outputs.minutes) }}
+      helium_tag: ${{ needs.choix.outputs.tag }}
+  etape_05:
+    needs: [choix, etape_04]
+    if: needs.etape_04.outputs.status == 'running'
+    uses: ./.github/workflows/build-macos-phase.yml
+    secrets: inherit
+    with:
+      runner: ${{ needs.choix.outputs.runner }}
+      minutes: ${{ fromJSON(needs.choix.outputs.minutes) }}
+      helium_tag: ${{ needs.choix.outputs.tag }}
+  etape_06:
+    needs: [choix, etape_05]
+    if: needs.etape_05.outputs.status == 'running'
+    uses: ./.github/workflows/build-macos-phase.yml
+    secrets: inherit
+    with:
+      runner: ${{ needs.choix.outputs.runner }}
+      minutes: ${{ fromJSON(needs.choix.outputs.minutes) }}
+      helium_tag: ${{ needs.choix.outputs.tag }}
+  etape_07:
+    needs: [choix, etape_06]
+    if: needs.etape_06.outputs.status == 'running'
+    uses: ./.github/workflows/build-macos-phase.yml
+    secrets: inherit
+    with:
+      runner: ${{ needs.choix.outputs.runner }}
+      minutes: ${{ fromJSON(needs.choix.outputs.minutes) }}
+      helium_tag: ${{ needs.choix.outputs.tag }}
+  etape_08:
+    needs: [choix, etape_07]
+    if: needs.etape_07.outputs.status == 'running'
+    uses: ./.github/workflows/build-macos-phase.yml
+    secrets: inherit
+    with:
+      runner: ${{ needs.choix.outputs.runner }}
+      minutes: ${{ fromJSON(needs.choix.outputs.minutes) }}
+      helium_tag: ${{ needs.choix.outputs.tag }}
+  etape_09:
+    needs: [choix, etape_08]
+    if: needs.etape_08.outputs.status == 'running'
+    uses: ./.github/workflows/build-macos-phase.yml
+    secrets: inherit
+    with:
+      runner: ${{ needs.choix.outputs.runner }}
+      minutes: ${{ fromJSON(needs.choix.outputs.minutes) }}
+      helium_tag: ${{ needs.choix.outputs.tag }}
+  etape_10:
+    needs: [choix, etape_09]
+    if: needs.etape_09.outputs.status == 'running'
+    uses: ./.github/workflows/build-macos-phase.yml
+    secrets: inherit
+    with:
+      runner: ${{ needs.choix.outputs.runner }}
+      minutes: ${{ fromJSON(needs.choix.outputs.minutes) }}
+      helium_tag: ${{ needs.choix.outputs.tag }}
+
+  publication:
+    needs: [choix, etape_01, etape_02, etape_03, etape_04, etape_05,
+            etape_06, etape_07, etape_08, etape_09, etape_10]
+    if: >-
+      !cancelled() && (needs.choix.outputs.mode == 'publier' ||
+      contains(join(needs.*.outputs.status, ','), 'finished'))
+    runs-on: ubuntu-latest
+    outputs:
+      publie: ${{ steps.publie.outputs.publie }}
+      version: ${{ steps.meta.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: macos-paquet
+          path: paquet
+          run-id: ${{ inputs.publier || github.run_id }}
+          github-token: ${{ github.token }}
+      - id: meta
+        run: |
+          . paquet/meta.env
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          ls -la paquet
+      - id: publie
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BLUELIUM_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          RUN_ID: ${{ inputs.publier || github.run_id }}
+        run: |
+          set -euo pipefail
+          . paquet/meta.env
+          PAGE="docs/patch-notes/$VERSION.html"
+          if [ ! -f "$PAGE" ]; then
+            # Règle d'AGENTS.md : pas de publication sans la page validée.
+            echo "Page $PAGE absente de main : paquet gardé dans le run, pas publié." | tee -a "$GITHUB_STEP_SUMMARY"
+            gh label create auto-build-macos --repo "$BLUELIUM_REPO" --color B60205 \
+              --description "Auto-build macOS (GitHub Actions)" 2>/dev/null || true
+            TITRE="macOS $VERSION prêt : page de patch note manquante"
+            if ! gh issue list --repo "$BLUELIUM_REPO" --label auto-build-macos --state open \
+                 --search "\"$TITRE\" in:title" --json number -q '.[].number' | grep -q .; then
+              gh issue create --repo "$BLUELIUM_REPO" --label auto-build-macos --title "$TITRE" --body "Le .dmg de Bluelium $VERSION (macOS) est construit et signé : $RUN_URL
+
+          Il n'est pas publié : \`$PAGE\` n'est pas dans main.
+
+          1. Écrire la page (à partir de \`docs/patch-notes/modele.html\`), la faire valider, la pousser sur main.
+          2. Actions → Build macOS → Run workflow, avec **publier** = \`$RUN_ID\`.
+
+          Le paquet reste disponible 14 jours dans le run."
+            fi
+            echo "publie=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          BLUELIUM_VERSION=$VERSION BLUELIUM_ARCH=$ARCH BLUELIUM_SERIE=$SERIE BLUELIUM_NOM="$NOM" \
+            scripts/publish-macos.sh paquet
+          echo "Publié : Bluelium $VERSION (macOS)" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "publie=true" >> "$GITHUB_OUTPUT"
+
+  bilan:
+    needs: [choix, preparation, etape_01, etape_02, etape_03, etape_04, etape_05,
+            etape_06, etape_07, etape_08, etape_09, etape_10, publication]
+    if: always() && needs.choix.outputs.mode != 'rien'
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          RUN_ID: ${{ github.run_id }}
+          MODE: ${{ needs.choix.outputs.mode }}
+          VERSION: ${{ needs.choix.outputs.version || needs.publication.outputs.version }}
+          TAG: ${{ needs.choix.outputs.tag }}
+          RUNNER: ${{ inputs.runner }}
+          TENTATIVE: ${{ inputs.tentative || '0' }}
+          RESULTATS: ${{ join(needs.*.result, ' ') }}
+          STATUTS: ${{ join(needs.*.outputs.status, ' ') }}
+          CHOIX: ${{ needs.choix.result }}
+          PREPARATION: ${{ needs.preparation.result }}
+          PUBLIE: ${{ needs.publication.outputs.publie }}
+          PUBLICATION: ${{ needs.publication.result }}
+        run: |
+          set -uo pipefail
+          gh label create auto-build-macos --repo "$REPO" --color B60205 \
+            --description "Auto-build macOS (GitHub Actions)" 2>/dev/null || true
+          ouvertes() {
+            gh issue list --repo "$REPO" --label auto-build-macos --state open \
+              --json number,title -q '.[] | "\(.number)\t\(.title)"'
+          }
+
+          if [ "$PUBLIE" = true ]; then
+            ouvertes | while IFS=$'\t' read -r n _; do
+              gh issue close "$n" --repo "$REPO" --comment "Réparé : Bluelium $VERSION (macOS) construit et publié. $RUN_URL"
+            done
+            exit 0
+          fi
+          case " $RESULTATS " in
+            *" failure "*|*" cancelled "*) ;;
+            *) # Pas d'échec : fini (paquet publié ou en attente de sa page),
+               # sauf si les 10 étapes n'ont pas suffi (traité ci-dessous).
+               case "$STATUTS" in *finished*) exit 0 ;; esac
+               [ -n "${STATUTS// /}" ] || exit 0 ;;
+          esac
+
+          # Échec avec un état gardé (préparation réussie, ou reprise) :
+          # une reprise automatique, une seule, avant d'ouvrir l'issue.
+          if { [ "$PREPARATION" = success ] || [ "$MODE" = reprendre ]; } \
+             && [ "$PUBLICATION" != failure ] && [ "$TENTATIVE" -lt 1 ]; then
+            if gh workflow run build-macos.yml --repo "$REPO" --ref main \
+                 -f reprendre="$RUN_ID" -f tag="$TAG" -f tentative=$((TENTATIVE + 1)) \
+                 ${RUNNER:+-f runner="$RUNNER"}; then
+              echo "Reprise automatique lancée depuis l'état de ce run." | tee -a "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+          fi
+
+          if [ "$CHOIX" = failure ]; then
+            RAISON="le choix de la version a échoué (secrets de signature absents ?)"
+          elif [ "$PREPARATION" = failure ]; then
+            RAISON="la préparation a échoué (série Bluelium ou sources Helium : voir l'artefact macos-serie)"
+          elif [ "$PUBLICATION" = failure ]; then
+            RAISON="la publication a échoué (paquet prêt dans le run)"
+          else
+            RAISON="la compilation ou le paquet a échoué"
+          fi
+          CORPS="Build macOS de Bluelium ${VERSION:-?} (Helium ${TAG:-?}) : $RAISON.
+
+          Run : $RUN_URL
+          Jobs : $RESULTATS
+
+          Reprendre depuis l'état gardé : Actions → Build macOS → Run workflow, **reprendre** = \`$RUN_ID\`."
+          N=$(ouvertes | grep -v "prêt : page" | head -1 | cut -f1)
+          if [ -n "$N" ]; then
+            gh issue comment "$N" --repo "$REPO" --body "$CORPS"
+          else
+            gh issue create --repo "$REPO" --label auto-build-macos \
+              --title "Auto-build macOS : échec ${VERSION:-}" --body "$CORPS"
+          fi
+          exit 1
