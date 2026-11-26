@@ -16,6 +16,11 @@ HERE="$(dirname "$CHROME_WRAPPER")"
 if [ -d "$HERE.staged" ] && [ -x "$HOME/.local/bin/glyphe-update" ]; then
   "$HOME/.local/bin/glyphe-update" --apply-staged || true
 fi
+# Bluelium : l'outil de mise à jour installé suit celui du paquet.
+UPDATER="$HOME/.local/bin/glyphe-update"
+if [ -f "$HERE/glyphe-update" ] && [ -f "$UPDATER" ] && ! cmp -s "$HERE/glyphe-update" "$UPDATER"; then
+  install -m 755 "$HERE/glyphe-update" "$UPDATER.new" && mv -f "$UPDATER.new" "$UPDATER" || true
+fi
 
 export CHROME_WRAPPER
 export LD_LIBRARY_PATH="$HERE:$HERE/lib:$HERE/lib.target${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"

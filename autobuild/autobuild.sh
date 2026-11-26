@@ -133,7 +133,8 @@ TAG=${HELIUM_TAG:-$(python3 "$B/tools/helium-tag.py" latest imputnet/helium-linu
 git rev-parse --quiet --verify "refs/tags/$TAG" >/dev/null \
   || fail "la version $TAG de helium-linux n'existe pas"
 PATCH_ID=$(git -C "$B" log -1 --format=%h -- specs patches downloads.ini \
-           autobuild/helium-wrapper tools/apply_spec.py tools/apply-series.py \
+           autobuild/helium-wrapper autobuild/glyphe-update \
+           tools/apply_spec.py tools/apply-series.py \
            tools/rename-product.py \
            ':!specs/macos_*' ':!patches/glyphe/macos-*')
 # Version publiée : Helium + couleur de la série (tools/couleur.py), la même
@@ -212,6 +213,8 @@ package() {
   cp "$out"/locales/*.pak "$pkg/locales/"
   "$strip_bin" "$pkg/helium"
   install -m 755 "$B/autobuild/helium-wrapper" "$pkg/helium-wrapper"
+  # Le lanceur remet à jour ~/.local/bin/glyphe-update avec celui-ci.
+  install -m 755 "$B/autobuild/glyphe-update" "$pkg/glyphe-update"
   echo "$VERSION" > "$pkg/VERSION"
   tar -C "$REL" -cf - "bluelium-$VERSION" | zstd -q -T0 -10 -o "$tarball" -f
   rm -rf "$pkg"
@@ -283,7 +286,9 @@ if [ "${ARM64:-1}" = 1 ]; then
   ( cd "$W/build/src" && ./buildtools/linux64/gn gen out/arm64 --fail-on-unused-args ) \
     || arm_fail "gn gen"
   _out_dir=$ARM_OUT build -j "${JOBS:-32}" || arm_fail "la compilation a échoué"
-  ARM_TAR=$REL/bluelium-$VERSION-aarch64.tar.zst
+  # .tzst et non .tar.zst : les anciens glyphe-update prennent la première
+  # archive .tar.zst de la release, sans regarder l'architecture.
+  ARM_TAR=$REL/bluelium-$VERSION-aarch64.tzst
   package "$ARM_OUT" "$ARM_TAR" "$W/build/src/third_party/llvm-build/Release+Asserts/bin/llvm-strip"
   ARM_ASSETS=("$ARM_TAR" "$ARM_TAR.sha256")
   if APPIMAGE_ARCH=aarch64 bash "$B/autobuild/make-appimage.sh" "$ARM_TAR" "$REL"; then
@@ -291,7 +296,7 @@ if [ "${ARM64:-1}" = 1 ]; then
                  "$REL/Bluelium-$VERSION-aarch64.AppImage.sha256"
                  "$REL/Bluelium-$VERSION-aarch64.AppImage.zsync")
   else
-    echo "AppImage arm64 non produite (le paquet tar.zst reste publié)."
+    echo "AppImage arm64 non produite (le paquet .tzst reste publié)."
   fi
   rm -rf "$ARM_OUT"
   if [ "${PUBLISH:-1}" = 1 ] && [ -n "${GH_TOKEN:-}" ]; then
@@ -304,7 +309,7 @@ fi
 # On garde les trois derniers paquets de chaque architecture.
 ls -1t "$REL"/bluelium-*.tar.zst | grep -v -- '-aarch64\.tar\.zst$' | tail -n +4 \
   | while read -r old; do rm -f "$old" "$old.sha256"; done
-ls -1t "$REL"/bluelium-*-aarch64.tar.zst 2>/dev/null | tail -n +4 \
+ls -1t "$REL"/bluelium-*-aarch64.tzst "$REL"/bluelium-*-aarch64.tar.zst 2>/dev/null | tail -n +4 \
   | while read -r old; do rm -f "$old" "$old.sha256"; done
 for arch in x86_64 aarch64; do
   ls -1t "$REL"/Bluelium-*-$arch.AppImage 2>/dev/null | tail -n +4 \

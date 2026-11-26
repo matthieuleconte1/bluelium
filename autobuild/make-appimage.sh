@@ -17,9 +17,11 @@ AARCH=${APPIMAGE_ARCH:-x86_64}
 RUNTIME=()
 [ "$AARCH" = x86_64 ] || RUNTIME=(--runtime-file "${APPIMAGE_RUNTIME:-/root/glyphe/bin/runtime-$AARCH}")
 
-# bluelium-<version>.tar.zst, ou bluelium-<version>-aarch64.tar.zst ; le
+# bluelium-<version>.tar.zst, ou bluelium-<version>-aarch64.tzst ; le
 # dossier dans l'archive est toujours bluelium-<version>.
-NAME=$(basename "$TAR" .tar.zst)
+NAME=$(basename "$TAR")
+NAME=${NAME%.tar.zst}
+NAME=${NAME%.tzst}
 NAME=${NAME%-aarch64}
 VERSION=${NAME#bluelium-}
 WORK=$(mktemp -d)
@@ -31,7 +33,7 @@ mkdir -p "$APPDIR/opt" "$APPDIR/usr/share/icons/hicolor/256x256/apps" \
 zstd -dc "$TAR" | tar -C "$APPDIR/opt" -xf -
 mv "$APPDIR/opt/$NAME" "$APPDIR/opt/bluelium"
 # Dans l'AppImage, pas de mise à jour « staged » : c'est l'AppImage qu'on remplace.
-rm -f "$APPDIR/opt/bluelium/helium-wrapper"
+rm -f "$APPDIR/opt/bluelium/helium-wrapper" "$APPDIR/opt/bluelium/glyphe-update"
 
 install -m 755 "$HERE/AppRun" "$APPDIR/AppRun"
 install -m 755 "$HERE/appimage-update" "$APPDIR/opt/bluelium/appimage-update"

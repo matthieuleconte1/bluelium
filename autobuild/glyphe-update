@@ -6,7 +6,9 @@
   glyphe-update --status        affiche les versions installée, prête et publiée
 
 Les versions sont publiées par l'auto-build (autobuild/autobuild.sh) comme
-releases de BLUELIUM_REPO : une archive .tar.zst et son .sha256.
+releases de BLUELIUM_REPO : une archive par architecture et son .sha256,
+bluelium-<v>.tar.zst (x86_64) et bluelium-<v>-aarch64.tzst (arm64).
+Le dossier dans l'archive est toujours bluelium-<v>.
 
 La nouvelle version est installée seulement quand aucune fenêtre de Bluelium
 n'est ouverte : sinon elle est préparée à côté
@@ -56,10 +58,13 @@ def latest_release():
     raise
   assets = {a['name']: a['browser_download_url'] for a in release.get('assets', [])}
   # Paquet de l'architecture de la machine : bluelium-<v>.tar.zst (x86_64),
-  # bluelium-<v>-aarch64.tar.zst (arm64).
+  # bluelium-<v>-aarch64.tzst (arm64 ; .tar.zst dans les releases d'avant).
   arm = platform.machine() in ('aarch64', 'arm64')
-  archive = next((n for n in assets if n.endswith('.tar.zst')
-                  and n.endswith('-aarch64.tar.zst') == arm), None)
+  if arm:
+    wanted = lambda n: n.endswith(('-aarch64.tzst', '-aarch64.tar.zst'))
+  else:
+    wanted = lambda n: n.endswith('.tar.zst') and not n.endswith('-aarch64.tar.zst')
+  archive = next((n for n in assets if wanted(n)), None)
   if not archive or archive + '.sha256' not in assets:
     return None
   with http(assets[archive + '.sha256']) as response:
@@ -129,7 +134,7 @@ def download(latest):
   if digest.hexdigest() != latest['sha256']:
     raise RuntimeError('empreinte SHA-256 différente : téléchargement rejeté')
   subprocess.run(['tar', '--zstd', '-xf', str(archive), '-C', str(DOWNLOAD)], check=True)
-  extracted = DOWNLOAD / archive.name.removesuffix('.tar.zst')
+  extracted = DOWNLOAD / f"bluelium-{latest['version']}"
   if version_of(extracted) != latest['version']:
     raise RuntimeError('paquet incohérent (VERSION)')
   if STAGED.exists():
