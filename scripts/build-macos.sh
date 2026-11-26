@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Bluelium — build macOS (Apple Silicon) sur le Mac, à partir de helium-macos.
 #
-# Même déroulé que l'auto-build Linux : version suivie de imputnet/helium-macos
-# (change seulement aux versions majeures stables), étapes de Helium (patchs, substitutions, traductions,
+# Même déroulé que l'auto-build Linux : dernière version stable de
+# imputnet/helium-macos (petites versions comprises), étapes de Helium (patchs, substitutions, traductions,
 # ressources), PUIS la série Bluelium (specs/SERIES, plateforme « mac »),
 # compilation, et paquet Bluelium.app + .dmg (scripts/package-macos.sh).
 #
@@ -17,8 +17,7 @@
 #                          -volname BlueliumBuild /Volumes/Medock/bluelium.sparsebundle
 #                        hdiutil attach /Volumes/Medock/bluelium.sparsebundle
 #                        BLUELIUM_MAC_WORK=/Volumes/BlueliumBuild scripts/build-macos.sh
-#   HELIUM_TAG         version de helium-macos (défaut : celle de l'arbre, ou
-#                      la dernière stable si sa version majeure est plus récente)
+#   HELIUM_TAG         version de helium-macos (défaut : la dernière stable)
 #   JOBS               tâches de compilation en parallèle (défaut : 8, 18 Go de RAM)
 #   PGO                false pour couper le profil PGO (défaut : true, comme Helium)
 #   PATCH_ONLY=1       s'arrête après la série Bluelium (vérifie qu'elle s'applique)
@@ -71,22 +70,21 @@ if [ ! -d "$W/.git" ]; then
   git clone https://github.com/imputnet/helium-macos.git "$W"
 fi
 git -C "$W" fetch --quiet --tags --force origin
-# Version de Helium : celle de l'arbre actuel, sauf nouvelle version MAJEURE
-# stable (0.21 -> 0.22) ; petites versions et pré-versions ignorées
-# (tools/helium-tag.py). Avec SKIP_FETCH=1, toujours celle de l'arbre.
+# Version de Helium : la dernière stable, petites versions comprises ;
+# pré-versions ignorées (tools/helium-tag.py latest). Avec SKIP_FETCH=1,
+# toujours celle de l'arbre.
 CUR=$(git -C "$W" describe --tags --exact-match 2>/dev/null || true)
 if [ "${SKIP_FETCH:-0}" = 1 ] && [ -n "$CUR" ]; then
   TAG=${HELIUM_TAG:-$CUR}
 else
-  TAG=${HELIUM_TAG:-$(python3 "$B/tools/helium-tag.py" choose imputnet/helium-macos "$CUR")}
+  TAG=${HELIUM_TAG:-$(python3 "$B/tools/helium-tag.py" latest imputnet/helium-macos "$CUR")}
 fi
 [ -n "$TAG" ] || die "aucune version trouvée sur imputnet/helium-macos"
-PATCH_ID=$(git -C "$B" log -1 --format=%h -- specs patches downloads.ini \
-           tools/apply_spec.py tools/apply-series.py tools/rename-product.py \
-           autobuild/sparkle-public-key \
-           scripts/package-macos.sh scripts/dmg-settings.py assets/dmg)
-VERSION="$TAG-g$PATCH_ID"
-echo "Bluelium $VERSION (helium-macos $TAG)"
+# Couleur de la série de patchs (tools/couleur.py) : la même que sous Linux
+# pour les mêmes patchs.
+COULEUR=$(python3 "$B/tools/couleur.py" "$B")
+VERSION="$TAG-$COULEUR"
+echo "Bluelium $VERSION (helium-macos $TAG, série $(python3 "$B/tools/couleur.py" "$B" --serie))"
 
 export _root_dir=$W
 if [ "${SKIP_FETCH:-0}" != 1 ]; then

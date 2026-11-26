@@ -17,7 +17,10 @@ AARCH=${APPIMAGE_ARCH:-x86_64}
 RUNTIME=()
 [ "$AARCH" = x86_64 ] || RUNTIME=(--runtime-file "${APPIMAGE_RUNTIME:-/root/glyphe/bin/runtime-$AARCH}")
 
-NAME=$(basename "$TAR" .tar.zst)      # bluelium-<version>
+# bluelium-<version>.tar.zst, ou bluelium-<version>-aarch64.tar.zst ; le
+# dossier dans l'archive est toujours bluelium-<version>.
+NAME=$(basename "$TAR" .tar.zst)
+NAME=${NAME%-aarch64}
 VERSION=${NAME#bluelium-}
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT

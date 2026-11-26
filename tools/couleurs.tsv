@@ -1,0 +1,193 @@
+# Noms de couleur des versions Bluelium (tools/couleur.py).
+# Source : https://fr.wikipedia.org/wiki/Liste_de_noms_de_couleur (CC BY-SA 4.0).
+# Colonnes : identifiant (version), nom affiché, exemple de teinte.
+# Ne pas réordonner : l'ordre fixe la couleur de chaque série.
+abricot	Abricot	#E67E30
+acajou	Acajou	#88421D
+aigue-marine	Aigue-marine	#79F8F8
+amande	Amande	#82C46C
+amarante	Amarante	#91283B
+ambre	Ambre	#F0C300
+amethyste	Améthyste	#884DA7
+anthracite	Anthracite	#303030
+argent	Argent	#FFFFFF
+aubergine	Aubergine	#370028
+aurore	Aurore	#FFCB60
+avocat	Avocat	#568203
+azur	Azur	#007FFF
+basane	Basané	#8B6C42
+beurre	Beurre	#F0E36B
+bis	Bis	#766F64
+bisque	Bisque	#FFE4C4
+bistre	Bistre	#856D4D
+bitume	Bitume	#4E3D28
+blanc-casse	Blanc cassé	#FEFEE2
+blanc-lunaire	Blanc lunaire	#F4FEFE
+ble	Blé	#E8D630
+bleu-acier	Bleu acier	#3A8EBA
+bleu-bleuet	Bleu bleuet	#5472AE
+bleu-canard	Bleu canard	#048B9A
+bleu-charrette	Bleu charrette	#8EA2C6
+bleu-ciel	Bleu ciel	#77B5FE
+bleu-de-cobalt	Bleu de cobalt	#22427C
+bleu-de-prusse	Bleu de Prusse	#24445C
+bleu-electrique	Bleu électrique	#2C75FF
+bleu-givre	Bleu givré	#80D0D0
+bleu-marine	Bleu marine	#03224C
+bleu-nuit	Bleu nuit	#0F056B
+bleu-outremer	Bleu outremer	#004787
+bleu-paon	Bleu paon	#067790
+bleu-persan	Bleu persan	#4E63CE
+bleu-petrole	Bleu pétrole	#1D4851
+bleu-roi	Bleu roi	#318CE7
+bleu-saphir	Bleu saphir	#0131B4
+bleu-turquin	Bleu turquin	#425B8A
+bouton-d-or	Bouton d'or	#FCDC12
+brique	Brique	#842E1B
+bronze	Bronze	#614E1A
+brou-de-noix	Brou de noix	#3F2204
+cacao	Cacao	#614B3A
+cachou	Cachou	#2F1B0C
+cafe	Café	#462E01
+cannelle	Cannelle	#7E5835
+capucine	Capucine	#FF5E4D
+caramel	Caramel	#7E3300
+carmin	Carmin	#960018
+carotte	Carotte	#F4661B
+chamois	Chamois	#D0C07A
+chartreuse	Chartreuse	#7FFF00
+chaudron	Chaudron	#85530F
+chocolat	Chocolat	#5A3A22
+cinabre	Cinabre	#DB1702
+citrouille	Citrouille	#DF6D14
+coeruleum	Cœruleum	#357AB7
+coquille-d-oeuf	Coquille d'œuf	#FDE9E0
+corail	Corail	#E73E01
+cramoisi	Cramoisi	#DC143C
+cuisse-de-nymphe	Cuisse de nymphe	#FEE7F0
+cuivre	Cuivre	#B36700
+cyan	Cyan	#2BFAFA
+ecarlate	Écarlate	#ED0000
+ecru	Écru	#FEFEE0
+emeraude	Émeraude	#00815F
+fauve	Fauve	#AD4F09
+flave	Flave	#E6E697
+fraise	Fraise	#BF3030
+framboise	Framboise	#C72C48
+fumee	Fumée	#BBD2E1
+garance	Garance	#EE1010
+glauque	Glauque	#649B88
+glycine	Glycine	#C9A0DC
+grege	Grège	#BBAE98
+grenadine	Grenadine	#E9383F
+grenat	Grenat	#6E0B14
+gris-acier	Gris acier	#AFAFAF
+gris-de-payne	Gris de Payne	#677179
+gris-fer	Gris fer	#7F7F7F
+gris-perle	Gris perle	#CECECE
+gris-souris	Gris souris	#9E9E9E
+groseille	Groseille	#CF0A1D
+gueules	Gueules	#E21313
+heliotrope	Héliotrope	#DF73FF
+incarnat	Incarnat	#FF6F7D
+indigo	Indigo	#791CF8
+isabelle	Isabelle	#FEA777
+jaune-canari	Jaune canari	#E7F00D
+jaune-citron	Jaune citron	#F7FF3C
+jaune-de-cobalt	Jaune de cobalt	#FDEE00
+jaune-de-mars	Jaune de Mars	#EED153
+jaune-de-naples	Jaune de Naples	#FFF0BC
+jaune-imperial	Jaune impérial	#FFE436
+jaune-mimosa	Jaune mimosa	#FEF86C
+lapis-lazuli	Lapis-lazuli	#26619C
+lavalliere	Lavallière	#8F5922
+lavande	Lavande	#9683EC
+lie-de-vin	Lie de vin	#AC1E44
+lilas	Lilas	#B666D2
+lime	Lime	#9EFD38
+lin	Lin	#FAF0E6
+magenta	Magenta	#FF00FF
+mais	Maïs	#FFDE75
+malachite	Malachite	#1FA055
+mandarine	Mandarine	#FEA347
+marron	Marron	#582900
+mastic	Mastic	#B3B191
+mauve	Mauve	#D473D4
+menthe	Menthe	#16B84E
+moutarde	Moutarde	#C7CF00
+nacarat	Nacarat	#FC5D5D
+nankin	Nankin	#F7E269
+noisette	Noisette	#955628
+ocre-jaune	Ocre jaune	#DFAF2C
+ocre-rouge	Ocre rouge	#DD985C
+olive	Olive	#708D23
+or	Or	#FFD700
+orange-brule	Orange brûlé	#CC5500
+orchidee	Orchidée	#DA70D6
+orpiment	Orpiment	#FCD21C
+paille	Paille	#FEE347
+parme	Parme	#CFA0E9
+pelure-d-oignon	Pelure d'oignon	#D58490
+pervenche	Pervenche	#CCCCFF
+pistache	Pistache	#BEF574
+poil-de-chameau	Poil de chameau	#B67823
+ponceau	Ponceau	#C60800
+pourpre	Pourpre	#9E0E40
+prasin	Prasin	#4CA66B
+prune	Prune	#811453
+puce	Puce	#4E1609
+rose-mountbatten	Rose Mountbatten	#997A8D
+rouge-anglais	Rouge anglais	#F7230C
+rouge-cardinal	Rouge cardinal	#B82010
+rouge-cerise	Rouge cerise	#BB0B0B
+rouge-d-andrinople	Rouge d'Andrinople	#A91101
+rouge-de-falun	Rouge de Falun	#801818
+rouge-feu	Rouge feu	#FF4901
+rouge-indien	Rouge indien	#CD5C5C
+rouge-sang	Rouge sang	#850606
+rouge-tomate	Rouge tomate	#DE2916
+rouge-tomette	Rouge tomette	#AE4A34
+rouille	Rouille	#985717
+rubis	Rubis	#E0115F
+sable	Sable	#E0CDA9
+safre	Safre	#0131B4
+sang-de-boeuf	Sang de bœuf	#730800
+sanguine	Sanguine	#850606
+sarcelle	Sarcelle	#008080
+saumon	Saumon	#F88E55
+sepia	Sépia	#AE8964
+sinople	Sinople	#149414
+smalt	Smalt	#003399
+soufre	Soufre	#FFFF6B
+tabac	Tabac	#9F551E
+taupe	Taupe	#463F32
+terre-d-ombre	Terre d'ombre	#926D27
+topaze	Topaze	#FAEA73
+tourterelle	Tourterelle	#BBACAC
+turquoise	Turquoise	#25FDE9
+vanille	Vanille	#E1CE9A
+vermeil	Vermeil	#FF0921
+vermillon	Vermillon	#DB1702
+vert-bouteille	Vert bouteille	#096A09
+vert-celadon	Vert céladon	#83A697
+vert-d-eau	Vert d'eau	#B0F2B6
+vert-de-gris	Vert-de-gris	#95A595
+vert-de-hooker	Vert de Hooker	#1B4F08
+vert-de-vessie	Vert de vessie	#22780F
+vert-epinard	Vert épinard	#175732
+vert-imperial	Vert impérial	#00561B
+vert-lichen	Vert lichen	#85C17E
+vert-oxyde-de-chrome	Vert oxyde de chrome	#18391E
+vert-perroquet	Vert perroquet	#3AF24B
+vert-poireau	Vert poireau	#4CA66B
+vert-pomme	Vert pomme	#34C924
+vert-prairie	Vert prairie	#57D53B
+vert-printemps	Vert printemps	#00FF7F
+vert-sapin	Vert sapin	#095228
+vert-sauge	Vert sauge	#689D71
+vert-tilleul	Vert tilleul	#A5D152
+vert-veronese	Vert Véronèse	#5A6521
+violet	Violet	#8806CE
+violet-d-eveque	Violet d'évêque	#723E64
+viride	Viride	#40826D
+zinzolin	Zinzolin	#6C0277

@@ -3,7 +3,7 @@
 # dans un .dmg (+ .sha256), et publication facultative sur GitHub.
 #
 # Usage : scripts/package-macos.sh <out/Default> <dossier de sortie>
-#   BLUELIUM_VERSION  version (ex. 0.21.2.1-gabc1234), obligatoire
+#   BLUELIUM_VERSION  version (ex. 0.22.4.1-glycine), obligatoire
 #   BLUELIUM_ARCH     arm64 (défaut) ou x86_64
 #   PUBLISH=1         ajoute le .dmg à la release GitHub v<version> si elle
 #                     existe (build Linux de la même version), sinon crée la
@@ -94,7 +94,15 @@ echo "SHA-256 : $(cut -d' ' -f1 "$DMG.sha256")"
 # Appcast Sparkle : signature EdDSA du .dmg avec la clé du trousseau
 # (compte « bluelium »), outils Sparkle téléchargés une fois et vérifiés.
 REPO=${BLUELIUM_REPO:-matthieuleconte1/bluelium}
-if gh release view "v$VERSION" --repo "$REPO" >/dev/null 2>&1; then
+B=$(cd "$(dirname "$0")/.." && pwd)
+SERIE=$(python3 "$B/tools/couleur.py" "$B" --serie)
+if NOTES=$(gh release view "v$VERSION" --repo "$REPO" --json body -q .body 2>/dev/null); then
+  # Release Linux de la même version : même série attendue (même couleur
+  # peut venir d'une autre série, voir tools/couleur.py).
+  case "$NOTES" in
+    *"série $SERIE"*) ;;
+    *) echo "v$VERSION existe déjà avec une autre série que $SERIE : couleur déjà prise" >&2; exit 1 ;;
+  esac
   TAG="v$VERSION"
 else
   TAG="v$VERSION-macos"
@@ -151,7 +159,7 @@ if [ "${PUBLISH:-0}" = 1 ]; then
   else
     gh release create "v$VERSION-macos" "$DMG" "$DMG.sha256" --repo "$REPO" \
       --latest=false --title "Bluelium $VERSION (macOS)" \
-      --notes "Construit sur Helium macOS $(echo "$VERSION" | cut -d- -f1), patchs Bluelium $(echo "$VERSION" | sed 's/.*-g//'). macOS $ARCH, signé avec le certificat auto-signé Bluelium.
+      --notes "Construit sur Helium macOS $(echo "$VERSION" | cut -d- -f1), série $SERIE ($(python3 "$B/tools/couleur.py" "$B" --nom)). macOS $ARCH, signé avec le certificat auto-signé Bluelium.
 
 Installation : voir le README. Les versions suivantes s'installent ensuite toutes seules (Sparkle)."
     echo "Release v$VERSION-macos publiée"

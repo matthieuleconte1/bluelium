@@ -23,6 +23,11 @@ NEW = '''    // Helium Glyphe : fondu sur les bords plutôt qu'une ombre.
         views::ScrollView::GradientDirection::kHorizontal);
 '''
 
+# Helium 0.22.5 fait de même (fondu horizontal au lieu des ombres) : la
+# spec ne sert plus que pour les versions antérieures (macOS 0.22.4).
+UPSTREAM = '''    scroll_view->SetOverflowGradientMask(
+        views::ScrollView::GradientDirection::kHorizontal);'''
+
 EDITS = [
-  ('chrome/browser/ui/views/tabs/common/tab_strip_view.cc', OLD, NEW),
+  ('chrome/browser/ui/views/tabs/common/tab_strip_view.cc', OLD, NEW, UPSTREAM),
 ]

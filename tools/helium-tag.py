@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 """Bluelium : quelle version de Helium construire, et rappel des nouvelles.
 
-Règle : on ne suit que les versions MAJEURES de Helium (0.21 -> 0.22, qui
-correspondent aux versions majeures de Chromium). Les petites versions
-(0.21.2.1 -> 0.21.3.1) obligeraient à tout recompiler pour peu de chose :
-on les ignore. Les pré-versions (pre-release GitHub) ne comptent pas.
+Règle : les builds (auto-build Linux, build macOS) suivent la dernière
+version STABLE de Helium, petites versions comprises (commande latest). Les
+pré-versions (pre-release GitHub) ne comptent pas. La veille GitHub
+(next-major) teste à l'avance les nouvelles versions majeures.
+
+  helium-tag.py latest <dépôt> [version actuelle]
+      Affiche la dernière version stable de <dépôt>. Si GitHub ne répond
+      pas, garde la version actuelle.
 
   helium-tag.py choose <dépôt> [version actuelle]
       Affiche la version à construire : la version actuelle si la dernière
@@ -58,6 +62,18 @@ def newest(rels, prerelease=False):
     tags = [r['tag_name'] for r in rels
             if bool(r.get('prerelease')) == prerelease and version(r['tag_name'])]
     return max(tags, key=version, default=None)
+
+
+def latest(repo, current):
+    try:
+        stable = newest(releases(repo))
+    except Exception as e:  # réseau, quota GitHub…
+        if current:
+            print(f'helium-tag : GitHub injoignable ({e}), on garde {current}',
+                  file=sys.stderr)
+            return current
+        raise SystemExit(f'helium-tag : GitHub injoignable ({e})')
+    return stable or current or sys.exit(f'helium-tag : aucune version stable sur {repo}')
 
 
 def choose(repo, current):
@@ -114,7 +130,9 @@ def check():
 
 
 if __name__ == '__main__':
-    if len(sys.argv) >= 3 and sys.argv[1] == 'choose':
+    if len(sys.argv) >= 3 and sys.argv[1] == 'latest':
+        print(latest(sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else ''))
+    elif len(sys.argv) >= 3 and sys.argv[1] == 'choose':
         print(choose(sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else ''))
     elif len(sys.argv) == 3 and sys.argv[1] == 'next-major':
         print(next_major(sys.argv[2]))

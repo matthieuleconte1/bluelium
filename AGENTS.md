@@ -9,7 +9,8 @@ Toute release (macOS `scripts/package-macos.sh` avec `PUBLISH=1`, ou Linux via
 l'auto-build qui publie depuis `main`) doit avoir sa page de notes de version.
 
 - **Où :** `docs/patch-notes/<version>.html`, par exemple
-  `docs/patch-notes/0.21.2.1-g655a096.html`.
+  `docs/patch-notes/0.22.5.1-glycine.html`. La couleur de la série :
+  `python3 tools/couleur.py` (une fois la série commitée).
 - **Modèle :** partir de `docs/patch-notes/modele.html`, dont la DA est validée.
   Garder sa structure : en-tête (version, date, base Helium/Chromium, une
   phrase de résumé), une à trois nouveautés majeures avec leur démo

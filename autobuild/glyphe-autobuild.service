@@ -9,4 +9,5 @@ Environment=HOME=/root
 ExecStart=/root/glyphe/autobuild/autobuild.sh
 Nice=10
 IOSchedulingClass=idle
-TimeoutStartSec=6h
+# x86_64 (PGO) puis arm64 : deux compilations complètes.
+TimeoutStartSec=12h

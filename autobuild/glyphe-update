@@ -16,6 +16,7 @@ helium-wrapper. La version précédente reste dans helium-glyphe.previous.
 import hashlib
 import json
 import os
+import platform
 import shutil
 import subprocess
 import sys
@@ -54,7 +55,11 @@ def latest_release():
       return None
     raise
   assets = {a['name']: a['browser_download_url'] for a in release.get('assets', [])}
-  archive = next((n for n in assets if n.endswith('.tar.zst')), None)
+  # Paquet de l'architecture de la machine : bluelium-<v>.tar.zst (x86_64),
+  # bluelium-<v>-aarch64.tar.zst (arm64).
+  arm = platform.machine() in ('aarch64', 'arm64')
+  archive = next((n for n in assets if n.endswith('.tar.zst')
+                  and n.endswith('-aarch64.tar.zst') == arm), None)
   if not archive or archive + '.sha256' not in assets:
     return None
   with http(assets[archive + '.sha256']) as response:

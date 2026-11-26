@@ -222,8 +222,14 @@ remplacements de texte dans les sources de Chromium.
 
 Sous Linux, une machine de build vérifie chaque nuit s'il existe une nouvelle
 version de Helium ou un changement dans les specs. Si oui, elle reconstruit
-tout et publie une release `v<version Helium>-g<commit>`. Sous macOS, le build
-se lance à la main.
+tout et publie une release `v<version Helium>-<couleur>`, par exemple
+`v0.22.5.1-glycine`. Sous macOS, le build se lance à la main.
+
+La couleur désigne la série de patchs Bluelium : mêmes patchs, même couleur,
+sur Mac comme sous Linux, même si la version de Helium diffère. Elle est tirée
+du dernier commit de la série dans la
+[liste des noms de couleur de Wikipédia](https://fr.wikipedia.org/wiki/Liste_de_noms_de_couleur)
+(`tools/couleur.py`, `tools/couleurs.tsv`).
 
 | Dossier | Contenu |
 |---|---|
