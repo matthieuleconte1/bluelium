@@ -1,6 +1,6 @@
 # Ordre d'application des patchs Bluelium et la source de chacun.
 # Format : <patch dans patches/glyphe/>  <spec dans specs/ | - (patch figé)>  [plateformes]
-# Plateformes (facultatif, séparées par des virgules) : linux, mac. Sans
+# Plateformes (facultatif, séparées par des virgules) : linux, mac, win. Sans
 # colonne, le patch vaut pour toutes. apply-series.py reçoit la plateforme.
 # Appliqué par tools/apply-series.py APRÈS toutes les étapes de Helium
 # (patchs, substitution des domaines et des noms, traductions, ressources) :
@@ -65,6 +65,7 @@ page-color-omnibox.patch      page_color_omnibox_spec.py
 linux-update.patch            linux_update_spec.py           linux
 linux-identity.patch          linux_identity_spec.py         linux
 wayland-gamma22.patch         wayland_gamma22_spec.py        linux
+windows-identity.patch        windows_identity_spec.py       win
 extensions-group.patch        extensions_group_spec.py
 split-tab-hover.patch         split_tab_hover_spec.py
 newtab-tab.patch              newtab_tab_spec.py

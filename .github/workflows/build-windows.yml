@@ -1,0 +1,272 @@
+# Bluelium : auto-build Windows (x64) sur GitHub Actions.
+#
+# Chaque nuit, construit la dernière version stable de helium-windows avec la
+# série Bluelium (plateforme « win »), si elle n'est pas déjà construite.
+# Comme macOS : jusqu'à 10 étapes de moins de 6 h se passent l'arbre de build
+# (artefact windows-etat) ; la dernière fait l'installateur non signé
+# (artefact windows-paquet, gardé 14 jours).
+#
+# Publication : JAMAIS automatique pour l'instant (règle d'AGENTS.md : ne
+# publier que ce qui a été vu marcher). Une issue « Windows <version> prêt à
+# tester » donne le lien du paquet. Après test, et avec la page de patch note
+# dans main (qui parle de Windows) : Run workflow, « publier » = l'id du run.
+#
+# Échec : issue étiquetée auto-build-windows, fermée au build suivant réussi.
+# « reprendre » = l'id d'un run échoué relance depuis son état gardé.
+# Une annulation à la main n'ouvre pas d'issue.
+#
+# Pas de signature ni de mise à jour intégrée (WinSparkle) pour l'instant.
+name: Build Windows
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  # Branche de mise au point : un changement des workflows Windows lance un
+  # build. À retirer à la fusion dans main.
+  push:
+    branches: [windows-build]
+    paths:
+      - '.github/workflows/build-windows.yml'
+      - '.github/workflows/build-windows-phase.yml'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Version de helium-windows (vide = dernière stable)'
+        required: false
+      force:
+        description: 'Reconstruire même si déjà construit'
+        type: boolean
+        default: false
+      reprendre:
+        description: "Id d'un run dont reprendre la compilation"
+        required: false
+      publier:
+        description: "Id d'un run dont publier le paquet (après test et page)"
+        required: false
+
+permissions:
+  contents: write
+  issues: write
+  actions: read
+
+concurrency:
+  group: build-windows
+  cancel-in-progress: false
+
+jobs:
+  choix:
+    runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.choix.outputs.mode }}
+      tag: ${{ steps.choix.outputs.tag }}
+      version: ${{ steps.choix.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: choix
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TAG_DEMANDE: ${{ inputs.tag }}
+          FORCE: ${{ inputs.force }}
+          REPRENDRE: ${{ inputs.reprendre }}
+          PUBLIER: ${{ inputs.publier }}
+        run: |
+          set -euo pipefail
+          if [ -n "$PUBLIER" ]; then
+            echo "mode=publier" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          TAG=${TAG_DEMANDE:-$(python3 tools/helium-tag.py latest imputnet/helium-windows)}
+          VERSION="$TAG-$(python3 tools/couleur.py)"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Bluelium Windows $VERSION" | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ -n "$REPRENDRE" ]; then
+            echo "mode=reprendre" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if [ "$FORCE" != true ]; then
+            if gh release view "v$VERSION-windows" --repo "$REPO" >/dev/null 2>&1 \
+               || gh release view "v$VERSION" --repo "$REPO" --json assets -q '.assets[].name' 2>/dev/null \
+                  | grep -q -- "-windows-x64-installer.exe$"; then
+              echo "Déjà publié : rien à faire." | tee -a "$GITHUB_STEP_SUMMARY"
+              echo "mode=rien" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+            if gh issue list --repo "$REPO" --label auto-build-windows --state open \
+                 --search "\"Windows $VERSION prêt\" in:title" --json number -q '.[].number' | grep -q .; then
+              echo "Déjà construit, en attente de test (voir l'issue)." | tee -a "$GITHUB_STEP_SUMMARY"
+              echo "mode=rien" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+          fi
+          echo "mode=construire" >> "$GITHUB_OUTPUT"
+
+  etape_01:
+    needs: choix
+    if: needs.choix.outputs.mode == 'construire' || needs.choix.outputs.mode == 'reprendre'
+    uses: ./.github/workflows/build-windows-phase.yml
+    with:
+      helium_tag: ${{ needs.choix.outputs.tag }}
+      version: ${{ needs.choix.outputs.version }}
+      premiere: ${{ needs.choix.outputs.mode == 'construire' }}
+      source_run: ${{ inputs.reprendre || '' }}
+  etape_02:
+    needs: [choix, etape_01]
+    if: needs.etape_01.outputs.status == 'running'
+    uses: ./.github/workflows/build-windows-phase.yml
+    with:
+      helium_tag: ${{ needs.choix.outputs.tag }}
+      version: ${{ needs.choix.outputs.version }}
+  etape_03:
+    needs: [choix, etape_02]
+    if: needs.etape_02.outputs.status == 'running'
+    uses: ./.github/workflows/build-windows-phase.yml
+    with:
+      helium_tag: ${{ needs.choix.outputs.tag }}
+      version: ${{ needs.choix.outputs.version }}
+  etape_04:
+    needs: [choix, etape_03]
+    if: needs.etape_03.outputs.status == 'running'
+    uses: ./.github/workflows/build-windows-phase.yml
+    with:
+      helium_tag: ${{ needs.choix.outputs.tag }}
+      version: ${{ needs.choix.outputs.version }}
+  etape_05:
+    needs: [choix, etape_04]
+    if: needs.etape_04.outputs.status == 'running'
+    uses: ./.github/workflows/build-windows-phase.yml
+    with:
+      helium_tag: ${{ needs.choix.outputs.tag }}
+      version: ${{ needs.choix.outputs.version }}
+  etape_06:
+    needs: [choix, etape_05]
+    if: needs.etape_05.outputs.status == 'running'
+    uses: ./.github/workflows/build-windows-phase.yml
+    with:
+      helium_tag: ${{ needs.choix.outputs.tag }}
+      version: ${{ needs.choix.outputs.version }}
+  etape_07:
+    needs: [choix, etape_06]
+    if: needs.etape_06.outputs.status == 'running'
+    uses: ./.github/workflows/build-windows-phase.yml
+    with:
+      helium_tag: ${{ needs.choix.outputs.tag }}
+      version: ${{ needs.choix.outputs.version }}
+  etape_08:
+    needs: [choix, etape_07]
+    if: needs.etape_07.outputs.status == 'running'
+    uses: ./.github/workflows/build-windows-phase.yml
+    with:
+      helium_tag: ${{ needs.choix.outputs.tag }}
+      version: ${{ needs.choix.outputs.version }}
+  etape_09:
+    needs: [choix, etape_08]
+    if: needs.etape_08.outputs.status == 'running'
+    uses: ./.github/workflows/build-windows-phase.yml
+    with:
+      helium_tag: ${{ needs.choix.outputs.tag }}
+      version: ${{ needs.choix.outputs.version }}
+  etape_10:
+    needs: [choix, etape_09]
+    if: needs.etape_09.outputs.status == 'running'
+    uses: ./.github/workflows/build-windows-phase.yml
+    with:
+      helium_tag: ${{ needs.choix.outputs.tag }}
+      version: ${{ needs.choix.outputs.version }}
+
+  # Seulement à la demande (« publier »), après test sur un PC Windows.
+  publication:
+    needs: choix
+    if: needs.choix.outputs.mode == 'publier'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-paquet
+          path: paquet
+          run-id: ${{ inputs.publier }}
+          github-token: ${{ github.token }}
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          BLUELIUM_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          . paquet/meta.env
+          PAGE="docs/patch-notes/$VERSION.html"
+          [ -f "$PAGE" ] || { echo "::error::$PAGE absente de main (règle d'AGENTS.md)"; exit 1; }
+          grep -qi windows "$PAGE" \
+            || { echo "::error::$PAGE ne parle pas de Windows : la compléter avant de publier"; exit 1; }
+          BLUELIUM_VERSION=$VERSION BLUELIUM_SERIE=$SERIE BLUELIUM_NOM="$NOM" \
+            scripts/publish-windows.sh paquet
+          echo "Publié : Bluelium $VERSION (Windows x64)" | tee -a "$GITHUB_STEP_SUMMARY"
+          gh issue list --repo "$BLUELIUM_REPO" --label auto-build-windows --state open \
+            --json number -q '.[].number' | while read -r n; do
+            gh issue close "$n" --repo "$BLUELIUM_REPO" --comment "Publié : Bluelium $VERSION (Windows x64)."
+          done
+
+  bilan:
+    needs: [choix, etape_01, etape_02, etape_03, etape_04, etape_05,
+            etape_06, etape_07, etape_08, etape_09, etape_10]
+    if: >-
+      always() && needs.choix.outputs.mode != 'rien' &&
+      needs.choix.outputs.mode != 'publier'
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          RUN_ID: ${{ github.run_id }}
+          VERSION: ${{ needs.choix.outputs.version }}
+          TAG: ${{ needs.choix.outputs.tag }}
+          RESULTATS: ${{ join(needs.*.result, ' ') }}
+          STATUTS: ${{ join(needs.*.outputs.status, ' ') }}
+        run: |
+          # Pas de -e : un grep sans résultat ne doit pas arrêter le bilan.
+          set +e -uo pipefail
+          gh label create auto-build-windows --repo "$REPO" --color 0078D4 \
+            --description "Auto-build Windows (GitHub Actions)" 2>/dev/null || true
+          ouvertes() {
+            gh issue list --repo "$REPO" --label auto-build-windows --state open \
+              --json number,title -q '.[] | "\(.number)\t\(.title)"'
+          }
+
+          # Annulé à la main : rien à signaler.
+          case " $RESULTATS " in *" cancelled "*) exit 0 ;; esac
+
+          case " $STATUTS " in
+            *" finished "*)
+              ouvertes | grep -v "prêt à tester" | while IFS=$'\t' read -r n _; do
+                gh issue close "$n" --repo "$REPO" --comment "Réparé : Bluelium $VERSION (Windows) construit. $RUN_URL"
+              done
+              gh issue create --repo "$REPO" --label auto-build-windows \
+                --title "Windows $VERSION prêt à tester" --body "L'installateur de Bluelium $VERSION (Windows x64, non signé) est construit : $RUN_URL (artefact **windows-paquet**, gardé 14 jours).
+
+          Il n'est pas publié. Pour le publier :
+          1. L'installer et le tester sur un PC Windows (SmartScreen : « Informations complémentaires » → « Exécuter quand même »).
+          2. Ajouter Windows à \`docs/patch-notes/$VERSION.html\` (ce qui a été vu marcher), la faire valider, la pousser sur main.
+          3. Actions → Build Windows → Run workflow, **publier** = \`$RUN_ID\`."
+              exit 0 ;;
+          esac
+
+          case " $RESULTATS " in
+            *" failure "*) RAISON="la préparation (série Bluelium : voir l'artefact windows-serie) ou la compilation a échoué" ;;
+            *) RAISON="les 10 étapes n'ont pas suffi à finir la compilation" ;;
+          esac
+          CORPS="Build Windows de Bluelium ${VERSION:-?} (Helium ${TAG:-?}) : $RAISON.
+
+          Run : $RUN_URL
+          Jobs : $RESULTATS
+
+          Reprendre depuis l'état gardé : Actions → Build Windows → Run workflow, **reprendre** = \`$RUN_ID\`."
+          N=$(ouvertes | grep -v "prêt à tester" | head -1 | cut -f1)
+          if [ -n "$N" ]; then
+            gh issue comment "$N" --repo "$REPO" --body "$CORPS"
+          else
+            gh issue create --repo "$REPO" --label auto-build-windows \
+              --title "Auto-build Windows : échec ${VERSION:-}" --body "$CORPS"
+          fi
+          exit 1

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Applique toute la série Bluelium sur un arbre Helium et régénère les patchs.
 
-Usage : apply-series.py <src> <dépôt bluelium> <dossier des .patch générés> [linux|mac]
+Usage : apply-series.py <src> <dépôt bluelium> <dossier des .patch générés> [linux|mac|win]
 
 La plateforme (linux par défaut) écarte les lignes de specs/SERIES réservées
 à une autre plateforme (troisième colonne facultative).
@@ -9,7 +9,8 @@ La plateforme (linux par défaut) écarte les lignes de specs/SERIES réservées
 Lit specs/SERIES : chaque spec passe par apply_spec.py (qui écrit le .patch
 correspondant) ; une ligne « - » applique le .patch figé de patches/glyphe/
 avec `patch -p1` et le recopie tel quel. À lancer après toutes les étapes de
-Helium. S'arrête au premier échec en indiquant le patch fautif ; avec
+Helium. Le programme patch peut être choisi par PATCH_BIN (Windows : celui
+de l'arbre Chromium). S'arrête au premier échec en indiquant le patch fautif ; avec
 KEEP_GOING=1, continue et liste tous les échecs à la fin (test d'une nouvelle
 version de Helium : tools/test-serie-helium.sh).
 Remplace ensuite le nom affiché « Helium » par « Bluelium » (tools/rename-product.py).
@@ -22,8 +23,9 @@ from pathlib import Path
 
 src, repo, out = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3])
 platform = sys.argv[4] if len(sys.argv) > 4 else 'linux'
-if platform not in ('linux', 'mac'):
-  sys.exit(f'plateforme inconnue : {platform} (linux ou mac)')
+PLATFORMS = ('linux', 'mac', 'win')
+if platform not in PLATFORMS:
+  sys.exit(f'plateforme inconnue : {platform} (linux, mac ou win)')
 out.mkdir(parents=True, exist_ok=True)
 apply_spec = repo / 'tools' / 'apply_spec.py'
 
@@ -32,7 +34,7 @@ for line in (repo / 'specs' / 'SERIES').read_text().splitlines():
   line = line.split('#', 1)[0].strip()
   if line:
     patch, spec, *rest = line.split()
-    platforms = rest[0].split(',') if rest else ['linux', 'mac']
+    platforms = rest[0].split(',') if rest else PLATFORMS
     if platform in platforms:
       entries.append((patch, spec))
 
@@ -52,7 +54,7 @@ for index, (patch, spec) in enumerate(entries, 1):
   if spec == '-':
     fixed = repo / 'patches' / 'glyphe' / patch
     result = subprocess.run(
-        ['patch', '-p1', '--forward', '--no-backup-if-mismatch', '-d', str(src),
+        [os.environ.get('PATCH_BIN', 'patch'), '-p1', '--forward', '--no-backup-if-mismatch', '-d', str(src),
          '-i', str(fixed)], capture_output=True, text=True)
     if result.returncode != 0:
       fail(f'{label} : ÉCHEC du patch figé\n{result.stdout[-2000:]}')

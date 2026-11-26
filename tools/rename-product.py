@@ -87,7 +87,7 @@ def write_xml(path, original, root):
   start = re.search(rf'<{re.escape(root.tag)}[\s>]', original).start()
   body = xml.tostring(root, encoding='unicode')
   path.write_text(original[:start] + body.replace('!!dollar!!', '&#36;') + '\n',
-                  encoding='utf-8')
+                  encoding='utf-8', newline='\n')
 
 
 def parser():

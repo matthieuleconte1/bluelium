@@ -40,7 +40,8 @@ page, animations.
 - **Largely written with AI agents.** I direct, review and test in daily use.
 - **Unsigned by Apple.** The macOS app uses a self-signed certificate, without
   notarization.
-- **No Windows build.**
+- **Windows: in progress.** An x64 installer is built on GitHub Actions but
+  not published until it has been tested.
 
 For a stable browser maintained by a team, use
 [Helium](https://github.com/imputnet/helium).
@@ -171,6 +172,7 @@ Each build:
 |---|---|---|
 | Linux | Build machine, nightly | AppImage and `.tar.zst`, x86_64 (arm64 builds untested) |
 | macOS | GitHub Actions, nightly | Signed `.dmg` and Sparkle appcast |
+| Windows | GitHub Actions, nightly | Unsigned x64 installer, published by hand after testing |
 
 Releases are named `v<Helium version>-<color>`, for example
 `v0.22.5.1-vert-celadon`. The color identifies the Bluelium patch series: same
@@ -261,6 +263,27 @@ base64 -i bluelium.p12 | gh secret set MACOS_SIGN_P12   # "Bluelium Code Signing
 gh secret set MACOS_SIGN_P12_PASSWORD
 gh secret set SPARKLE_PRIVATE_KEY < ~/.config/bluelium/sparkle-private-key
 ```
+
+</details>
+
+<details>
+<summary><b>Windows, on GitHub Actions</b> (nightly, x64)</summary>
+
+<br>
+
+`.github/workflows/build-windows.yml` builds the latest
+[helium-windows](https://github.com/imputnet/helium-windows) with the series
+for `win` (`scripts/build-windows.py`), in jobs under 6 h like macOS.
+
+- **Not published automatically.** A finished build opens an
+  `auto-build-windows` issue "Windows <version> prêt à tester" linking the
+  installer (run artifact `windows-paquet`, 14 days). After testing, add
+  Windows to `docs/patch-notes/<version>.html`, push it, then run the workflow
+  with **publier** set to the run ID.
+- **On failure** an `auto-build-windows` issue is opened. Resume with
+  **reprendre** set to the run ID. A manual cancel opens nothing.
+- Unsigned (SmartScreen asks for confirmation), no built-in updates yet.
+  Installs to `%LOCALAPPDATA%\Bluelium`, alongside Helium.
 
 </details>
 

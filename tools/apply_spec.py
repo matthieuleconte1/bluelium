@@ -8,6 +8,7 @@ Une édition peut porter un 4e élément, un texte qui signale que Helium fait
 déjà la même chose : s'il est dans le fichier et que l'ancien motif n'y est
 plus, l'édition est sautée (la spec vaut ainsi avant et après le changement
 de Helium).
+Lit et écrit en UTF-8 avec des fins de ligne LF, sur Windows comme ailleurs.
 """
 import difflib
 import runpy
@@ -33,7 +34,7 @@ for index, (path, old, new, upstream) in enumerate(edits):
   # application partielle laissait des doublons à la relance).
   text = current.get(path)
   if text is None:
-    text = (src / path).read_text()
+    text = (src / path).read_text(encoding='utf-8')
     originals[path] = text
   if new in text:
     current[path] = text
@@ -50,11 +51,11 @@ for index, (path, old, new, upstream) in enumerate(edits):
 
 for path, text in current.items():
   if text != originals[path]:
-    (src / path).write_text(text)
+    (src / path).write_text(text, encoding='utf-8', newline='\n')
 
 for path, content in new_files.items():
   (src / path).parent.mkdir(parents=True, exist_ok=True)
-  (src / path).write_text(content)
+  (src / path).write_text(content, encoding='utf-8', newline='\n')
 
 out = []
 for path, content in new_files.items():
@@ -64,8 +65,8 @@ for path in dict.fromkeys(p for p, _, _, _ in edits):
   for index, (p2, old, new, _) in enumerate(edits):
     if p2 == path and index not in skipped and new in before:
       before = before.replace(new, old, 1)
-  after = (src / path).read_text()
+  after = (src / path).read_text(encoding='utf-8')
   out += difflib.unified_diff(before.splitlines(True), after.splitlines(True),
                               'a/' + path, 'b/' + path, n=3)
-Path(patch_out).write_text(''.join(out))
+Path(patch_out).write_text(''.join(out), encoding='utf-8', newline='\n')
 print('OK', patch_out, len(new_files) + len(dict.fromkeys(p for p, _, _, _ in edits)), 'fichiers')

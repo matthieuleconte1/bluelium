@@ -1,0 +1,161 @@
+# Bluelium : une étape du build Windows (appelée par build-windows.yml).
+#
+# Première étape : clone helium-windows, prépare les sources avec la série
+# Bluelium (scripts/build-windows.py prepare). Étapes suivantes : reprennent
+# l'arbre de build de l'étape précédente (artefact windows-etat). Toutes
+# compilent tant que le job a du temps, puis renvoient l'état
+# (status=running) ou, si la compilation est finie, font l'installateur
+# (artefact windows-paquet, status=finished).
+name: Étape de build Windows
+
+on:
+  workflow_call:
+    inputs:
+      helium_tag:
+        required: true
+        type: string
+      version:
+        required: true
+        type: string
+      premiere:
+        description: Préparer les sources (sinon reprendre l'état)
+        type: boolean
+        default: false
+      source_run:
+        description: Run d'où vient l'état (vide = ce run)
+        type: string
+        default: ''
+    outputs:
+      status:
+        value: ${{ jobs.etape.outputs.status }}
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  HW: C:/helium-windows
+  PYTHONUTF8: '1'
+  # Un job GitHub dure au plus 6 h ; RESERVE_MIN pour emballer et envoyer.
+  MINUTES: '360'
+  RESERVE_MIN: '50'
+
+jobs:
+  etape:
+    runs-on: windows-2025
+    timeout-minutes: 360
+    outputs:
+      status: ${{ steps.build.outputs.status }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - id: debut
+        run: echo "epoch=$(date +%s)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          path: bluelium
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: helium-windows ${{ inputs.helium_tag }}
+        run: |
+          set -euxo pipefail
+          git config --global core.autocrlf false
+          git config --global core.symlinks true
+          git clone --quiet --depth 1 --branch '${{ inputs.helium_tag }}' \
+            --recurse-submodules https://github.com/imputnet/helium-windows "$HW"
+          python -m pip install --quiet requests Pillow pyyaml
+      # Le SDK Windows que Helium installe pour cette version (lu dans son
+      # action prepare-environment, pour suivre ses changements).
+      - name: SDK Windows
+        run: |
+          set -euo pipefail
+          python - "$HW/.github/actions/prepare-environment/action.yml" > "$RUNNER_TEMP/sdk.ps1" <<'PY'
+          import sys, yaml
+          steps = yaml.safe_load(open(sys.argv[1], encoding='utf-8'))['runs']['steps']
+          print(next(s['run'] for s in steps if 'SDK' in s.get('name', '')))
+          PY
+          cat "$RUNNER_TEMP/sdk.ps1"
+          pwsh -NoProfile -File "$RUNNER_TEMP/sdk.ps1"
+
+      - if: inputs.premiere
+        name: Sources Helium + série Bluelium, configuration
+        run: |
+          set -euo pipefail
+          python bluelium/scripts/build-windows.py prepare "$HW" bluelium '${{ inputs.version }}'
+      - if: always() && inputs.premiere
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-serie
+          path: |
+            C:\helium-windows\build\series.log
+            C:\helium-windows\build\patches-*\
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - if: ${{ !inputs.premiere }}
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-etat
+          path: C:\etat-recu
+          run-id: ${{ inputs.source_run || github.run_id }}
+          github-token: ${{ github.token }}
+      - if: ${{ !inputs.premiere }}
+        name: Déballe l'état
+        run: |
+          set -euxo pipefail
+          mkdir -p "$HW/build"
+          7z x -y -o"$HW/build" C:/etat-recu/etat.zip >/dev/null
+          rm -rf C:/etat-recu
+          cat "$HW/build/meta.env"
+
+      - id: build
+        name: Compilation
+        env:
+          JOBS: ${{ vars.WINDOWS_JOBS || '4' }}
+        run: |
+          set -uo pipefail
+          echo "status=running" >> "$GITHUB_OUTPUT"
+          python bluelium/scripts/build-windows.py compile "$HW" '${{ steps.debut.outputs.epoch }}' "$MINUTES"
+          code=$?
+          case $code in
+            0)  echo "status=finished" >> "$GITHUB_OUTPUT" ;;
+            42) echo "Temps écoulé : la suite au job suivant." ;;
+            *)  echo "::error::la compilation a échoué (code $code)"; exit "$code" ;;
+          esac
+
+      - id: paquet
+        if: steps.build.outputs.status == 'finished'
+        name: Installateur
+        run: python bluelium/scripts/build-windows.py package "$HW" C:/paquet
+      - if: steps.paquet.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-paquet
+          path: C:\paquet\
+          retention-days: 14
+          overwrite: true
+
+      # Pas fini (ou paquet raté) : l'état pour l'étape suivante ou une reprise.
+      - id: emballe
+        if: >-
+          !cancelled() && steps.build.outcome != 'skipped' &&
+          (steps.build.outputs.status != 'finished' || steps.paquet.outcome != 'success')
+        name: Emballe l'état
+        run: |
+          set -euxo pipefail
+          mkdir -p C:/etat
+          cd "$HW/build"
+          7z a -tzip C:/etat/etat.zip src meta.env series.log -mx=3 -mtc=on >/dev/null
+          ls -la C:/etat
+      - if: steps.emballe.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-etat
+          path: C:\etat\
+          retention-days: 5
+          compression-level: 0
+          overwrite: true
