@@ -346,7 +346,8 @@ jobs:
           PUBLIE: ${{ needs.publication.outputs.publie }}
           PUBLICATION: ${{ needs.publication.result }}
         run: |
-          set -uo pipefail
+          # Pas de -e : un grep sans résultat ne doit pas arrêter le bilan.
+          set +e -uo pipefail
           gh label create auto-build-macos --repo "$REPO" --color B60205 \
             --description "Auto-build macOS (GitHub Actions)" 2>/dev/null || true
           ouvertes() {
@@ -395,7 +396,7 @@ jobs:
           Jobs : $RESULTATS
 
           Reprendre depuis l'état gardé : Actions → Build macOS → Run workflow, **reprendre** = \`$RUN_ID\`."
-          N=$(ouvertes | grep -v "prêt : page" | head -1 | cut -f1)
+          N=$(ouvertes | grep -v "prêt : page" | head -1 | cut -f1 || true)
           if [ -n "$N" ]; then
             gh issue comment "$N" --repo "$REPO" --body "$CORPS"
           else
