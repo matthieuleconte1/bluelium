@@ -69,5 +69,4 @@ extensions-group.patch        extensions_group_spec.py
 split-tab-hover.patch         split_tab_hover_spec.py
 newtab-tab.patch              newtab_tab_spec.py
 toolbar-declutter.patch       toolbar_declutter_spec.py
-quiet-controls.patch          quiet_controls_spec.py
 app-menu-dots.patch           app_menu_dots_spec.py
