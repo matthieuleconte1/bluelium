@@ -4,15 +4,15 @@
        self->pending_target_max_lum_.value_or(self->sdr_max_luminance_nits_);
    self->hdr_max_luminance_relative_ = max_lum / self->sdr_max_luminance_nits_;
  
-+  // Bluelium : un écran décrit en gamma 2.2 (KWin, mutter) affiche le sRGB
-+  // tel quel. Sans cela, Chromium convertit les pages du sRGB par morceaux
-+  // vers le gamma 2.2 et éclaircit les sombres, là où Firefox et le
-+  // compositeur affichent les valeurs telles quelles. Toutes primaires :
-+  // KWin donne des primaires élargies en HDR (BT.2020) et un point blanc
-+  // chaud avec la Couleur de nuit.
-+  if (self->pending_transfer_id_ == gfx::ColorSpace::TransferID::GAMMA22) {
++  // Bluelium : un écran SDR décrit en gamma 2.2 (KWin, mutter) affiche le
++  // sRGB tel quel. Sans cela, Chromium convertit les pages du sRGB par
++  // morceaux vers le gamma 2.2 et éclaircit les sombres, là où Firefox et
++  // le compositeur affichent les valeurs telles quelles. Toutes primaires
++  // (point blanc chaud avec la Couleur de nuit). En HDR (marge au-dessus
++  // du blanc SDR), rien ne change : Chromium garde sa sortie HDR.
++  if (self->pending_transfer_id_ == gfx::ColorSpace::TransferID::GAMMA22 &&
++      self->hdr_max_luminance_relative_ <= 1.f) {
 +    self->pending_transfer_id_ = gfx::ColorSpace::TransferID::SRGB;
-+    self->hdr_max_luminance_relative_ = 1.f;
 +  }
 +
    bool is_hdr = self->hdr_max_luminance_relative_ > 1.f;

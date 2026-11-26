@@ -15,13 +15,16 @@ considère en sRGB par morceaux, vers ce gamma 2.2 (le code de Chromium le
 signale, sa seule parade est --force-color-profile).
 
 Correction, en deux points :
-- un écran décrit en gamma 2.2 (quelles que soient ses primaires : BT.2020 en
-  HDR, point blanc chaud avec la Couleur de nuit) est traité comme un écran
-  SDR à courbe sRGB : aucune conversion de courbe des pages ;
+- un écran SDR décrit en gamma 2.2 (quelles que soient ses primaires, point
+  blanc chaud avec la Couleur de nuit compris) est traité comme un écran à
+  courbe sRGB : aucune conversion de courbe des pages. Un écran en HDR (KWin :
+  gamma 2.2, BT.2020, luminosité max au-dessus du blanc SDR) n'est pas
+  touché, sinon Chromium le croit SDR et coupe sa sortie HDR (vidéos et
+  images HDR ternes) ;
 - une surface en sRGB est déclarée en gamma 2.2 quand le compositeur la gère
   (KWin ne propose pas la courbe « srgb »).
 Résultat identique à --disable-features=WaylandWpColorManagerV1, mesuré égal
-à Zen. Les écrans décrits en PQ ou HLG ne sont pas touchés.
+à Zen. Les écrans décrits en PQ ou HLG ne sont pas touchés non plus.
 """
 
 W = 'ui/ozone/platform/wayland/host/wayland_wp_color_manager.cc'
@@ -36,15 +39,15 @@ EDITS = [
    '  bool is_hdr = self->hdr_max_luminance_relative_ > 1.f;\n',
    '  self->hdr_max_luminance_relative_ = max_lum / self->sdr_max_luminance_nits_;\n'
    '\n'
-   '  // Bluelium : un écran décrit en gamma 2.2 (KWin, mutter) affiche le sRGB\n'
-   '  // tel quel. Sans cela, Chromium convertit les pages du sRGB par morceaux\n'
-   '  // vers le gamma 2.2 et éclaircit les sombres, là où Firefox et le\n'
-   '  // compositeur affichent les valeurs telles quelles. Toutes primaires :\n'
-   '  // KWin donne des primaires élargies en HDR (BT.2020) et un point blanc\n'
-   '  // chaud avec la Couleur de nuit.\n'
-   '  if (self->pending_transfer_id_ == gfx::ColorSpace::TransferID::GAMMA22) {\n'
+   '  // Bluelium : un écran SDR décrit en gamma 2.2 (KWin, mutter) affiche le\n'
+   '  // sRGB tel quel. Sans cela, Chromium convertit les pages du sRGB par\n'
+   '  // morceaux vers le gamma 2.2 et éclaircit les sombres, là où Firefox et\n'
+   '  // le compositeur affichent les valeurs telles quelles. Toutes primaires\n'
+   '  // (point blanc chaud avec la Couleur de nuit). En HDR (marge au-dessus\n'
+   '  // du blanc SDR), rien ne change : Chromium garde sa sortie HDR.\n'
+   '  if (self->pending_transfer_id_ == gfx::ColorSpace::TransferID::GAMMA22 &&\n'
+   '      self->hdr_max_luminance_relative_ <= 1.f) {\n'
    '    self->pending_transfer_id_ = gfx::ColorSpace::TransferID::SRGB;\n'
-   '    self->hdr_max_luminance_relative_ = 1.f;\n'
    '  }\n'
    '\n'
    '  bool is_hdr = self->hdr_max_luminance_relative_ > 1.f;\n'),
