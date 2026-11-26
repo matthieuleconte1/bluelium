@@ -152,12 +152,12 @@ if [ "${PGO:-true}" = false ]; then
   echo 'chrome_pgo_phase=0' >> "$_out_dir/args.gn"
 fi
 # Mises à jour intégrées (Sparkle) : clé publique Bluelium, vérification
-# automatique toutes les 6 h. La clé privée reste dans le trousseau.
+# automatique toutes les 6 h (toujours active depuis Helium 0.22.3.1 quand
+# Sparkle est activé). La clé privée reste dans le trousseau.
 sed -i '' '/^enable_sparkle=/d; /^sparkle_/d' "$_out_dir/args.gn"
 cat >> "$_out_dir/args.gn" <<GN
 enable_sparkle=true
 sparkle_ed_key="$(cat "$B/autobuild/sparkle-public-key")"
-sparkle_automatic_checks=true
 sparkle_check_interval=21600
 GN
 gn_gen
