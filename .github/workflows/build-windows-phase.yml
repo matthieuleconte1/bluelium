@@ -52,6 +52,24 @@ jobs:
     steps:
       - id: debut
         run: echo "epoch=$(date +%s)" >> "$GITHUB_OUTPUT"
+      # Runner gratuit : on libère C: (logiciels préinstallés inutiles ici) et
+      # l'état part sur le disque qui a le plus de place.
+      - name: Place disque
+        run: |
+          set -uo pipefail
+          df -h /c /d 2>/dev/null || true
+          for d in C:/Android 'C:/Program Files (x86)/Android' C:/hostedtoolcache/windows/go \
+                   C:/hostedtoolcache/windows/Ruby C:/hostedtoolcache/windows/PyPy \
+                   C:/hostedtoolcache/windows/CodeQL C:/hostedtoolcache/windows/Java_Temurin-Hotspot_jdk \
+                   C:/selenium C:/tools/php C:/Strawberry C:/msys64 C:/rtools45 C:/ghcup C:/mingw64; do
+            [ -e "$d" ] && cmd //c rmdir //s //q "$(cygpath -w "$d")" 2>/dev/null
+          done
+          docker system prune -a -f >/dev/null 2>&1 || true
+          ETAT=C:/etat
+          if [ -d /d ] && [ "$(df --output=avail /d | tail -1)" -gt "$(df --output=avail /c | tail -1)" ]; then ETAT=D:/etat; fi
+          echo "ETAT=$ETAT" >> "$GITHUB_ENV"
+          echo "État dans $ETAT"
+          df -h /c /d 2>/dev/null || true
       - uses: actions/checkout@v4
         with:
           path: bluelium
@@ -121,6 +139,7 @@ jobs:
           echo "status=running" >> "$GITHUB_OUTPUT"
           python bluelium/scripts/build-windows.py compile "$HW" '${{ steps.debut.outputs.epoch }}' "$MINUTES"
           code=$?
+          df -h /c /d 2>/dev/null || true
           case $code in
             0)  echo "status=finished" >> "$GITHUB_OUTPUT" ;;
             42) echo "Temps écoulé : la suite au job suivant." ;;
@@ -147,15 +166,15 @@ jobs:
         name: Emballe l'état
         run: |
           set -euxo pipefail
-          mkdir -p C:/etat
+          mkdir -p "$ETAT"
           cd "$HW/build"
-          7z a -tzip C:/etat/etat.zip src meta.env series.log -mx=3 -mtc=on >/dev/null
-          ls -la C:/etat
+          7z a -tzip "$ETAT/etat.zip" src meta.env series.log -mx=3 -mtc=on >/dev/null
+          ls -la "$ETAT"
       - if: steps.emballe.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: windows-etat
-          path: C:\etat\
+          path: ${{ env.ETAT }}/etat.zip
           retention-days: 5
           compression-level: 0
           overwrite: true

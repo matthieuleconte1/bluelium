@@ -20,6 +20,7 @@ Usage (depuis n'importe où) :
       (+ .sha256), à partir du script NSIS de Helium renommé.
 
 Variables : JOBS (tâches de compilation), RESERVE_MIN.
+Sans symboles de débogage (symbol_level=0) : place disque des runners gratuits.
 Non signé, sans mise à jour intégrée (WinSparkle coupé : pas de clé).
 """
 import configparser
@@ -27,6 +28,7 @@ import hashlib
 import io
 import os
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -54,7 +56,7 @@ def meta(root):
 def prepare(root, repo, version):
   repo = Path(repo).resolve()  # avant helium(), qui change de dossier
   root = helium(root)
-  from scripts import BUILD_DIR, SOURCE_TREE, gn, remoteexec, source
+  from scripts import BUILD_DIR, DOWNLOAD_CACHE, OUT_DIR, SOURCE_TREE, gn, remoteexec, source
   from scripts.toolchain import make_tmp_paths
   from _common import USE_REGISTRY, ExtractorEnum
 
@@ -80,6 +82,9 @@ def prepare(root, repo, version):
   make_tmp_paths()
   source.fetch(True, False, {ExtractorEnum.SEVENZIP: USE_REGISTRY,
                              ExtractorEnum.WINRAR: USE_REGISTRY})
+  # Archives déjà extraites : place libre pour la compilation (runners
+  # GitHub gratuits, disque limité).
+  shutil.rmtree(DOWNLOAD_CACHE, ignore_errors=True)
   source.prune()
   source.apply_patches()
   source.substitute()
@@ -102,6 +107,13 @@ def prepare(root, repo, version):
 
   remoteexec.configure()
   gn.write_args(False, False)
+  # Sans symboles de débogage : les PDB de symbol_level=1 ne tiennent pas sur
+  # le disque d'un runner gratuit (Helium compile sur de gros runners Depot).
+  args_gn = OUT_DIR / 'args.gn'
+  text = args_gn.read_text(encoding='utf-8')
+  if 'symbol_level=1\n' not in text:
+    sys.exit('ÉCHEC : args.gn de Helium sans symbol_level=1, à revoir')
+  args_gn.write_text(text.replace('\nsymbol_level=1\n', '\nsymbol_level=0\n'), encoding='utf-8')
   gn.gen()
 
   couleur = [sys.executable, str(repo / 'tools' / 'couleur.py'), str(repo)]
