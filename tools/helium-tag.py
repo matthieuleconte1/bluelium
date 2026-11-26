@@ -31,6 +31,7 @@ pré-versions (pre-release GitHub) ne comptent pas. La veille GitHub
 Exemple : python3 tools/helium-tag.py choose imputnet/helium-macos 0.21.2.1
 """
 import json
+import os
 import re
 import sys
 import urllib.request
@@ -40,10 +41,16 @@ TAG_RE = re.compile(r'^v?(\d+(?:\.\d+)+)')
 
 
 def releases(repo):
+    headers = {'Accept': 'application/vnd.github+json',
+               'User-Agent': 'bluelium-build'}
+    # Sans jeton, GitHub limite à 60 requêtes/h par IP, quota partagé par
+    # tous les runners d'Actions : la veille tombait en 403.
+    token = os.environ.get('GH_TOKEN') or os.environ.get('GITHUB_TOKEN')
+    if token:
+        headers['Authorization'] = f'Bearer {token}'
     req = urllib.request.Request(
         f'https://api.github.com/repos/{repo}/releases?per_page=50',
-        headers={'Accept': 'application/vnd.github+json',
-                 'User-Agent': 'bluelium-build'})
+        headers=headers)
     with urllib.request.urlopen(req, timeout=20) as r:
         return [x for x in json.load(r) if not x.get('draft')]
 
