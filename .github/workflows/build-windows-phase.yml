@@ -126,7 +126,9 @@ jobs:
         run: |
           set -euxo pipefail
           mkdir -p "$HW/build"
-          7z x -y -o"$HW/build" C:/etat-recu/etat.zip >/dev/null
+          code=0
+          7z x -y -o"$HW/build" C:/etat-recu/etat.zip >/dev/null || code=$?
+          [ "$code" -le 1 ] || { echo "::error::7z x a échoué (code $code)"; exit "$code"; }
           rm -rf C:/etat-recu
           cat "$HW/build/meta.env"
 
@@ -137,8 +139,10 @@ jobs:
         run: |
           set -uo pipefail
           echo "status=running" >> "$GITHUB_OUTPUT"
-          python bluelium/scripts/build-windows.py compile "$HW" '${{ steps.debut.outputs.epoch }}' "$MINUTES"
-          code=$?
+          # Le shell des steps tourne en bash -e : sans « || », le code 42
+          # (temps écoulé) arrêterait le step en échec avant le case.
+          code=0
+          python bluelium/scripts/build-windows.py compile "$HW" '${{ steps.debut.outputs.epoch }}' "$MINUTES" || code=$?
           df -h /c /d 2>/dev/null || true
           case $code in
             0)  echo "status=finished" >> "$GITHUB_OUTPUT" ;;
@@ -168,7 +172,14 @@ jobs:
           set -euxo pipefail
           mkdir -p "$ETAT"
           cd "$HW/build"
-          7z a -tzip "$ETAT/etat.zip" src meta.env series.log -mx=3 -mtc=on >/dev/null
+          # 7z rend 1 pour de simples avertissements : liens symboliques des
+          # sources (données de test, liens cassés) qu'il ne peut pas lire.
+          # Rien qui serve à la compilation ; seul un code >= 2 est une erreur.
+          code=0
+          7z a -tzip "$ETAT/etat.zip" src meta.env series.log -mx=3 -mtc=on >/dev/null || code=$?
+          [ "$code" -le 1 ] || { echo "::error::7z a échoué (code $code)"; exit "$code"; }
+          [ "$code" -eq 0 ] || echo "::warning::7z : fichiers ignorés (liens symboliques), voir le log"
+          7z t "$ETAT/etat.zip" >/dev/null
           ls -la "$ETAT"
       - if: steps.emballe.outcome == 'success'
         uses: actions/upload-artifact@v4
