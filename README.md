@@ -10,7 +10,7 @@
 
 <p align="center">
   <img alt="macOS Apple Silicon" src="https://img.shields.io/badge/macOS-Apple%20Silicon-3450d1?style=flat-square">
-  <img alt="Linux x86_64" src="https://img.shields.io/badge/Linux-x86__64-3450d1?style=flat-square">
+  <img alt="Linux x86_64 · arm64" src="https://img.shields.io/badge/Linux-x86__64%20%C2%B7%20arm64-3450d1?style=flat-square">
   <img alt="Based on Helium" src="https://img.shields.io/badge/base-Helium-555e8a?style=flat-square">
   <img alt="Chromium 158" src="https://img.shields.io/badge/Chromium-158-555e8a?style=flat-square">
   <img alt="License GPL-3.0" src="https://img.shields.io/badge/license-GPL--3.0-555e8a?style=flat-square">
