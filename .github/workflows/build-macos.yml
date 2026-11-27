@@ -362,7 +362,9 @@ jobs:
             exit 0
           fi
           case " $RESULTATS " in
-            *" failure "*|*" cancelled "*) ;;
+            *" failure "*) ;;
+            # Annulé à la main : ni reprise automatique ni issue.
+            *" cancelled "*) echo "Run annulé : rien à faire." | tee -a "$GITHUB_STEP_SUMMARY"; exit 0 ;;
             *) # Pas d'échec : fini (paquet publié ou en attente de sa page),
                # sauf si les 10 étapes n'ont pas suffi (traité ci-dessous).
                case "$STATUTS" in *finished*) exit 0 ;; esac
